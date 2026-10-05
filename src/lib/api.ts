@@ -92,9 +92,9 @@ export function formatDateTime(dateStr?: string | null): string {
 }
 
 export function getCompanyLogo(name: string, domain?: string | null): string {
-  if (domain) return `https://logo.clearbit.com/${domain}`
-  const cleanName = name.toLowerCase().replace(/[^a-z0-9]/g, '')
-  return `https://logo.clearbit.com/${cleanName}.com`
+  // Use Google's favicon service to fetch company logos directly from Google
+  const finalDomain = domain || `${name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`
+  return `https://www.google.com/s2/favicons?domain=${finalDomain}&sz=128`
 }
 
 export function avatarColor(name: string): string {

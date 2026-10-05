@@ -55,3 +55,36 @@ Stage Summary:
 - All major features working: Student registration, dual login flows, dashboard analytics, drive management, round tracking, recommendations with AI matching, reports export, audit logs, settings
 - Demo credentials provided on login screens
 - Production-ready: responsive, accessible, role-based (students blocked from admin routes), persistent data
+
+---
+Task ID: 10
+Agent: Main (Orchestrator)
+Task: Add logout button to topbar + rework Create Drive dialog (company name text input, auto-fetch logo from Google, eligibility defaults to skills + 3rd/4th year)
+
+Work Log:
+- Added a visible "Logout" button to the topbar of both Admin and Student layouts (desktop shows text+icon, mobile shows icon-only). Kept the existing sidebar logout button too.
+- Reworked the Create Drive dialog in src/components/admin/AdminDrives.tsx:
+  - Replaced the Company dropdown with a text input where staff types the company name directly
+  - Added a live logo preview box that auto-fetches the company logo from Google as the staff types (debounced 500ms)
+  - Removed the separate "Logo Domain" field — domain is auto-derived from the company name
+  - Pre-selected Required Skills (eligibility criteria): Java, Python, SQL
+  - Pre-selected Eligible Years: 3rd Year AND 4th Year (was previously only 4th Year)
+  - Added a "Pre-filled with defaults" badge on the eligibility section
+  - Added a Sparkles icon + loading state on the Create Drive button
+- Updated the drives POST API route (/api/drives) to accept `companyName` (text) instead of requiring `companyId`:
+  - Looks up existing company by name; reuses if found (and backfills the Google logo if missing)
+  - If not found, creates a new company on the fly with the logo auto-fetched from Google
+  - Then creates the drive with default 5 rounds
+- Switched the logo source from Clearbit (unreachable in this sandbox) to Google's favicon service (https://www.google.com/s2/favicons?domain=DOMAIN&sz=128) — directly indexes company logos from Google
+- Updated getCompanyLogo() helper in src/lib/api.ts to use Google's favicon service
+- Updated /api/companies POST route to default new company logos to Google's favicon service
+- Updated scripts/seed.ts to set logoUrl using Google's favicon service for all 8 seeded companies
+- Re-ran the seed script so all existing companies now have Google-sourced logos
+
+Stage Summary:
+- Logout button is now visible in the topbar (both admin & student) — desktop shows "Logout" text + icon, mobile shows icon-only, both with rose-colored hover state
+- Create Drive dialog: staff types company name → logo auto-fetched from Google → drive created with logo applied
+- Eligibility defaults: Required Skills (Java, Python, SQL) + 3rd & 4th Year pre-selected
+- All company logos now come from Google's favicon service (works in all environments)
+- Verified end-to-end: created "Test Drive 2026" for "Infosys" — logo fetched from google.com/s2/favicons, eligibility criteria = Java,Python,SQL, years = 3rd Year,4th Year
+- Lint passes clean (0 errors, 0 warnings)

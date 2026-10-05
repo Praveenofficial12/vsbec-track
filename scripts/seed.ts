@@ -91,9 +91,12 @@ async function main() {
   // Create companies
   const companyRecords = []
   for (const c of COMPANIES) {
+    // Auto-fetch logo from Google's favicon service
+    const logoUrl = `https://www.google.com/s2/favicons?domain=${c.logoDomain}&sz=128`
     const company = await db.company.create({
       data: {
         ...c,
+        logoUrl,
         description: `${c.name} is a leading ${c.industry.toLowerCase()} company offering excellent career opportunities.`,
         jobType: 'Full Time',
         eligibility: 'CGPA >= 6.5, No active backlogs',

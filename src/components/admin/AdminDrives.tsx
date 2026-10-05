@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useAppStore } from '@/lib/store'
-import { apiGet, apiPost, formatDate, STATUS_COLORS } from '@/lib/api'
+import { apiGet, apiPost, formatDate, STATUS_COLORS, getCompanyLogo } from '@/lib/api'
 import { AdminLayout } from './AdminLayout'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import {
   Target, Plus, Calendar, Briefcase, MapPin, Users, Building2, ChevronRight,
-  CheckCircle2, Clock, AlertCircle, Filter, X
+  CheckCircle2, Clock, AlertCircle, Filter, X, Search, Globe, Sparkles, Loader2
 } from 'lucide-react'
 import type { Drive, Company } from '@/lib/types'
 
@@ -24,6 +24,27 @@ const DEPARTMENTS = ['AI & DS', 'CSE', 'IT', 'ECE', 'EEE', 'MECH', 'CIVIL']
 const YEARS = ['1st Year', '2nd Year', '3rd Year', '4th Year']
 const CLASSES = ['A', 'B', 'C', 'D']
 const SKILLS = ['Java', 'Python', 'C', 'C++', 'JavaScript', 'React', 'SQL', 'MongoDB', 'Cloud']
+
+const EMPTY_FORM = {
+  companyName: '',
+  driveName: '',
+  driveDate: '',
+  applicationDeadline: '',
+  jobRole: '',
+  ctc: '',
+  location: '',
+  eligibleDepartments: [] as string[],
+  // Default to 3rd AND 4th Year as requested
+  eligibleYears: ['3rd Year', '4th Year'] as string[],
+  eligibleClasses: ['A', 'B', 'C', 'D'] as string[],
+  minCgpa: '6.5',
+  maxBacklogs: '0',
+  // Eligibility criteria defaults to skills as requested
+  requiredSkills: ['Java', 'Python', 'SQL'] as string[],
+  preferredSkills: [] as string[],
+  selectionProcess: 'Aptitude Test -> Technical Assessment -> Technical Interview -> HR Interview',
+  status: 'UPCOMING',
+}
 
 export function AdminDrives() {
   const setView = useAppStore((s) => s.setView)
@@ -33,13 +54,10 @@ export function AdminDrives() {
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState<any>({
-    companyId: '', driveName: '', driveDate: '', applicationDeadline: '', jobRole: '', ctc: '',
-    location: '', eligibleDepartments: [], eligibleYears: ['4th Year'], eligibleClasses: ['A','B','C','D'],
-    minCgpa: '6.5', maxBacklogs: '0', requiredSkills: [], preferredSkills: [],
-    selectionProcess: 'Aptitude Test -> Technical Assessment -> Technical Interview -> HR Interview',
-    status: 'UPCOMING',
-  })
+  const [form, setForm] = useState<any>({ ...EMPTY_FORM })
+  const [logoPreview, setLogoPreview] = useState<{ url: string; domain: string } | null>(null)
+  const [logoLoading, setLogoLoading] = useState(false)
+  const [creating, setCreating] = useState(false)
 
   const fetchDrives = async () => {
     setLoading(true)
@@ -57,6 +75,37 @@ export function AdminDrives() {
 
   useEffect(() => { fetchDrives() }, [statusFilter])
 
+  // Auto-fetch company logo from Google (Clearbit) as the staff types the company name
+  useEffect(() => {
+    if (!form.companyName || form.companyName.trim().length < 2) {
+      setLogoPreview(null)
+      return
+    }
+    const timeout = setTimeout(() => {
+      setLogoLoading(true)
+      const cleanName = form.companyName.trim()
+      const domain = cleanName
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '')
+        .replace(/^(the|pvt|ltd|private|limited|inc|corp|corporation|company|co)+$/, '')
+      const finalDomain = `${domain}.com`
+      // Google's favicon service - fetches company logos directly from Google's index
+      const url = `https://www.google.com/s2/favicons?domain=${finalDomain}&sz=128`
+      // Pre-load the image to verify it exists
+      const img = new Image()
+      img.onload = () => {
+        setLogoPreview({ url, domain: finalDomain })
+        setLogoLoading(false)
+      }
+      img.onerror = () => {
+        setLogoPreview(null)
+        setLogoLoading(false)
+      }
+      img.src = url
+    }, 500)
+    return () => clearTimeout(timeout)
+  }, [form.companyName])
+
   const toggleArr = (key: string, value: string) => {
     setForm(f => {
       const arr = f[key] || []
@@ -65,31 +114,40 @@ export function AdminDrives() {
   }
 
   const handleSubmit = async () => {
-    if (!form.companyId || !form.driveName || !form.driveDate) {
-      toast.error('Please fill in company, drive name and date')
+    if (!form.companyName || !form.driveName || !form.driveDate) {
+      toast.error('Please fill in company name, drive name and date')
       return
     }
+    setCreating(true)
     try {
       await apiPost('/api/drives', {
-        ...form,
+        companyName: form.companyName,
+        driveName: form.driveName,
+        driveDate: form.driveDate,
+        applicationDeadline: form.applicationDeadline,
+        jobRole: form.jobRole,
+        ctc: form.ctc,
+        location: form.location,
         eligibleDepartments: form.eligibleDepartments.join(','),
         eligibleYears: form.eligibleYears.join(','),
         eligibleClasses: form.eligibleClasses.join(','),
+        minCgpa: form.minCgpa,
+        maxBacklogs: form.maxBacklogs,
         requiredSkills: form.requiredSkills.join(','),
         preferredSkills: form.preferredSkills.join(','),
+        selectionProcess: form.selectionProcess,
+        status: form.status,
+        logoDomain: logoPreview?.domain,
       })
-      toast.success('Drive created successfully!')
+      toast.success('Drive created successfully! Company logo fetched from Google.')
       setShowForm(false)
-      setForm({
-        companyId: '', driveName: '', driveDate: '', applicationDeadline: '', jobRole: '', ctc: '',
-        location: '', eligibleDepartments: [], eligibleYears: ['4th Year'], eligibleClasses: ['A','B','C','D'],
-        minCgpa: '6.5', maxBacklogs: '0', requiredSkills: [], preferredSkills: [],
-        selectionProcess: 'Aptitude Test -> Technical Assessment -> Technical Interview -> HR Interview',
-        status: 'UPCOMING',
-      })
+      setForm({ ...EMPTY_FORM })
+      setLogoPreview(null)
       fetchDrives()
     } catch (e: any) {
       toast.error(e.message || 'Failed to create drive')
+    } finally {
+      setCreating(false)
     }
   }
 
@@ -192,20 +250,66 @@ export function AdminDrives() {
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto scrollbar-thin">
             <DialogHeader>
               <DialogTitle>Create New Placement Drive</DialogTitle>
-              <DialogDescription>Configure drive details and eligibility criteria</DialogDescription>
+              <DialogDescription>Enter company name — logo will be auto-fetched from Google</DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
+                {/* Company Name — text input (provided by staff) */}
                 <div className="space-y-2 sm:col-span-2">
-                  <Label>Company *</Label>
-                  <Select value={form.companyId} onValueChange={(v) => setForm((f: any) => ({ ...f, companyId: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Select company" /></SelectTrigger>
-                    <SelectContent>
-                      {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <Label>Company Name *</Label>
+                  <Input
+                    value={form.companyName}
+                    onChange={(e) => setForm((f: any) => ({ ...f, companyName: e.target.value }))}
+                    placeholder="e.g. TCS, Infosys, Accenture..."
+                    className="font-medium"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Type the company name. Its logo will be automatically fetched from Google and applied after the drive is created.
+                  </p>
                 </div>
+
+                {/* Live Logo Preview from Google (Clearbit) */}
+                {form.companyName && form.companyName.trim().length >= 2 && (
+                  <div className="sm:col-span-2">
+                    <div className="flex items-center gap-4 rounded-lg border border-violet-200 bg-violet-50/50 p-4 dark:border-violet-800 dark:bg-violet-900/20">
+                      <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg bg-white shadow-soft ring-1 ring-border">
+                        {logoLoading ? (
+                          <Loader2 className="h-6 w-6 animate-spin text-violet-600" />
+                        ) : logoPreview ? (
+                          <img
+                            src={logoPreview.url}
+                            alt={`${form.companyName} logo`}
+                            className="h-full w-full object-contain"
+                          />
+                        ) : (
+                          <Building2 className="h-6 w-6 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <p className="flex items-center gap-1.5 text-sm font-semibold">
+                          <Sparkles className="h-3.5 w-3.5 text-violet-600" />
+                          {logoLoading ? 'Fetching logo from Google...' : logoPreview ? 'Logo found!' : 'No logo found'}
+                        </p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {logoPreview ? (
+                            <>Auto-detected domain: <code className="rounded bg-background/60 px-1 py-0.5 font-mono text-[10px]">{logoPreview.domain}</code></>
+                          ) : logoLoading ? (
+                            'Searching the web for company logo...'
+                          ) : (
+                            'A generic company icon will be used as fallback.'
+                          )}
+                        </p>
+                      </div>
+                      {logoPreview && (
+                        <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+                          <CheckCircle2 className="mr-1 h-3 w-3" /> Ready
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-2 sm:col-span-2">
                   <Label>Drive Name *</Label>
                   <Input value={form.driveName} onChange={(e) => setForm((f: any) => ({ ...f, driveName: e.target.value }))} placeholder="e.g. TCS Campus Drive 2026" />
@@ -255,38 +359,58 @@ export function AdminDrives() {
                 </div>
               </div>
 
-              {/* Eligibility Criteria */}
-              <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
-                <p className="text-sm font-semibold">Eligibility Criteria</p>
+              {/* Eligibility Criteria — defaults to skills + 3rd/4th year */}
+              <div className="space-y-4 rounded-lg border-2 border-violet-200 bg-violet-50/30 p-4 dark:border-violet-800 dark:bg-violet-900/10">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold flex items-center gap-2">
+                    <Target className="h-4 w-4 text-violet-600" />
+                    Eligibility Criteria
+                  </p>
+                  <Badge variant="outline" className="border-violet-300 bg-violet-50 text-violet-700 dark:border-violet-700 dark:bg-violet-900/30 dark:text-violet-300 text-[10px]">
+                    Pre-filled with defaults
+                  </Badge>
+                </div>
+
                 <div>
-                  <Label className="mb-2 block text-xs text-muted-foreground">Eligible Departments</Label>
+                  <Label className="mb-2 block text-xs text-muted-foreground">
+                    Required Skills <span className="text-violet-600">(eligibility criteria)</span>
+                  </Label>
                   <div className="flex flex-wrap gap-1.5">
-                    {DEPARTMENTS.map(d => (
-                      <button key={d} type="button" onClick={() => toggleArr('eligibleDepartments', d)}
-                        className={`rounded-full border px-2.5 py-1 text-xs transition-all ${form.eligibleDepartments.includes(d) ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-border hover:bg-accent'}`}>
-                        {d}
+                    {SKILLS.map(s => (
+                      <button key={s} type="button" onClick={() => toggleArr('requiredSkills', s)}
+                        className={`rounded-full border px-2.5 py-1 text-xs transition-all ${form.requiredSkills.includes(s) ? 'border-amber-500 bg-amber-500 text-white shadow-soft' : 'border-border bg-background hover:bg-accent'}`}>
+                        {s}
                       </button>
                     ))}
                   </div>
+                  {form.requiredSkills.length > 0 && (
+                    <p className="mt-2 text-[10px] text-muted-foreground">
+                      {form.requiredSkills.length} skill{form.requiredSkills.length !== 1 ? 's' : ''} required — students must have these skills to be eligible.
+                    </p>
+                  )}
                 </div>
+
                 <div>
-                  <Label className="mb-2 block text-xs text-muted-foreground">Eligible Years</Label>
+                  <Label className="mb-2 block text-xs text-muted-foreground">
+                    Eligible Years <span className="text-violet-600">(3rd & 4th Year pre-selected)</span>
+                  </Label>
                   <div className="flex flex-wrap gap-1.5">
                     {YEARS.map(y => (
                       <button key={y} type="button" onClick={() => toggleArr('eligibleYears', y)}
-                        className={`rounded-full border px-2.5 py-1 text-xs transition-all ${form.eligibleYears.includes(y) ? 'border-violet-600 bg-violet-600 text-white' : 'border-border hover:bg-accent'}`}>
+                        className={`rounded-full border px-2.5 py-1 text-xs transition-all ${form.eligibleYears.includes(y) ? 'border-violet-600 bg-violet-600 text-white shadow-soft' : 'border-border bg-background hover:bg-accent'}`}>
                         {y}
                       </button>
                     ))}
                   </div>
                 </div>
+
                 <div>
-                  <Label className="mb-2 block text-xs text-muted-foreground">Required Skills</Label>
+                  <Label className="mb-2 block text-xs text-muted-foreground">Eligible Departments</Label>
                   <div className="flex flex-wrap gap-1.5">
-                    {SKILLS.map(s => (
-                      <button key={s} type="button" onClick={() => toggleArr('requiredSkills', s)}
-                        className={`rounded-full border px-2.5 py-1 text-xs transition-all ${form.requiredSkills.includes(s) ? 'border-amber-500 bg-amber-500 text-white' : 'border-border hover:bg-accent'}`}>
-                        {s}
+                    {DEPARTMENTS.map(d => (
+                      <button key={d} type="button" onClick={() => toggleArr('eligibleDepartments', d)}
+                        className={`rounded-full border px-2.5 py-1 text-xs transition-all ${form.eligibleDepartments.includes(d) ? 'border-emerald-600 bg-emerald-600 text-white shadow-soft' : 'border-border bg-background hover:bg-accent'}`}>
+                        {d}
                       </button>
                     ))}
                   </div>
@@ -301,7 +425,23 @@ export function AdminDrives() {
 
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
-              <Button onClick={handleSubmit} className="bg-violet-600 hover:bg-violet-700">Create Drive</Button>
+              <Button
+                onClick={handleSubmit}
+                disabled={creating}
+                className="bg-violet-600 hover:bg-violet-700"
+              >
+                {creating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Create Drive
+                  </>
+                )}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

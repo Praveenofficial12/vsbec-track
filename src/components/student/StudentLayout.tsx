@@ -136,6 +136,23 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
               <Bell className="h-4 w-4" />
               <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-rose-500" />
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              className="hidden items-center gap-2 text-muted-foreground hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-900/20 sm:inline-flex"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="text-sm font-medium">Logout</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleLogout}
+              className="text-muted-foreground hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-900/20 sm:hidden"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
             <Avatar className="h-9 w-9 ring-2 ring-primary/20">
               <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-teal-600 text-xs font-semibold text-white">
                 {user?.name?.charAt(0)?.toUpperCase() || 'S'}

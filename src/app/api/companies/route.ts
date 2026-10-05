@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
         ctc: body.ctc,
         jobType: body.jobType || 'Full Time',
         eligibility: body.eligibility,
-        logoUrl: body.logoUrl || `https://logo.clearbit.com/${body.logoDomain || body.name?.toLowerCase().replace(/\s+/g, '') + '.com'}`,
+        logoUrl: body.logoUrl || `https://www.google.com/s2/favicons?domain=${body.logoDomain || body.name?.toLowerCase().replace(/\s+/g, '') + '.com'}&sz=128`,
         logoDomain: body.logoDomain,
         driveDate: body.driveDate,
         applicationDeadline: body.applicationDeadline,
