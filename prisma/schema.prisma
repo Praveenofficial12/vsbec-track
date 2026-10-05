@@ -1,0 +1,256 @@
+// VSBEC Placement Management System - Prisma Schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============ Core Models ============
+
+model Student {
+  id                String   @id @default(cuid())
+  registerNumber    String   @unique
+  fullName          String
+  collegeEmail      String   @unique
+  personalEmail     String?
+  mobile            String?
+  password          String
+  dateOfBirth       String?
+  gender            String?
+  profilePhoto      String?
+
+  // Academic
+  department        String?
+  degree            String?
+  year              String?
+  section           String?
+  semester          String?
+  batch             String?
+  cgpa              Float?
+  tenthPercentage   Float?
+  twelfthPercentage Float?
+  backlogs          Int      @default(0)
+  historyOfArrears  Int      @default(0)
+  graduationYear    String?
+
+  // Placement
+  placementStatus   String   @default("UNPLACED") // UNPLACED | IN_PROCESS | PLACED
+  placementEligible Boolean  @default(true)
+  preferredRole     String?
+  preferredDomain   String?
+  interestedTechs   String?
+  preferredLocation String?
+
+  // Skills (comma-separated for simplicity in SQLite)
+  skills            String? // CSV of skill names
+  strongSkills      String? // CSV of strong skill names
+
+  // Resume
+  resumeUrl         String?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  certifications    Certification[]
+  projects          Project[]
+  participations    DriveParticipation[]
+  notifications     Notification[]
+
+  @@index([registerNumber])
+  @@index([department])
+  @@index([year])
+  @@index([section])
+  @@index([placementStatus])
+}
+
+model Company {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  website         String?
+  description     String?
+  industry        String?
+  jobRole         String?
+  location        String?
+  ctc             String?
+  jobType         String?
+  eligibility     String?
+  logoUrl         String?
+  logoDomain      String?
+  driveDate       String?
+  applicationDeadline String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  drives          Drive[]
+
+  @@index([name])
+}
+
+model Drive {
+  id                String   @id @default(cuid())
+  companyId        String
+  driveName        String
+  driveDate        String
+  applicationDeadline String?
+  jobRole          String?
+  ctc              String?
+  location         String?
+  eligibleDepartments String? // CSV
+  eligibleYears    String? // CSV
+  eligibleClasses  String? // CSV
+  minCgpa          Float?
+  maxBacklogs      Int?
+  requiredSkills   String? // CSV
+  preferredSkills  String? // CSV
+  selectionProcess String?
+  status           String   @default("UPCOMING") // UPCOMING | REGISTRATION_OPEN | ONGOING | COMPLETED | CANCELLED
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  company          Company  @relation(fields: [companyId], references: [id])
+  rounds           Round[]
+  participants     DriveParticipation[]
+
+  @@index([companyId])
+  @@index([status])
+}
+
+model Round {
+  id          String   @id @default(cuid())
+  driveId     String
+  roundNumber Int
+  roundName   String
+  description String?
+  date        String?
+  startTime   String?
+  endTime     String?
+  status      String   @default("UPCOMING") // UPCOMING | ONGOING | COMPLETED
+  createdAt   DateTime @default(now())
+
+  drive       Drive    @relation(fields: [driveId], references: [id])
+  results     RoundResult[]
+
+  @@index([driveId])
+}
+
+model DriveParticipation {
+  id            String   @id @default(cuid())
+  studentId    String
+  driveId      String
+  attendance   String   @default("NOT_REGISTERED") // NOT_REGISTERED, REGISTERED, ATTENDING, NOT_ATTENDING, ABSENT, IN_PROGRESS, SELECTED, REJECTED, ON_HOLD, WITHDRAWN
+  currentRound Int      @default(0)
+  finalResult  String? // SELECTED, REJECTED, ON_HOLD, WITHDRAWN
+  jobRole      String?
+  ctc          String?
+  joiningLocation String?
+  joiningDate  String?
+  offerLetter  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  student      Student  @relation(fields: [studentId], references: [id])
+  drive        Drive    @relation(fields: [driveId], references: [id])
+  roundResults RoundResult[]
+
+  @@index([studentId])
+  @@index([driveId])
+}
+
+model RoundResult {
+  id              String   @id @default(cuid())
+  participationId String
+  roundId         String
+  status          String   @default("PENDING") // CLEARED, NOT_CLEARED, ABSENT, PENDING, ON_HOLD
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  participation   DriveParticipation @relation(fields: [participationId], references: [id])
+  round           Round    @relation(fields: [roundId], references: [id])
+
+  @@index([participationId])
+  @@index([roundId])
+}
+
+model Certification {
+  id            String   @id @default(cuid())
+  studentId    String
+  name         String
+  organization String?
+  certDate     String?
+  credentialId String?
+  credentialUrl String?
+  fileUrl      String?
+  createdAt    DateTime @default(now())
+
+  student      Student  @relation(fields: [studentId], references: [id])
+}
+
+model Project {
+  id           String   @id @default(cuid())
+  studentId   String
+  name        String
+  description String?
+  technologies String?
+  projectType String?
+  githubUrl   String?
+  liveUrl     String?
+  createdAt   DateTime @default(now())
+
+  student     Student  @relation(fields: [studentId], references: [id])
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  studentId  String?
+  title      String
+  message    String
+  type       String   @default("INFO") // INFO, DRIVE, ROUND, SELECTION, DEADLINE
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  student    Student? @relation(fields: [studentId], references: [id])
+}
+
+model AdminUser {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  adminEmail String
+  action     String
+  entity     String?
+  entityId   String?
+  studentName String?
+  companyName String?
+  driveName  String?
+  previousValue String?
+  newValue   String?
+  timestamp  DateTime @default(now())
+}
+
+model PlacementRule {
+  id                  String   @id @default(cuid())
+  name                String
+  maxCompanies        Int      @default(10)
+  blockOnSelection    Boolean  @default(true)
+  minCgpaDefault      Float    @default(6.0)
+  maxBacklogsDefault  Int      @default(2)
+  updatedAt           DateTime @updatedAt
+}
+
+model CustomField {
+  id        String   @id @default(cuid())
+  fieldName String
+  fieldType String // TEXT, NUMBER, DROPDOWN, MULTISELECT, BOOLEAN, DATE, FILE, TEXTAREA
+  options   String? // CSV for dropdown
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}

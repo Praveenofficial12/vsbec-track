@@ -1,0 +1,2244 @@
+Build a complete production-ready full-stack web application called:
+
+"VSBEC Placement Management System"
+
+The application is designed for a college placement/training department to manage students, company placement drives, attendance, rounds, selections, rejections, and placement analytics.
+
+The main objective is:
+
+1. Collect and maintain complete student placement profiles.
+2. Allow students to register and maintain their academic/skill information.
+3. Allow Admin/Staff to create and manage multiple company placement drives.
+4. Track which students attended each company drive.
+5. Track students through every recruitment round.
+6. Update whether students are selected, rejected, on hold, or still in progress.
+7. Provide powerful department-wise, year-wise, class-wise and company-wise analytics.
+8. Help placement staff identify suitable students for upcoming companies.
+9. Keep all student and placement data centralized and easy to analyze.
+10. Make the system simple enough that staff can manage everything without technical knowledge.
+
+Use a modern, professional, responsive UI suitable for a college placement department.
+
+Recommended technology stack:
+
+Frontend:
+- React.js
+- TypeScript
+- Tailwind CSS
+- Modern component-based architecture
+- Responsive design
+- Clean dashboard UI
+- Cards, tables, charts, filters and modals
+
+Backend:
+- Supabase
+- Supabase PostgreSQL
+- Supabase Authentication
+- Supabase Row Level Security
+- Supabase Storage where required
+
+Use proper authentication and authorization.
+
+IMPORTANT:
+Do not create a fake frontend-only application.
+All important data must be stored in the database.
+All student, company, drive, attendance, round and result information must persist after refresh/login/logout.
+
+==================================================
+1. USER ROLES
+==================================================
+
+Create two main roles:
+
+A. STUDENT
+B. ADMIN / STAFF
+
+The system must have role-based access control.
+
+Students must never be able to access Admin pages.
+
+Admin/Staff must have access to management, analytics and reporting features.
+
+==================================================
+2. STUDENT REGISTRATION
+==================================================
+
+Create a student registration page.
+
+Students should register using their college/student credentials.
+
+Collect the following information.
+
+PERSONAL INFORMATION:
+
+- Full Name
+- Student ID / Register Number
+- College Email
+- Personal Email
+- Mobile Number
+- Date of Birth
+- Gender
+- Profile Photo
+
+ACADEMIC INFORMATION:
+
+- Department
+- Degree
+- Year
+- Class / Section
+- Semester
+- Batch
+- CGPA
+- 10th Percentage
+- 12th Percentage / Diploma Percentage
+- Backlogs
+- History of Arrears
+- Graduation Year
+
+PLACEMENT INFORMATION:
+
+- Placement Status
+- Placement Eligible
+- Preferred Job Role
+- Preferred Domain
+- Interested Technologies
+- Preferred Work Location
+
+SKILLS:
+
+Allow students to select/add multiple skills.
+
+Example:
+
+- Java
+- Python
+- C
+- C++
+- JavaScript
+- React
+- HTML
+- CSS
+- SQL
+- MongoDB
+- MySQL
+- Machine Learning
+- Artificial Intelligence
+- Data Science
+- Cloud
+- UI/UX
+- Testing
+- Cyber Security
+- Other
+
+Also allow:
+
+"Strong Skills"
+
+Students should be able to select their strongest skills separately.
+
+Example:
+
+Strong Skills:
+Java
+SQL
+React
+
+Other Skills:
+Python
+MongoDB
+HTML
+CSS
+
+CERTIFICATIONS:
+
+Allow students to add multiple certifications.
+
+Fields:
+
+- Certification Name
+- Issuing Organization
+- Certification Date
+- Credential ID
+- Credential URL
+- Certificate File
+
+PROJECTS:
+
+Allow multiple projects.
+
+Fields:
+
+- Project Name
+- Description
+- Technologies Used
+- Project Type
+- GitHub URL
+- Live URL
+
+RESUME:
+
+Allow student to upload their latest resume.
+
+Store the resume securely.
+
+==================================================
+3. STUDENT PROFILE
+==================================================
+
+After registration, create a student dashboard.
+
+Student dashboard should display:
+
+- Profile completion percentage
+- Personal details
+- Academic details
+- Skills
+- Strong skills
+- Certifications
+- Projects
+- Resume
+- Placement status
+- Companies attended
+- Companies currently participating in
+- Number of rounds cleared
+- Number of companies selected
+- Number of companies rejected
+- Current placement status
+
+Example cards:
+
+Total Companies Attended
+12
+
+Rounds Cleared
+28
+
+Companies Selected
+2
+
+Companies Rejected
+7
+
+Currently Active
+3
+
+Placement Status
+Placed / Unplaced
+
+Students should be able to edit their own profile.
+
+Admin should be able to view and edit student profiles.
+
+==================================================
+4. ADMIN LOGIN
+==================================================
+
+Create a completely separate Admin Login page.
+
+Admin login identifier:
+
+Vsbec@2027
+
+IMPORTANT SECURITY REQUIREMENT:
+
+Do NOT expose passwords in frontend source code.
+
+Use Supabase Authentication for the admin account.
+
+The administrator email/login identifier should be:
+
+Vsbec@2027
+
+The actual password must be securely configured through Supabase Auth / environment variables and must never be hardcoded in frontend code.
+
+Admin authentication must use secure session management.
+
+After successful login:
+
+Redirect to:
+
+/admin/dashboard
+
+Students must not be able to access admin routes.
+
+If a student tries to access an admin URL directly:
+
+Show:
+
+"Unauthorized Access"
+
+and redirect to the student dashboard.
+
+==================================================
+5. ADMIN DASHBOARD
+==================================================
+
+Create a powerful Admin Dashboard.
+
+This should be the main control center.
+
+Display high-level cards.
+
+Example:
+
+Total Students
+1250
+
+Eligible Students
+1080
+
+Total Companies
+48
+
+Active Drives
+5
+
+Students Placed
+320
+
+Students Unplaced
+760
+
+Total Selections
+385
+
+Students Currently in Recruitment
+142
+
+Create attractive statistic cards.
+
+Below the cards show analytics.
+
+==================================================
+6. DEPARTMENT-WISE ANALYTICS
+==================================================
+
+Create a Department Analytics section.
+
+Example:
+
+AI & Data Science
+Computer Science
+Information Technology
+Electronics
+Electrical
+Mechanical
+Civil
+
+For each department display:
+
+- Total Students
+- Eligible Students
+- Companies Attended
+- Total Selections
+- Placed Students
+- Unplaced Students
+- Average CGPA
+- Average Number of Companies Attended
+
+Allow clicking a department.
+
+When clicked, show detailed students.
+
+==================================================
+7. YEAR-WISE ANALYTICS
+==================================================
+
+Create Year filters:
+
+1st Year
+2nd Year
+3rd Year
+4th Year
+
+Display:
+
+- Total Students
+- Eligible Students
+- Students Participating in Drives
+- Students Selected
+- Students Rejected
+- Students Currently in Process
+
+==================================================
+8. CLASS-WISE ANALYTICS
+==================================================
+
+Allow filtering by class/section.
+
+Example:
+
+A
+B
+C
+D
+
+Display:
+
+- Total students
+- Companies attended
+- Selection count
+- Rejection count
+- Placement percentage
+
+==================================================
+9. POWERFUL FILTER SYSTEM
+==================================================
+
+Create global filters.
+
+Filters:
+
+- Department
+- Year
+- Class
+- Batch
+- CGPA range
+- Backlogs
+- Placement status
+- Skill
+- Strong skill
+- Company
+- Drive
+- Round status
+- Selection status
+
+Filters must work together.
+
+Example:
+
+Department:
+AI & DS
+
+Year:
+4th Year
+
+Class:
+A
+
+Strong Skill:
+Java
+
+CGPA:
+> 7.5
+
+The system should immediately display matching students.
+
+Provide:
+
+- Reset Filters
+- Apply Filters
+- Export Results
+
+==================================================
+10. COMPANY MANAGEMENT
+==================================================
+
+Create a separate:
+
+"Companies"
+
+page.
+
+Admin can:
+
+- Add Company
+- Edit Company
+- Delete Company
+- View Company
+- View Company Drives
+
+When creating a company, ask:
+
+Company Name
+Company Website
+Company Description
+Industry
+Job Role
+Location
+CTC
+Job Type
+Eligibility Criteria
+Drive Date
+Application Deadline
+
+IMPORTANT:
+
+When Admin enters a company name, automatically attempt to retrieve/display the company's logo.
+
+Example:
+
+Admin enters:
+
+"TCS"
+
+System should automatically display the TCS logo in the company card.
+
+Admin enters:
+
+"Infosys"
+
+System should automatically display the Infosys logo.
+
+Do not rely on manually uploaded logos unless automatic retrieval fails.
+
+If automatic logo retrieval is unavailable, provide an optional logo upload field as fallback.
+
+Store the logo URL in the database so the page does not have to repeatedly search for it.
+
+==================================================
+11. COMPANY PAGE
+==================================================
+
+Every company should have its own dedicated page.
+
+Example:
+
+/admin/companies/tcs
+
+Display:
+
+Company Logo
+Company Name
+Website
+Industry
+Job Role
+CTC
+Location
+Eligibility
+
+Below this:
+
+"Placement Drives"
+
+Display all drives conducted for that company.
+
+Example:
+
+TCS - 2026 Campus Drive
+TCS - 2027 Campus Drive
+
+Each drive should have its own detailed page.
+
+==================================================
+12. CREATE COMPANY DRIVE
+==================================================
+
+Admin must be able to create a new placement drive.
+
+Fields:
+
+Company
+Drive Name
+Drive Date
+Application Deadline
+Job Role
+Package / CTC
+Location
+Eligible Departments
+Eligible Years
+Eligible Classes
+Minimum CGPA
+Maximum Backlogs
+Required Skills
+Preferred Skills
+Selection Process
+Drive Status
+
+Drive Status:
+
+- Upcoming
+- Registration Open
+- Ongoing
+- Completed
+- Cancelled
+
+Example:
+
+Company:
+Infosys
+
+Drive:
+Infosys Campus Recruitment 2027
+
+Eligible Department:
+AI & DS
+
+Year:
+4th Year
+
+Minimum CGPA:
+7.0
+
+Maximum Backlogs:
+0
+
+Required Skills:
+Java
+Python
+SQL
+
+==================================================
+13. STUDENT PARTICIPATION IN COMPANY DRIVE
+==================================================
+
+For every company drive create a student participation management page.
+
+Admin should be able to see all eligible students.
+
+Display a table:
+
+Student Name
+Register Number
+Department
+Year
+Class
+CGPA
+Strong Skills
+Attendance
+Current Round
+Status
+
+Admin can mark:
+
+ATTENDING
+NOT ATTENDING
+
+Students should also have an option to confirm:
+
+"I will attend"
+
+or
+
+"I will not attend"
+
+Admin can modify the attendance if necessary.
+
+==================================================
+14. COMPANY DRIVE STUDENT STATUS
+==================================================
+
+Each student-company relationship must be tracked separately.
+
+Example:
+
+Student:
+
+Praveen Kumar
+
+Company:
+
+TCS
+
+Status:
+
+Round 2
+
+This must NOT change the student's general placement status.
+
+Instead create a separate company participation record.
+
+Possible statuses:
+
+- Not Registered
+- Registered
+- Attending
+- Not Attending
+- Absent
+- In Progress
+- Selected
+- Rejected
+- On Hold
+- Withdrawn
+
+==================================================
+15. ROUND MANAGEMENT
+==================================================
+
+Admin should be able to configure recruitment rounds for every company.
+
+Example:
+
+Round 1
+Aptitude Test
+
+Round 2
+Technical Assessment
+
+Round 3
+Technical Interview
+
+Round 4
+HR Interview
+
+Round 5
+Final Selection
+
+Admin can add/edit/delete rounds.
+
+Each round should have:
+
+- Round Number
+- Round Name
+- Description
+- Date
+- Start Time
+- End Time
+- Status
+
+Status:
+
+Upcoming
+Ongoing
+Completed
+
+==================================================
+16. STUDENT ROUND TRACKING
+==================================================
+
+For every participating student, track their round status.
+
+Example:
+
+Praveen Kumar
+
+TCS
+
+Round 1:
+Cleared
+
+Round 2:
+Cleared
+
+Round 3:
+Cleared
+
+Round 4:
+Pending
+
+Round 5:
+Not Started
+
+Use a visual progress timeline.
+
+Example:
+
+Registration
+✓
+
+Aptitude
+✓
+
+Technical Test
+✓
+
+Technical Interview
+✓
+
+HR Interview
+●
+
+Final Result
+○
+
+This should make it extremely easy for staff to understand where every student currently stands.
+
+==================================================
+17. ROUND RESULT UPDATE
+==================================================
+
+Admin should be able to update each student's round result.
+
+Options:
+
+- Cleared
+- Not Cleared
+- Absent
+- Pending
+- On Hold
+
+Allow bulk update.
+
+Example:
+
+Select 50 students
+
+Set Round 1:
+
+CLEARED
+
+Save.
+
+This should update all selected students.
+
+==================================================
+18. FINAL RESULT
+==================================================
+
+At the end of the recruitment process Admin should be able to mark:
+
+Selected
+Rejected
+On Hold
+Withdrawn
+
+If selected:
+
+Ask for:
+
+- Job Role
+- CTC
+- Joining Location
+- Joining Date
+- Offer Letter
+- Company
+
+Student placement status should automatically update to:
+
+PLACED
+
+If rejected:
+
+Company participation status becomes:
+
+REJECTED
+
+But the student remains:
+
+UNPLACED
+
+This distinction is extremely important.
+
+==================================================
+19. MULTIPLE COMPANY TRACKING
+==================================================
+
+A student can attend multiple companies.
+
+Example:
+
+Student A:
+
+TCS → Rejected
+Infosys → Round 3
+Accenture → Selected
+Cognizant → Not Attended
+Wipro → Round 2
+
+The system must preserve all these records.
+
+Do not overwrite old company data.
+
+Every company participation must be stored separately.
+
+==================================================
+20. STUDENT PLACEMENT HISTORY
+==================================================
+
+Create a placement history page.
+
+For each student show:
+
+Company
+Drive
+Date
+Attendance
+Rounds Cleared
+Current Round
+Final Result
+CTC
+Job Role
+
+Example:
+
+| Company | Attendance | Rounds | Result |
+| TCS | Attended | 3/5 | Rejected |
+| Infosys | Attended | 4/4 | Selected |
+| Wipro | Not Attended | 0/4 | Not Attended |
+
+==================================================
+21. COMPANY-WISE ANALYTICS
+==================================================
+
+For every company show:
+
+Total Eligible Students
+Registered
+Attended
+Absent
+Round 1 Cleared
+Round 2 Cleared
+Round 3 Cleared
+Final Interview
+Selected
+Rejected
+
+Example:
+
+TCS
+
+Eligible:
+850
+
+Registered:
+700
+
+Attended:
+650
+
+Round 1:
+420
+
+Round 2:
+210
+
+Technical Interview:
+95
+
+HR:
+50
+
+Selected:
+32
+
+==================================================
+22. ROUND-WISE FUNNEL
+==================================================
+
+Create a recruitment funnel chart.
+
+Example:
+
+Eligible Students
+1000
+
+↓
+Registered
+850
+
+↓
+Attended
+780
+
+↓
+Aptitude Cleared
+500
+
+↓
+Technical Cleared
+250
+
+↓
+Interview
+100
+
+↓
+Selected
+40
+
+This gives staff a quick overview of the recruitment process.
+
+==================================================
+23. PLACEMENT ANALYTICS
+==================================================
+
+Create a dedicated:
+
+"Placement Analytics"
+
+page.
+
+Show:
+
+Total Students
+Placed
+Unplaced
+Currently in Process
+
+Placement Percentage
+
+Department-wise Placement
+
+Year-wise Placement
+
+Class-wise Placement
+
+Company-wise Selection
+
+Skill-wise Selection
+
+Average CTC
+
+Highest CTC
+
+Number of Companies Attended
+
+Average Companies per Student
+
+==================================================
+24. SKILL ANALYTICS
+==================================================
+
+Analyze student skills.
+
+Example:
+
+Java
+250 students
+
+Python
+310 students
+
+SQL
+420 students
+
+React
+150 students
+
+Machine Learning
+120 students
+
+Show which skills are most common.
+
+Also show:
+
+Skill → Companies → Selections
+
+Example:
+
+Java:
+
+250 students
+
+Attended:
+35 companies
+
+Selected:
+72 students
+
+This helps staff understand which skills are currently useful for placement.
+
+==================================================
+25. STRONG SKILL ANALYTICS
+==================================================
+
+Students must identify their strongest skills.
+
+Admin dashboard should display:
+
+Top Strong Skills
+
+Java
+Python
+SQL
+React
+Machine Learning
+
+Allow staff to filter students based on strong skills.
+
+Example:
+
+Upcoming Company requires:
+
+Java
+SQL
+
+Admin can filter:
+
+Strong Skill contains Java
+AND
+Strong Skill contains SQL
+
+Then show matching students.
+
+==================================================
+26. UPCOMING COMPANY STUDENT RECOMMENDATION
+==================================================
+
+This is one of the most important features.
+
+When Admin creates a new company drive, automatically identify potentially suitable students.
+
+Based on:
+
+- Department
+- Year
+- Class
+- CGPA
+- Backlogs
+- Strong Skills
+- Required Skills
+- Previous company participation
+- Previous selections/rejections
+- Placement status
+
+Create:
+
+"Recommended Students"
+
+section.
+
+Example:
+
+New Company:
+
+Accenture
+
+Required Skills:
+
+Java
+SQL
+React
+
+Eligibility:
+
+CGPA >= 7.0
+
+Department:
+
+CSE / AI&DS / IT
+
+The system should show:
+
+Recommended Students:
+
+1. Student A
+   CGPA: 8.5
+   Strong Skills: Java, SQL
+   Companies Attended: 5
+   Current Status: Unplaced
+
+2. Student B
+   CGPA: 8.1
+   Strong Skills: Java, React
+   Companies Attended: 3
+   Current Status: Unplaced
+
+Provide a matching score.
+
+Example:
+
+92% Match
+
+Do NOT automatically select students.
+
+This is only a recommendation for staff.
+
+Staff must make the final decision.
+
+==================================================
+27. STUDENT COMPANY LIMIT RULES
+==================================================
+
+Allow Admin to configure college placement rules.
+
+Example:
+
+Maximum companies a student can attend:
+10
+
+OR
+
+If selected in a company, student may not attend further drives.
+
+The rules must be configurable.
+
+Do not hardcode placement rules.
+
+==================================================
+28. DASHBOARD FILTERS
+==================================================
+
+All major dashboard analytics should support filters.
+
+Global filter:
+
+Department
+Year
+Class
+Batch
+Company
+Date Range
+Placement Status
+
+Example:
+
+AI & DS
+4th Year
+Class A
+
+Then every relevant card/chart/table should update.
+
+==================================================
+29. STUDENT SEARCH
+==================================================
+
+Admin must be able to quickly search students using:
+
+Name
+Register Number
+Email
+Department
+Class
+
+Search should be fast.
+
+==================================================
+30. BULK OPERATIONS
+==================================================
+
+Admin should be able to select multiple students.
+
+Actions:
+
+- Mark Attending
+- Mark Not Attending
+- Mark Round Cleared
+- Mark Round Not Cleared
+- Export
+- Add to Drive
+- Remove from Drive
+
+Show confirmation before destructive actions.
+
+==================================================
+31. IMPORT STUDENTS
+==================================================
+
+Admin should be able to upload student data using CSV/Excel.
+
+Provide:
+
+Import Students
+
+Allow mapping columns:
+
+Name
+Register Number
+Department
+Year
+Class
+Email
+CGPA
+Skills
+etc.
+
+Validate duplicate register numbers.
+
+Show:
+
+Successfully Imported
+Failed
+Duplicates
+
+Allow admin to download error records.
+
+==================================================
+32. EXPORT DATA
+==================================================
+
+Allow exporting filtered data as CSV/Excel.
+
+Examples:
+
+Export:
+
+AI & DS 4th Year students
+
+or:
+
+TCS participants
+
+or:
+
+Selected students
+
+or:
+
+Unplaced students
+
+or:
+
+Students with Java as strong skill
+
+==================================================
+33. ADMIN SIDEBAR
+==================================================
+
+Admin sidebar:
+
+Dashboard
+
+Students
+
+Companies
+
+Placement Drives
+
+Active Drives
+
+Upcoming Drives
+
+Rounds
+
+Placement Analytics
+
+Skill Analytics
+
+Reports
+
+Settings
+
+Profile
+
+Logout
+
+==================================================
+34. STUDENT SIDEBAR
+==================================================
+
+Student sidebar:
+
+Dashboard
+
+My Profile
+
+My Skills
+
+My Resume
+
+Companies
+
+My Drives
+
+My Placement History
+
+Upcoming Drives
+
+Notifications
+
+Settings
+
+Logout
+
+==================================================
+35. NOTIFICATIONS
+==================================================
+
+Create notification functionality.
+
+Students should receive notifications for:
+
+- New company drive
+- Registration deadline
+- Drive date
+- Round schedule
+- Round result
+- Selection result
+
+Admin can create announcements.
+
+==================================================
+36. UPCOMING DRIVE PAGE
+==================================================
+
+Students should see upcoming eligible companies.
+
+Example card:
+
+[COMPANY LOGO]
+
+TCS
+
+Software Engineer
+
+CTC: ₹7 LPA
+
+Eligible:
+AI & DS
+
+Drive Date:
+20 October 2026
+
+Registration closes:
+18 October 2026
+
+[View Details]
+
+[Will Attend]
+
+[Will Not Attend]
+
+==================================================
+37. ADMIN DRIVE PAGE
+==================================================
+
+Admin drive page should contain tabs:
+
+Overview
+Eligible Students
+Attendance
+Rounds
+Round Results
+Final Results
+Analytics
+Reports
+
+Overview:
+
+Company
+Drive date
+Eligible count
+Registered
+Attended
+Current participants
+Selected
+
+==================================================
+38. REAL-TIME DASHBOARD
+==================================================
+
+When Admin updates a student's status:
+
+The dashboard statistics should update automatically.
+
+Example:
+
+Student selected.
+
+Selected count:
+
+31 → 32
+
+Placed students:
+
+319 → 320
+
+Use Supabase realtime where appropriate.
+
+==================================================
+39. DATABASE DESIGN
+==================================================
+
+Create a proper relational database.
+
+Suggested tables:
+
+profiles
+students
+departments
+years
+classes
+skills
+student_skills
+certifications
+projects
+companies
+company_drives
+drive_eligibility
+drive_participants
+recruitment_rounds
+student_round_results
+placement_results
+notifications
+admin_users
+placement_rules
+audit_logs
+
+Use foreign keys properly.
+
+Avoid storing repeated data unnecessarily.
+
+Use normalized relational design.
+
+==================================================
+40. IMPORTANT DATABASE RELATIONSHIP
+==================================================
+
+One student can have:
+
+Many skills
+
+Many certifications
+
+Many projects
+
+Many company participations
+
+Each company can have:
+
+Many drives
+
+Each drive can have:
+
+Many students
+
+Each drive can have:
+
+Many rounds
+
+Each student participating in a drive can have:
+
+Many round results
+
+One final result.
+
+Design the database accordingly.
+
+==================================================
+41. SECURITY
+==================================================
+
+Implement:
+
+Supabase Authentication
+
+Role-based authorization
+
+Row Level Security
+
+Students can only edit their own profile.
+
+Students can only view their own private placement records unless the institution intentionally exposes shared information.
+
+Admin can manage all records.
+
+Prevent students from modifying:
+
+Final selection status
+Other students
+Company data
+Round results
+
+Protect uploaded resumes and certificates.
+
+Do not expose service-role keys in frontend.
+
+Use environment variables.
+
+==================================================
+42. AUDIT LOG
+==================================================
+
+Create an audit log.
+
+Whenever Admin changes important data record:
+
+Store:
+
+Admin
+Action
+Student
+Company
+Drive
+Previous Value
+New Value
+Timestamp
+
+Examples:
+
+Admin changed:
+
+Student A
+
+TCS
+
+Round 2
+
+Pending → Cleared
+
+This should be logged.
+
+==================================================
+43. ADMIN REPORTS
+==================================================
+
+Create reports such as:
+
+Overall Placement Report
+
+Department Placement Report
+
+Company Drive Report
+
+Student Participation Report
+
+Selected Students Report
+
+Unplaced Students Report
+
+Round-wise Report
+
+Skill-wise Report
+
+Attendance Report
+
+Allow filtering before generating reports.
+
+==================================================
+44. UI DESIGN
+==================================================
+
+Use a professional college management dashboard style.
+
+Do NOT make the UI look like a generic simple CRUD application.
+
+Use:
+
+- Clean sidebar
+- Top navigation
+- Dashboard cards
+- Charts
+- Tables
+- Search
+- Filters
+- Badges
+- Progress bars
+- Timeline
+- Modals
+- Tabs
+- Responsive design
+
+Use a consistent design system.
+
+Desktop should be the primary experience because staff will mostly use computers.
+
+It must also work on tablets and mobile devices.
+
+==================================================
+45. EMPTY STATES
+==================================================
+
+Every page must have useful empty states.
+
+Example:
+
+No companies created yet.
+
+[Create Company]
+
+No active placement drives.
+
+[Create Drive]
+
+No students found.
+
+Try changing your filters.
+
+==================================================
+46. LOADING STATES
+==================================================
+
+Every database operation must have loading indicators.
+
+Do not leave the UI frozen.
+
+Use skeleton loaders where appropriate.
+
+==================================================
+47. ERROR HANDLING
+==================================================
+
+Handle:
+
+Authentication errors
+Database errors
+Duplicate students
+Duplicate company
+Invalid CSV
+Invalid student data
+File upload errors
+Permission errors
+Network errors
+
+Show user-friendly messages.
+
+Never show raw database errors to normal users.
+
+==================================================
+48. MOBILE RESPONSIVENESS
+==================================================
+
+The system must be fully responsive.
+
+Admin tables should become horizontally scrollable or transform into mobile cards.
+
+Charts should resize properly.
+
+Forms should work on mobile.
+
+==================================================
+49. ADMIN SETTINGS
+==================================================
+
+Admin settings should allow:
+
+College Information
+Departments
+Years
+Classes
+Skills
+Placement Rules
+Company Settings
+Notification Settings
+
+Admin should be able to add custom fields later.
+
+==================================================
+50. DYNAMIC CUSTOM FIELDS
+==================================================
+
+IMPORTANT REQUIREMENT:
+
+Admin should be able to add new student information fields without modifying the application code.
+
+Example:
+
+Admin wants:
+
+"Preferred Programming Language"
+
+Create custom field:
+
+Field Name:
+Preferred Programming Language
+
+Type:
+Dropdown
+
+Options:
+Java
+Python
+C++
+
+Another field:
+
+"Communication Rating"
+
+Type:
+Number
+
+Another:
+
+"Internship Experience"
+
+Type:
+Yes/No
+
+The system should dynamically display these fields in student registration/profile forms.
+
+Create a custom_fields configuration table.
+
+Support field types:
+
+Text
+Number
+Dropdown
+Multi-select
+Boolean
+Date
+File
+Textarea
+
+Admin can:
+
+Add
+Edit
+Disable
+Delete
+
+custom fields.
+
+==================================================
+51. PLACEMENT ELIGIBILITY ENGINE
+==================================================
+
+Create a reusable eligibility engine.
+
+Admin can configure:
+
+Minimum CGPA
+Maximum Backlogs
+Departments
+Years
+Classes
+Required Skills
+Gender if institution policy legally permits and requires it
+Other custom fields
+
+When creating a company drive:
+
+Automatically calculate eligible students.
+
+Show:
+
+Eligible Students: 540
+
+Not Eligible: 710
+
+Allow Admin to view why a student is not eligible.
+
+Example:
+
+Student A
+
+Not Eligible
+
+Reason:
+
+CGPA 6.4 < required 7.0
+
+OR
+
+Backlogs 2 > maximum allowed 0
+
+==================================================
+52. DRIVE REGISTRATION CONTROL
+==================================================
+
+Admin can control:
+
+Registration Start
+Registration End
+
+After deadline:
+
+Students cannot register.
+
+Display:
+
+Registration Closed
+
+If drive date has passed:
+
+Drive status automatically becomes:
+
+Completed
+
+if appropriate.
+
+==================================================
+53. COMPANY LOGO SYSTEM
+==================================================
+
+When creating a company:
+
+Input:
+
+Company Name
+
+Automatically search for/retrieve the official company logo using a reliable logo service or company domain.
+
+Store:
+
+company_logo_url
+
+Also store:
+
+company_domain
+
+If automatic retrieval fails:
+
+Allow Admin to upload a logo manually.
+
+Use a fallback generic company icon.
+
+Do not use random unrelated logos.
+
+==================================================
+54. DATA VISUALIZATION
+==================================================
+
+Use charts such as:
+
+Bar Chart
+Pie/Donut Chart
+Line Chart
+Funnel Chart
+Progress Chart
+
+Examples:
+
+Department-wise placements
+
+Company-wise selections
+
+Year-wise placement
+
+Round conversion
+
+Skill distribution
+
+Drive attendance
+
+==================================================
+55. IMPORTANT STAFF USE CASE
+==================================================
+
+The complete system should make this workflow extremely easy:
+
+STEP 1:
+
+Students register.
+
+STEP 2:
+
+Admin sees all students.
+
+STEP 3:
+
+Admin creates:
+
+"TCS Campus Drive"
+
+STEP 4:
+
+System automatically identifies eligible students.
+
+STEP 5:
+
+Students confirm:
+
+Attend / Not Attend
+
+STEP 6:
+
+Admin sees attendance.
+
+STEP 7:
+
+Drive happens.
+
+STEP 8:
+
+Admin updates Round 1.
+
+STEP 9:
+
+Only students who cleared Round 1 proceed.
+
+STEP 10:
+
+Admin updates Round 2.
+
+STEP 11:
+
+Continue until final interview.
+
+STEP 12:
+
+Admin marks:
+
+Selected / Rejected / On Hold
+
+STEP 13:
+
+Dashboard automatically updates.
+
+STEP 14:
+
+Staff can analyze:
+
+Which department performed best?
+
+Which class has more selections?
+
+Which students attended many companies?
+
+Which students are still unplaced?
+
+Which students have Java/SQL skills?
+
+Which students are suitable for the next company?
+
+==================================================
+56. "NEXT COMPANY" DECISION DASHBOARD
+==================================================
+
+Create a special Admin feature:
+
+"Next Company Recommendations"
+
+When Admin creates or selects an upcoming company, show:
+
+Recommended Students
+
+Potentially Eligible
+
+Already Placed
+
+Already Attended This Company
+
+Not Eligible
+
+Students with matching strong skills
+
+For each student show:
+
+Name
+Register Number
+Department
+Year
+Class
+CGPA
+Strong Skills
+Companies Attended
+Rounds Cleared
+Placement Status
+Company Match %
+Reason for recommendation
+
+Example:
+
+Student:
+Praveen Kumar
+
+Match:
+94%
+
+Why recommended:
+
+✓ Eligible department
+✓ CGPA requirement satisfied
+✓ No backlogs
+✓ Java strong skill
+✓ SQL strong skill
+✓ Unplaced
+✓ Previous technical assessment experience
+
+This is intended to help staff make decisions faster.
+
+==================================================
+57. PLACEMENT STATUS
+==================================================
+
+Use these statuses:
+
+UNPLACED
+IN_PROCESS
+PLACED
+
+A student should become PLACED only after a final selection is confirmed.
+
+Company rejection must NOT automatically mean the student is rejected from placement overall.
+
+==================================================
+58. MULTIPLE OFFERS
+==================================================
+
+Support students receiving multiple offers.
+
+Example:
+
+Student A:
+
+Infosys — Selected — ₹6 LPA
+TCS — Selected — ₹7 LPA
+Accenture — Selected — ₹8 LPA
+
+Admin can mark:
+
+Accepted Offer
+Declined Offer
+
+Final placement company should be clearly identified.
+
+==================================================
+59. PERFORMANCE SUMMARY
+==================================================
+
+Student profile should show:
+
+Companies Attended
+Companies Cleared
+Companies Rejected
+Total Rounds Cleared
+Selection Count
+Placement Status
+
+Admin can quickly understand each student's placement journey.
+
+==================================================
+60. FINAL QUALITY REQUIREMENT
+==================================================
+
+The final application must be:
+
+- Production-ready
+- Secure
+- Responsive
+- Fast
+- Database-driven
+- Role-based
+- Scalable
+- Easy for staff
+- Easy for students
+- Easy to analyze
+
+Do not create unnecessary complexity in the UI.
+
+Prioritize staff productivity.
+
+Every important action should require as few clicks as possible.
+
+==================================================
+ROUTES
+==================================================
+
+PUBLIC:
+
+/
+ /login
+ /student/register
+ /student/login
+ /admin/login
+
+STUDENT:
+
+/student/dashboard
+/student/profile
+/student/skills
+/student/certifications
+/student/projects
+/student/resume
+/student/companies
+/student/drives
+/student/placement-history
+/student/notifications
+/student/settings
+
+ADMIN:
+
+/admin/dashboard
+/admin/students
+/admin/students/:id
+/admin/companies
+/admin/companies/:id
+/admin/drives
+/admin/drives/:id
+/admin/drives/:id/students
+/admin/drives/:id/attendance
+/admin/drives/:id/rounds
+/admin/drives/:id/results
+/admin/analytics
+/admin/analytics/departments
+/admin/analytics/years
+/admin/analytics/classes
+/admin/analytics/skills
+/admin/reports
+/admin/settings
+/admin/audit-logs
+
+==================================================
+IMPORTANT IMPLEMENTATION RULES
+==================================================
+
+1. Do not use fake/mock data for the actual application.
+
+2. Use Supabase PostgreSQL for persistent data.
+
+3. Implement proper authentication.
+
+4. Implement Row Level Security.
+
+5. Do not expose sensitive credentials.
+
+6. Do not hardcode admin passwords.
+
+7. Admin email/login identifier:
+   Vsbec@2027
+
+8. Use environment variables for secrets.
+
+9. Validate all forms.
+
+10. Validate duplicate register numbers.
+
+11. Use database transactions where necessary.
+
+12. Add proper indexes for frequently searched fields.
+
+13. Add pagination to large student tables.
+
+14. Do not load thousands of students into the browser unnecessarily.
+
+15. Use server/database-side filtering wherever possible.
+
+16. Add search debounce.
+
+17. Protect all admin routes.
+
+18. Protect student-specific data.
+
+19. Preserve historical placement records.
+
+20. Never overwrite previous company participation records.
+
+21. Add confirmation dialogs before destructive actions.
+
+22. Provide success/error notifications.
+
+23. Make dashboard statistics dynamic.
+
+24. Make analytics update from actual database records.
+
+25. Build reusable components.
+
+26. Keep code clean and maintainable.
+
+27. Use TypeScript types/interfaces.
+
+28. Use proper database relationships.
+
+29. Add indexes for:
+    register_number
+    department_id
+    year
+    class
+    company_id
+    drive_id
+    placement_status
+
+30. Build the application so new departments, classes, skills, companies, drives and custom fields can be added later without modifying the core application.
+
+==================================================
+FINAL EXPECTED RESULT
+==================================================
+
+Deliver a complete working Placement Management System where:
+
+Students register once and maintain their profiles.
+
+Staff/Admin creates companies and placement drives.
+
+The system automatically calculates eligible students.
+
+Students confirm attendance.
+
+Staff tracks attendance.
+
+Staff tracks every recruitment round.
+
+Staff updates round results.
+
+Staff updates final selection.
+
+The system maintains complete placement history.
+
+Dashboards automatically calculate:
+
+Department-wise data
+Year-wise data
+Class-wise data
+Company-wise data
+Round-wise data
+Skill-wise data
+Placement data
+
+The system provides recommended students for upcoming companies.
+
+The system provides reports and exports.
+
+The system provides a complete centralized view of the college placement process.
+
+The final product should feel like a real college Placement Management ERP rather than a basic student CRUD application.

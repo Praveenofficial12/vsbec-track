@@ -1,0 +1,2002 @@
+     1→     1→Build a complete production-ready full-stack web application called:
+     2→     2→
+     3→     3→"VSBEC Placement Management System"
+     4→     4→
+     5→     5→The application is designed for a college placement/training department to manage students, company placement drives, attendance, rounds, selections, rejections, and placement analytics.
+     6→     6→
+     7→     7→The main objective is:
+     8→     8→
+     9→     9→1. Collect and maintain complete student placement profiles.
+    10→    10→2. Allow students to register and maintain their academic/skill information.
+    11→    11→3. Allow Admin/Staff to create and manage multiple company placement drives.
+    12→    12→4. Track which students attended each company drive.
+    13→    13→5. Track students through every recruitment round.
+    14→    14→6. Update whether students are selected, rejected, on hold, or still in progress.
+    15→    15→7. Provide powerful department-wise, year-wise, class-wise and company-wise analytics.
+    16→    16→8. Help placement staff identify suitable students for upcoming companies.
+    17→    17→9. Keep all student and placement data centralized and easy to analyze.
+    18→    18→10. Make the system simple enough that staff can manage everything without technical knowledge.
+    19→    19→
+    20→    20→Use a modern, professional, responsive UI suitable for a college placement department.
+    21→    21→
+    22→    22→Recommended technology stack:
+    23→    23→
+    24→    24→Frontend:
+    25→    25→- React.js
+    26→    26→- TypeScript
+    27→    27→- Tailwind CSS
+    28→    28→- Modern component-based architecture
+    29→    29→- Responsive design
+    30→    30→- Clean dashboard UI
+    31→    31→- Cards, tables, charts, filters and modals
+    32→    32→
+    33→    33→Backend:
+    34→    34→- Supabase
+    35→    35→- Supabase PostgreSQL
+    36→    36→- Supabase Authentication
+    37→    37→- Supabase Row Level Security
+    38→    38→- Supabase Storage where required
+    39→    39→
+    40→    40→Use proper authentication and authorization.
+    41→    41→
+    42→    42→IMPORTANT:
+    43→    43→Do not create a fake frontend-only application.
+    44→    44→All important data must be stored in the database.
+    45→    45→All student, company, drive, attendance, round and result information must persist after refresh/login/logout.
+    46→    46→
+    47→    47→==================================================
+    48→    48→1. USER ROLES
+    49→    49→==================================================
+    50→    50→
+    51→    51→Create two main roles:
+    52→    52→
+    53→    53→A. STUDENT
+    54→    54→B. ADMIN / STAFF
+    55→    55→
+    56→    56→The system must have role-based access control.
+    57→    57→
+    58→    58→Students must never be able to access Admin pages.
+    59→    59→
+    60→    60→Admin/Staff must have access to management, analytics and reporting features.
+    61→    61→
+    62→    62→==================================================
+    63→    63→2. STUDENT REGISTRATION
+    64→    64→==================================================
+    65→    65→
+    66→    66→Create a student registration page.
+    67→    67→
+    68→    68→Students should register using their college/student credentials.
+    69→    69→
+    70→    70→Collect the following information.
+    71→    71→
+    72→    72→PERSONAL INFORMATION:
+    73→    73→
+    74→    74→- Full Name
+    75→    75→- Student ID / Register Number
+    76→    76→- College Email
+    77→    77→- Personal Email
+    78→    78→- Mobile Number
+    79→    79→- Date of Birth
+    80→    80→- Gender
+    81→    81→- Profile Photo
+    82→    82→
+    83→    83→ACADEMIC INFORMATION:
+    84→    84→
+    85→    85→- Department
+    86→    86→- Degree
+    87→    87→- Year
+    88→    88→- Class / Section
+    89→    89→- Semester
+    90→    90→- Batch
+    91→    91→- CGPA
+    92→    92→- 10th Percentage
+    93→    93→- 12th Percentage / Diploma Percentage
+    94→    94→- Backlogs
+    95→    95→- History of Arrears
+    96→    96→- Graduation Year
+    97→    97→
+    98→    98→PLACEMENT INFORMATION:
+    99→    99→
+   100→   100→- Placement Status
+   101→   101→- Placement Eligible
+   102→   102→- Preferred Job Role
+   103→   103→- Preferred Domain
+   104→   104→- Interested Technologies
+   105→   105→- Preferred Work Location
+   106→   106→
+   107→   107→SKILLS:
+   108→   108→
+   109→   109→Allow students to select/add multiple skills.
+   110→   110→
+   111→   111→Example:
+   112→   112→
+   113→   113→- Java
+   114→   114→- Python
+   115→   115→- C
+   116→   116→- C++
+   117→   117→- JavaScript
+   118→   118→- React
+   119→   119→- HTML
+   120→   120→- CSS
+   121→   121→- SQL
+   122→   122→- MongoDB
+   123→   123→- MySQL
+   124→   124→- Machine Learning
+   125→   125→- Artificial Intelligence
+   126→   126→- Data Science
+   127→   127→- Cloud
+   128→   128→- UI/UX
+   129→   129→- Testing
+   130→   130→- Cyber Security
+   131→   131→- Other
+   132→   132→
+   133→   133→Also allow:
+   134→   134→
+   135→   135→"Strong Skills"
+   136→   136→
+   137→   137→Students should be able to select their strongest skills separately.
+   138→   138→
+   139→   139→Example:
+   140→   140→
+   141→   141→Strong Skills:
+   142→   142→Java
+   143→   143→SQL
+   144→   144→React
+   145→   145→
+   146→   146→Other Skills:
+   147→   147→Python
+   148→   148→MongoDB
+   149→   149→HTML
+   150→   150→CSS
+   151→   151→
+   152→   152→CERTIFICATIONS:
+   153→   153→
+   154→   154→Allow students to add multiple certifications.
+   155→   155→
+   156→   156→Fields:
+   157→   157→
+   158→   158→- Certification Name
+   159→   159→- Issuing Organization
+   160→   160→- Certification Date
+   161→   161→- Credential ID
+   162→   162→- Credential URL
+   163→   163→- Certificate File
+   164→   164→
+   165→   165→PROJECTS:
+   166→   166→
+   167→   167→Allow multiple projects.
+   168→   168→
+   169→   169→Fields:
+   170→   170→
+   171→   171→- Project Name
+   172→   172→- Description
+   173→   173→- Technologies Used
+   174→   174→- Project Type
+   175→   175→- GitHub URL
+   176→   176→- Live URL
+   177→   177→
+   178→   178→RESUME:
+   179→   179→
+   180→   180→Allow student to upload their latest resume.
+   181→   181→
+   182→   182→Store the resume securely.
+   183→   183→
+   184→   184→==================================================
+   185→   185→3. STUDENT PROFILE
+   186→   186→==================================================
+   187→   187→
+   188→   188→After registration, create a student dashboard.
+   189→   189→
+   190→   190→Student dashboard should display:
+   191→   191→
+   192→   192→- Profile completion percentage
+   193→   193→- Personal details
+   194→   194→- Academic details
+   195→   195→- Skills
+   196→   196→- Strong skills
+   197→   197→- Certifications
+   198→   198→- Projects
+   199→   199→- Resume
+   200→   200→- Placement status
+   201→   201→- Companies attended
+   202→   202→- Companies currently participating in
+   203→   203→- Number of rounds cleared
+   204→   204→- Number of companies selected
+   205→   205→- Number of companies rejected
+   206→   206→- Current placement status
+   207→   207→
+   208→   208→Example cards:
+   209→   209→
+   210→   210→Total Companies Attended
+   211→   211→12
+   212→   212→
+   213→   213→Rounds Cleared
+   214→   214→28
+   215→   215→
+   216→   216→Companies Selected
+   217→   217→2
+   218→   218→
+   219→   219→Companies Rejected
+   220→   220→7
+   221→   221→
+   222→   222→Currently Active
+   223→   223→3
+   224→   224→
+   225→   225→Placement Status
+   226→   226→Placed / Unplaced
+   227→   227→
+   228→   228→Students should be able to edit their own profile.
+   229→   229→
+   230→   230→Admin should be able to view and edit student profiles.
+   231→   231→
+   232→   232→==================================================
+   233→   233→4. ADMIN LOGIN
+   234→   234→==================================================
+   235→   235→
+   236→   236→Create a completely separate Admin Login page.
+   237→   237→
+   238→   238→Admin login identifier:
+   239→   239→
+   240→   240→Vsbec@2027
+   241→   241→
+   242→   242→IMPORTANT SECURITY REQUIREMENT:
+   243→   243→
+   244→   244→Do NOT expose passwords in frontend source code.
+   245→   245→
+   246→   246→Use Supabase Authentication for the admin account.
+   247→   247→
+   248→   248→The administrator email/login identifier should be:
+   249→   249→
+   250→   250→Vsbec@2027
+   251→   251→
+   252→   252→The actual password must be securely configured through Supabase Auth / environment variables and must never be hardcoded in frontend code.
+   253→   253→
+   254→   254→Admin authentication must use secure session management.
+   255→   255→
+   256→   256→After successful login:
+   257→   257→
+   258→   258→Redirect to:
+   259→   259→
+   260→   260→/admin/dashboard
+   261→   261→
+   262→   262→Students must not be able to access admin routes.
+   263→   263→
+   264→   264→If a student tries to access an admin URL directly:
+   265→   265→
+   266→   266→Show:
+   267→   267→
+   268→   268→"Unauthorized Access"
+   269→   269→
+   270→   270→and redirect to the student dashboard.
+   271→   271→
+   272→   272→==================================================
+   273→   273→5. ADMIN DASHBOARD
+   274→   274→==================================================
+   275→   275→
+   276→   276→Create a powerful Admin Dashboard.
+   277→   277→
+   278→   278→This should be the main control center.
+   279→   279→
+   280→   280→Display high-level cards.
+   281→   281→
+   282→   282→Example:
+   283→   283→
+   284→   284→Total Students
+   285→   285→1250
+   286→   286→
+   287→   287→Eligible Students
+   288→   288→1080
+   289→   289→
+   290→   290→Total Companies
+   291→   291→48
+   292→   292→
+   293→   293→Active Drives
+   294→   294→5
+   295→   295→
+   296→   296→Students Placed
+   297→   297→320
+   298→   298→
+   299→   299→Students Unplaced
+   300→   300→760
+   301→   301→
+   302→   302→Total Selections
+   303→   303→385
+   304→   304→
+   305→   305→Students Currently in Recruitment
+   306→   306→142
+   307→   307→
+   308→   308→Create attractive statistic cards.
+   309→   309→
+   310→   310→Below the cards show analytics.
+   311→   311→
+   312→   312→==================================================
+   313→   313→6. DEPARTMENT-WISE ANALYTICS
+   314→   314→==================================================
+   315→   315→
+   316→   316→Create a Department Analytics section.
+   317→   317→
+   318→   318→Example:
+   319→   319→
+   320→   320→AI & Data Science
+   321→   321→Computer Science
+   322→   322→Information Technology
+   323→   323→Electronics
+   324→   324→Electrical
+   325→   325→Mechanical
+   326→   326→Civil
+   327→   327→
+   328→   328→For each department display:
+   329→   329→
+   330→   330→- Total Students
+   331→   331→- Eligible Students
+   332→   332→- Companies Attended
+   333→   333→- Total Selections
+   334→   334→- Placed Students
+   335→   335→- Unplaced Students
+   336→   336→- Average CGPA
+   337→   337→- Average Number of Companies Attended
+   338→   338→
+   339→   339→Allow clicking a department.
+   340→   340→
+   341→   341→When clicked, show detailed students.
+   342→   342→
+   343→   343→==================================================
+   344→   344→7. YEAR-WISE ANALYTICS
+   345→   345→==================================================
+   346→   346→
+   347→   347→Create Year filters:
+   348→   348→
+   349→   349→1st Year
+   350→   350→2nd Year
+   351→   351→3rd Year
+   352→   352→4th Year
+   353→   353→
+   354→   354→Display:
+   355→   355→
+   356→   356→- Total Students
+   357→   357→- Eligible Students
+   358→   358→- Students Participating in Drives
+   359→   359→- Students Selected
+   360→   360→- Students Rejected
+   361→   361→- Students Currently in Process
+   362→   362→
+   363→   363→==================================================
+   364→   364→8. CLASS-WISE ANALYTICS
+   365→   365→==================================================
+   366→   366→
+   367→   367→Allow filtering by class/section.
+   368→   368→
+   369→   369→Example:
+   370→   370→
+   371→   371→A
+   372→   372→B
+   373→   373→C
+   374→   374→D
+   375→   375→
+   376→   376→Display:
+   377→   377→
+   378→   378→- Total students
+   379→   379→- Companies attended
+   380→   380→- Selection count
+   381→   381→- Rejection count
+   382→   382→- Placement percentage
+   383→   383→
+   384→   384→==================================================
+   385→   385→9. POWERFUL FILTER SYSTEM
+   386→   386→==================================================
+   387→   387→
+   388→   388→Create global filters.
+   389→   389→
+   390→   390→Filters:
+   391→   391→
+   392→   392→- Department
+   393→   393→- Year
+   394→   394→- Class
+   395→   395→- Batch
+   396→   396→- CGPA range
+   397→   397→- Backlogs
+   398→   398→- Placement status
+   399→   399→- Skill
+   400→   400→- Strong skill
+   401→   401→- Company
+   402→   402→- Drive
+   403→   403→- Round status
+   404→   404→- Selection status
+   405→   405→
+   406→   406→Filters must work together.
+   407→   407→
+   408→   408→Example:
+   409→   409→
+   410→   410→Department:
+   411→   411→AI & DS
+   412→   412→
+   413→   413→Year:
+   414→   414→4th Year
+   415→   415→
+   416→   416→Class:
+   417→   417→A
+   418→   418→
+   419→   419→Strong Skill:
+   420→   420→Java
+   421→   421→
+   422→   422→CGPA:
+   423→   423→> 7.5
+   424→   424→
+   425→   425→The system should immediately display matching students.
+   426→   426→
+   427→   427→Provide:
+   428→   428→
+   429→   429→- Reset Filters
+   430→   430→- Apply Filters
+   431→   431→- Export Results
+   432→   432→
+   433→   433→==================================================
+   434→   434→10. COMPANY MANAGEMENT
+   435→   435→==================================================
+   436→   436→
+   437→   437→Create a separate:
+   438→   438→
+   439→   439→"Companies"
+   440→   440→
+   441→   441→page.
+   442→   442→
+   443→   443→Admin can:
+   444→   444→
+   445→   445→- Add Company
+   446→   446→- Edit Company
+   447→   447→- Delete Company
+   448→   448→- View Company
+   449→   449→- View Company Drives
+   450→   450→
+   451→   451→When creating a company, ask:
+   452→   452→
+   453→   453→Company Name
+   454→   454→Company Website
+   455→   455→Company Description
+   456→   456→Industry
+   457→   457→Job Role
+   458→   458→Location
+   459→   459→CTC
+   460→   460→Job Type
+   461→   461→Eligibility Criteria
+   462→   462→Drive Date
+   463→   463→Application Deadline
+   464→   464→
+   465→   465→IMPORTANT:
+   466→   466→
+   467→   467→When Admin enters a company name, automatically attempt to retrieve/display the company's logo.
+   468→   468→
+   469→   469→Example:
+   470→   470→
+   471→   471→Admin enters:
+   472→   472→
+   473→   473→"TCS"
+   474→   474→
+   475→   475→System should automatically display the TCS logo in the company card.
+   476→   476→
+   477→   477→Admin enters:
+   478→   478→
+   479→   479→"Infosys"
+   480→   480→
+   481→   481→System should automatically display the Infosys logo.
+   482→   482→
+   483→   483→Do not rely on manually uploaded logos unless automatic retrieval fails.
+   484→   484→
+   485→   485→If automatic logo retrieval is unavailable, provide an optional logo upload field as fallback.
+   486→   486→
+   487→   487→Store the logo URL in the database so the page does not have to repeatedly search for it.
+   488→   488→
+   489→   489→==================================================
+   490→   490→11. COMPANY PAGE
+   491→   491→==================================================
+   492→   492→
+   493→   493→Every company should have its own dedicated page.
+   494→   494→
+   495→   495→Example:
+   496→   496→
+   497→   497→/admin/companies/tcs
+   498→   498→
+   499→   499→Display:
+   500→   500→
+   501→   501→Company Logo
+   502→   502→Company Name
+   503→   503→Website
+   504→   504→Industry
+   505→   505→Job Role
+   506→   506→CTC
+   507→   507→Location
+   508→   508→Eligibility
+   509→   509→
+   510→   510→Below this:
+   511→   511→
+   512→   512→"Placement Drives"
+   513→   513→
+   514→   514→Display all drives conducted for that company.
+   515→   515→
+   516→   516→Example:
+   517→   517→
+   518→   518→TCS - 2026 Campus Drive
+   519→   519→TCS - 2027 Campus Drive
+   520→   520→
+   521→   521→Each drive should have its own detailed page.
+   522→   522→
+   523→   523→==================================================
+   524→   524→12. CREATE COMPANY DRIVE
+   525→   525→==================================================
+   526→   526→
+   527→   527→Admin must be able to create a new placement drive.
+   528→   528→
+   529→   529→Fields:
+   530→   530→
+   531→   531→Company
+   532→   532→Drive Name
+   533→   533→Drive Date
+   534→   534→Application Deadline
+   535→   535→Job Role
+   536→   536→Package / CTC
+   537→   537→Location
+   538→   538→Eligible Departments
+   539→   539→Eligible Years
+   540→   540→Eligible Classes
+   541→   541→Minimum CGPA
+   542→   542→Maximum Backlogs
+   543→   543→Required Skills
+   544→   544→Preferred Skills
+   545→   545→Selection Process
+   546→   546→Drive Status
+   547→   547→
+   548→   548→Drive Status:
+   549→   549→
+   550→   550→- Upcoming
+   551→   551→- Registration Open
+   552→   552→- Ongoing
+   553→   553→- Completed
+   554→   554→- Cancelled
+   555→   555→
+   556→   556→Example:
+   557→   557→
+   558→   558→Company:
+   559→   559→Infosys
+   560→   560→
+   561→   561→Drive:
+   562→   562→Infosys Campus Recruitment 2027
+   563→   563→
+   564→   564→Eligible Department:
+   565→   565→AI & DS
+   566→   566→
+   567→   567→Year:
+   568→   568→4th Year
+   569→   569→
+   570→   570→Minimum CGPA:
+   571→   571→7.0
+   572→   572→
+   573→   573→Maximum Backlogs:
+   574→   574→0
+   575→   575→
+   576→   576→Required Skills:
+   577→   577→Java
+   578→   578→Python
+   579→   579→SQL
+   580→   580→
+   581→   581→==================================================
+   582→   582→13. STUDENT PARTICIPATION IN COMPANY DRIVE
+   583→   583→==================================================
+   584→   584→
+   585→   585→For every company drive create a student participation management page.
+   586→   586→
+   587→   587→Admin should be able to see all eligible students.
+   588→   588→
+   589→   589→Display a table:
+   590→   590→
+   591→   591→Student Name
+   592→   592→Register Number
+   593→   593→Department
+   594→   594→Year
+   595→   595→Class
+   596→   596→CGPA
+   597→   597→Strong Skills
+   598→   598→Attendance
+   599→   599→Current Round
+   600→   600→Status
+   601→   601→
+   602→   602→Admin can mark:
+   603→   603→
+   604→   604→ATTENDING
+   605→   605→NOT ATTENDING
+   606→   606→
+   607→   607→Students should also have an option to confirm:
+   608→   608→
+   609→   609→"I will attend"
+   610→   610→
+   611→   611→or
+   612→   612→
+   613→   613→"I will not attend"
+   614→   614→
+   615→   615→Admin can modify the attendance if necessary.
+   616→   616→
+   617→   617→==================================================
+   618→   618→14. COMPANY DRIVE STUDENT STATUS
+   619→   619→==================================================
+   620→   620→
+   621→   621→Each student-company relationship must be tracked separately.
+   622→   622→
+   623→   623→Example:
+   624→   624→
+   625→   625→Student:
+   626→   626→
+   627→   627→Praveen Kumar
+   628→   628→
+   629→   629→Company:
+   630→   630→
+   631→   631→TCS
+   632→   632→
+   633→   633→Status:
+   634→   634→
+   635→   635→Round 2
+   636→   636→
+   637→   637→This must NOT change the student's general placement status.
+   638→   638→
+   639→   639→Instead create a separate company participation record.
+   640→   640→
+   641→   641→Possible statuses:
+   642→   642→
+   643→   643→- Not Registered
+   644→   644→- Registered
+   645→   645→- Attending
+   646→   646→- Not Attending
+   647→   647→- Absent
+   648→   648→- In Progress
+   649→   649→- Selected
+   650→   650→- Rejected
+   651→   651→- On Hold
+   652→   652→- Withdrawn
+   653→   653→
+   654→   654→==================================================
+   655→   655→15. ROUND MANAGEMENT
+   656→   656→==================================================
+   657→   657→
+   658→   658→Admin should be able to configure recruitment rounds for every company.
+   659→   659→
+   660→   660→Example:
+   661→   661→
+   662→   662→Round 1
+   663→   663→Aptitude Test
+   664→   664→
+   665→   665→Round 2
+   666→   666→Technical Assessment
+   667→   667→
+   668→   668→Round 3
+   669→   669→Technical Interview
+   670→   670→
+   671→   671→Round 4
+   672→   672→HR Interview
+   673→   673→
+   674→   674→Round 5
+   675→   675→Final Selection
+   676→   676→
+   677→   677→Admin can add/edit/delete rounds.
+   678→   678→
+   679→   679→Each round should have:
+   680→   680→
+   681→   681→- Round Number
+   682→   682→- Round Name
+   683→   683→- Description
+   684→   684→- Date
+   685→   685→- Start Time
+   686→   686→- End Time
+   687→   687→- Status
+   688→   688→
+   689→   689→Status:
+   690→   690→
+   691→   691→Upcoming
+   692→   692→Ongoing
+   693→   693→Completed
+   694→   694→
+   695→   695→==================================================
+   696→   696→16. STUDENT ROUND TRACKING
+   697→   697→==================================================
+   698→   698→
+   699→   699→For every participating student, track their round status.
+   700→   700→
+   701→   701→Example:
+   702→   702→
+   703→   703→Praveen Kumar
+   704→   704→
+   705→   705→TCS
+   706→   706→
+   707→   707→Round 1:
+   708→   708→Cleared
+   709→   709→
+   710→   710→Round 2:
+   711→   711→Cleared
+   712→   712→
+   713→   713→Round 3:
+   714→   714→Cleared
+   715→   715→
+   716→   716→Round 4:
+   717→   717→Pending
+   718→   718→
+   719→   719→Round 5:
+   720→   720→Not Started
+   721→   721→
+   722→   722→Use a visual progress timeline.
+   723→   723→
+   724→   724→Example:
+   725→   725→
+   726→   726→Registration
+   727→   727→✓
+   728→   728→
+   729→   729→Aptitude
+   730→   730→✓
+   731→   731→
+   732→   732→Technical Test
+   733→   733→✓
+   734→   734→
+   735→   735→Technical Interview
+   736→   736→✓
+   737→   737→
+   738→   738→HR Interview
+   739→   739→●
+   740→   740→
+   741→   741→Final Result
+   742→   742→○
+   743→   743→
+   744→   744→This should make it extremely easy for staff to understand where every student currently stands.
+   745→   745→
+   746→   746→==================================================
+   747→   747→17. ROUND RESULT UPDATE
+   748→   748→==================================================
+   749→   749→
+   750→   750→Admin should be able to update each student's round result.
+   751→   751→
+   752→   752→Options:
+   753→   753→
+   754→   754→- Cleared
+   755→   755→- Not Cleared
+   756→   756→- Absent
+   757→   757→- Pending
+   758→   758→- On Hold
+   759→   759→
+   760→   760→Allow bulk update.
+   761→   761→
+   762→   762→Example:
+   763→   763→
+   764→   764→Select 50 students
+   765→   765→
+   766→   766→Set Round 1:
+   767→   767→
+   768→   768→CLEARED
+   769→   769→
+   770→   770→Save.
+   771→   771→
+   772→   772→This should update all selected students.
+   773→   773→
+   774→   774→==================================================
+   775→   775→18. FINAL RESULT
+   776→   776→==================================================
+   777→   777→
+   778→   778→At the end of the recruitment process Admin should be able to mark:
+   779→   779→
+   780→   780→Selected
+   781→   781→Rejected
+   782→   782→On Hold
+   783→   783→Withdrawn
+   784→   784→
+   785→   785→If selected:
+   786→   786→
+   787→   787→Ask for:
+   788→   788→
+   789→   789→- Job Role
+   790→   790→- CTC
+   791→   791→- Joining Location
+   792→   792→- Joining Date
+   793→   793→- Offer Letter
+   794→   794→- Company
+   795→   795→
+   796→   796→Student placement status should automatically update to:
+   797→   797→
+   798→   798→PLACED
+   799→   799→
+   800→   800→If rejected:
+   801→   801→
+   802→   802→Company participation status becomes:
+   803→   803→
+   804→   804→REJECTED
+   805→   805→
+   806→   806→But the student remains:
+   807→   807→
+   808→   808→UNPLACED
+   809→   809→
+   810→   810→This distinction is extremely important.
+   811→   811→
+   812→   812→==================================================
+   813→   813→19. MULTIPLE COMPANY TRACKING
+   814→   814→==================================================
+   815→   815→
+   816→   816→A student can attend multiple companies.
+   817→   817→
+   818→   818→Example:
+   819→   819→
+   820→   820→Student A:
+   821→   821→
+   822→   822→TCS → Rejected
+   823→   823→Infosys → Round 3
+   824→   824→Accenture → Selected
+   825→   825→Cognizant → Not Attended
+   826→   826→Wipro → Round 2
+   827→   827→
+   828→   828→The system must preserve all these records.
+   829→   829→
+   830→   830→Do not overwrite old company data.
+   831→   831→
+   832→   832→Every company participation must be stored separately.
+   833→   833→
+   834→   834→==================================================
+   835→   835→20. STUDENT PLACEMENT HISTORY
+   836→   836→==================================================
+   837→   837→
+   838→   838→Create a placement history page.
+   839→   839→
+   840→   840→For each student show:
+   841→   841→
+   842→   842→Company
+   843→   843→Drive
+   844→   844→Date
+   845→   845→Attendance
+   846→   846→Rounds Cleared
+   847→   847→Current Round
+   848→   848→Final Result
+   849→   849→CTC
+   850→   850→Job Role
+   851→   851→
+   852→   852→Example:
+   853→   853→
+   854→   854→| Company | Attendance | Rounds | Result |
+   855→   855→| TCS | Attended | 3/5 | Rejected |
+   856→   856→| Infosys | Attended | 4/4 | Selected |
+   857→   857→| Wipro | Not Attended | 0/4 | Not Attended |
+   858→   858→
+   859→   859→==================================================
+   860→   860→21. COMPANY-WISE ANALYTICS
+   861→   861→==================================================
+   862→   862→
+   863→   863→For every company show:
+   864→   864→
+   865→   865→Total Eligible Students
+   866→   866→Registered
+   867→   867→Attended
+   868→   868→Absent
+   869→   869→Round 1 Cleared
+   870→   870→Round 2 Cleared
+   871→   871→Round 3 Cleared
+   872→   872→Final Interview
+   873→   873→Selected
+   874→   874→Rejected
+   875→   875→
+   876→   876→Example:
+   877→   877→
+   878→   878→TCS
+   879→   879→
+   880→   880→Eligible:
+   881→   881→850
+   882→   882→
+   883→   883→Registered:
+   884→   884→700
+   885→   885→
+   886→   886→Attended:
+   887→   887→650
+   888→   888→
+   889→   889→Round 1:
+   890→   890→420
+   891→   891→
+   892→   892→Round 2:
+   893→   893→210
+   894→   894→
+   895→   895→Technical Interview:
+   896→   896→95
+   897→   897→
+   898→   898→HR:
+   899→   899→50
+   900→   900→
+   901→   901→Selected:
+   902→   902→32
+   903→   903→
+   904→   904→==================================================
+   905→   905→22. ROUND-WISE FUNNEL
+   906→   906→==================================================
+   907→   907→
+   908→   908→Create a recruitment funnel chart.
+   909→   909→
+   910→   910→Example:
+   911→   911→
+   912→   912→Eligible Students
+   913→   913→1000
+   914→   914→
+   915→   915→↓
+   916→   916→Registered
+   917→   917→850
+   918→   918→
+   919→   919→↓
+   920→   920→Attended
+   921→   921→780
+   922→   922→
+   923→   923→↓
+   924→   924→Aptitude Cleared
+   925→   925→500
+   926→   926→
+   927→   927→↓
+   928→   928→Technical Cleared
+   929→   929→250
+   930→   930→
+   931→   931→↓
+   932→   932→Interview
+   933→   933→100
+   934→   934→
+   935→   935→↓
+   936→   936→Selected
+   937→   937→40
+   938→   938→
+   939→   939→This gives staff a quick overview of the recruitment process.
+   940→   940→
+   941→   941→==================================================
+   942→   942→23. PLACEMENT ANALYTICS
+   943→   943→==================================================
+   944→   944→
+   945→   945→Create a dedicated:
+   946→   946→
+   947→   947→"Placement Analytics"
+   948→   948→
+   949→   949→page.
+   950→   950→
+   951→   951→Show:
+   952→   952→
+   953→   953→Total Students
+   954→   954→Placed
+   955→   955→Unplaced
+   956→   956→Currently in Process
+   957→   957→
+   958→   958→Placement Percentage
+   959→   959→
+   960→   960→Department-wise Placement
+   961→   961→
+   962→   962→Year-wise Placement
+   963→   963→
+   964→   964→Class-wise Placement
+   965→   965→
+   966→   966→Company-wise Selection
+   967→   967→
+   968→   968→Skill-wise Selection
+   969→   969→
+   970→   970→Average CTC
+   971→   971→
+   972→   972→Highest CTC
+   973→   973→
+   974→   974→Number of Companies Attended
+   975→   975→
+   976→   976→Average Companies per Student
+   977→   977→
+   978→   978→==================================================
+   979→   979→24. SKILL ANALYTICS
+   980→   980→==================================================
+   981→   981→
+   982→   982→Analyze student skills.
+   983→   983→
+   984→   984→Example:
+   985→   985→
+   986→   986→Java
+   987→   987→250 students
+   988→   988→
+   989→   989→Python
+   990→   990→310 students
+   991→   991→
+   992→   992→SQL
+   993→   993→420 students
+   994→   994→
+   995→   995→React
+   996→   996→150 students
+   997→   997→
+   998→   998→Machine Learning
+   999→   999→120 students
+  1000→  1000→
+  1001→  1001→Show which skills are most common.
+  1002→  1002→
+  1003→  1003→Also show:
+  1004→  1004→
+  1005→  1005→Skill → Companies → Selections
+  1006→  1006→
+  1007→  1007→Example:
+  1008→  1008→
+  1009→  1009→Java:
+  1010→  1010→
+  1011→  1011→250 students
+  1012→  1012→
+  1013→  1013→Attended:
+  1014→  1014→35 companies
+  1015→  1015→
+  1016→  1016→Selected:
+  1017→  1017→72 students
+  1018→  1018→
+  1019→  1019→This helps staff understand which skills are currently useful for placement.
+  1020→  1020→
+  1021→  1021→==================================================
+  1022→  1022→25. STRONG SKILL ANALYTICS
+  1023→  1023→==================================================
+  1024→  1024→
+  1025→  1025→Students must identify their strongest skills.
+  1026→  1026→
+  1027→  1027→Admin dashboard should display:
+  1028→  1028→
+  1029→  1029→Top Strong Skills
+  1030→  1030→
+  1031→  1031→Java
+  1032→  1032→Python
+  1033→  1033→SQL
+  1034→  1034→React
+  1035→  1035→Machine Learning
+  1036→  1036→
+  1037→  1037→Allow staff to filter students based on strong skills.
+  1038→  1038→
+  1039→  1039→Example:
+  1040→  1040→
+  1041→  1041→Upcoming Company requires:
+  1042→  1042→
+  1043→  1043→Java
+  1044→  1044→SQL
+  1045→  1045→
+  1046→  1046→Admin can filter:
+  1047→  1047→
+  1048→  1048→Strong Skill contains Java
+  1049→  1049→AND
+  1050→  1050→Strong Skill contains SQL
+  1051→  1051→
+  1052→  1052→Then show matching students.
+  1053→  1053→
+  1054→  1054→==================================================
+  1055→  1055→26. UPCOMING COMPANY STUDENT RECOMMENDATION
+  1056→  1056→==================================================
+  1057→  1057→
+  1058→  1058→This is one of the most important features.
+  1059→  1059→
+  1060→  1060→When Admin creates a new company drive, automatically identify potentially suitable students.
+  1061→  1061→
+  1062→  1062→Based on:
+  1063→  1063→
+  1064→  1064→- Department
+  1065→  1065→- Year
+  1066→  1066→- Class
+  1067→  1067→- CGPA
+  1068→  1068→- Backlogs
+  1069→  1069→- Strong Skills
+  1070→  1070→- Required Skills
+  1071→  1071→- Previous company participation
+  1072→  1072→- Previous selections/rejections
+  1073→  1073→- Placement status
+  1074→  1074→
+  1075→  1075→Create:
+  1076→  1076→
+  1077→  1077→"Recommended Students"
+  1078→  1078→
+  1079→  1079→section.
+  1080→  1080→
+  1081→  1081→Example:
+  1082→  1082→
+  1083→  1083→New Company:
+  1084→  1084→
+  1085→  1085→Accenture
+  1086→  1086→
+  1087→  1087→Required Skills:
+  1088→  1088→
+  1089→  1089→Java
+  1090→  1090→SQL
+  1091→  1091→React
+  1092→  1092→
+  1093→  1093→Eligibility:
+  1094→  1094→
+  1095→  1095→CGPA >= 7.0
+  1096→  1096→
+  1097→  1097→Department:
+  1098→  1098→
+  1099→  1099→CSE / AI&DS / IT
+  1100→  1100→
+  1101→  1101→The system should show:
+  1102→  1102→
+  1103→  1103→Recommended Students:
+  1104→  1104→
+  1105→  1105→1. Student A
+  1106→  1106→   CGPA: 8.5
+  1107→  1107→   Strong Skills: Java, SQL
+  1108→  1108→   Companies Attended: 5
+  1109→  1109→   Current Status: Unplaced
+  1110→  1110→
+  1111→  1111→2. Student B
+  1112→  1112→   CGPA: 8.1
+  1113→  1113→   Strong Skills: Java, React
+  1114→  1114→   Companies Attended: 3
+  1115→  1115→   Current Status: Unplaced
+  1116→  1116→
+  1117→  1117→Provide a matching score.
+  1118→  1118→
+  1119→  1119→Example:
+  1120→  1120→
+  1121→  1121→92% Match
+  1122→  1122→
+  1123→  1123→Do NOT automatically select students.
+  1124→  1124→
+  1125→  1125→This is only a recommendation for staff.
+  1126→  1126→
+  1127→  1127→Staff must make the final decision.
+  1128→  1128→
+  1129→  1129→==================================================
+  1130→  1130→27. STUDENT COMPANY LIMIT RULES
+  1131→  1131→==================================================
+  1132→  1132→
+  1133→  1133→Allow Admin to configure college placement rules.
+  1134→  1134→
+  1135→  1135→Example:
+  1136→  1136→
+  1137→  1137→Maximum companies a student can attend:
+  1138→  1138→10
+  1139→  1139→
+  1140→  1140→OR
+  1141→  1141→
+  1142→  1142→If selected in a company, student may not attend further drives.
+  1143→  1143→
+  1144→  1144→The rules must be configurable.
+  1145→  1145→
+  1146→  1146→Do not hardcode placement rules.
+  1147→  1147→
+  1148→  1148→==================================================
+  1149→  1149→28. DASHBOARD FILTERS
+  1150→  1150→==================================================
+  1151→  1151→
+  1152→  1152→All major dashboard analytics should support filters.
+  1153→  1153→
+  1154→  1154→Global filter:
+  1155→  1155→
+  1156→  1156→Department
+  1157→  1157→Year
+  1158→  1158→Class
+  1159→  1159→Batch
+  1160→  1160→Company
+  1161→  1161→Date Range
+  1162→  1162→Placement Status
+  1163→  1163→
+  1164→  1164→Example:
+  1165→  1165→
+  1166→  1166→AI & DS
+  1167→  1167→4th Year
+  1168→  1168→Class A
+  1169→  1169→
+  1170→  1170→Then every relevant card/chart/table should update.
+  1171→  1171→
+  1172→  1172→==================================================
+  1173→  1173→29. STUDENT SEARCH
+  1174→  1174→==================================================
+  1175→  1175→
+  1176→  1176→Admin must be able to quickly search students using:
+  1177→  1177→
+  1178→  1178→Name
+  1179→  1179→Register Number
+  1180→  1180→Email
+  1181→  1181→Department
+  1182→  1182→Class
+  1183→  1183→
+  1184→  1184→Search should be fast.
+  1185→  1185→
+  1186→  1186→==================================================
+  1187→  1187→30. BULK OPERATIONS
+  1188→  1188→==================================================
+  1189→  1189→
+  1190→  1190→Admin should be able to select multiple students.
+  1191→  1191→
+  1192→  1192→Actions:
+  1193→  1193→
+  1194→  1194→- Mark Attending
+  1195→  1195→- Mark Not Attending
+  1196→  1196→- Mark Round Cleared
+  1197→  1197→- Mark Round Not Cleared
+  1198→  1198→- Export
+  1199→  1199→- Add to Drive
+  1200→  1200→- Remove from Drive
+  1201→  1201→
+  1202→  1202→Show confirmation before destructive actions.
+  1203→  1203→
+  1204→  1204→==================================================
+  1205→  1205→31. IMPORT STUDENTS
+  1206→  1206→==================================================
+  1207→  1207→
+  1208→  1208→Admin should be able to upload student data using CSV/Excel.
+  1209→  1209→
+  1210→  1210→Provide:
+  1211→  1211→
+  1212→  1212→Import Students
+  1213→  1213→
+  1214→  1214→Allow mapping columns:
+  1215→  1215→
+  1216→  1216→Name
+  1217→  1217→Register Number
+  1218→  1218→Department
+  1219→  1219→Year
+  1220→  1220→Class
+  1221→  1221→Email
+  1222→  1222→CGPA
+  1223→  1223→Skills
+  1224→  1224→etc.
+  1225→  1225→
+  1226→  1226→Validate duplicate register numbers.
+  1227→  1227→
+  1228→  1228→Show:
+  1229→  1229→
+  1230→  1230→Successfully Imported
+  1231→  1231→Failed
+  1232→  1232→Duplicates
+  1233→  1233→
+  1234→  1234→Allow admin to download error records.
+  1235→  1235→
+  1236→  1236→==================================================
+  1237→  1237→32. EXPORT DATA
+  1238→  1238→==================================================
+  1239→  1239→
+  1240→  1240→Allow exporting filtered data as CSV/Excel.
+  1241→  1241→
+  1242→  1242→Examples:
+  1243→  1243→
+  1244→  1244→Export:
+  1245→  1245→
+  1246→  1246→AI & DS 4th Year students
+  1247→  1247→
+  1248→  1248→or:
+  1249→  1249→
+  1250→  1250→TCS participants
+  1251→  1251→
+  1252→  1252→or:
+  1253→  1253→
+  1254→  1254→Selected students
+  1255→  1255→
+  1256→  1256→or:
+  1257→  1257→
+  1258→  1258→Unplaced students
+  1259→  1259→
+  1260→  1260→or:
+  1261→  1261→
+  1262→  1262→Students with Java as strong skill
+  1263→  1263→
+  1264→  1264→==================================================
+  1265→  1265→33. ADMIN SIDEBAR
+  1266→  1266→==================================================
+  1267→  1267→
+  1268→  1268→Admin sidebar:
+  1269→  1269→
+  1270→  1270→Dashboard
+  1271→  1271→
+  1272→  1272→Students
+  1273→  1273→
+  1274→  1274→Companies
+  1275→  1275→
+  1276→  1276→Placement Drives
+  1277→  1277→
+  1278→  1278→Active Drives
+  1279→  1279→
+  1280→  1280→Upcoming Drives
+  1281→  1281→
+  1282→  1282→Rounds
+  1283→  1283→
+  1284→  1284→Placement Analytics
+  1285→  1285→
+  1286→  1286→Skill Analytics
+  1287→  1287→
+  1288→  1288→Reports
+  1289→  1289→
+  1290→  1290→Settings
+  1291→  1291→
+  1292→  1292→Profile
+  1293→  1293→
+  1294→  1294→Logout
+  1295→  1295→
+  1296→  1296→==================================================
+  1297→  1297→34. STUDENT SIDEBAR
+  1298→  1298→==================================================
+  1299→  1299→
+  1300→  1300→Student sidebar:
+  1301→  1301→
+  1302→  1302→Dashboard
+  1303→  1303→
+  1304→  1304→My Profile
+  1305→  1305→
+  1306→  1306→My Skills
+  1307→  1307→
+  1308→  1308→My Resume
+  1309→  1309→
+  1310→  1310→Companies
+  1311→  1311→
+  1312→  1312→My Drives
+  1313→  1313→
+  1314→  1314→My Placement History
+  1315→  1315→
+  1316→  1316→Upcoming Drives
+  1317→  1317→
+  1318→  1318→Notifications
+  1319→  1319→
+  1320→  1320→Settings
+  1321→  1321→
+  1322→  1322→Logout
+  1323→  1323→
+  1324→  1324→==================================================
+  1325→  1325→35. NOTIFICATIONS
+  1326→  1326→==================================================
+  1327→  1327→
+  1328→  1328→Create notification functionality.
+  1329→  1329→
+  1330→  1330→Students should receive notifications for:
+  1331→  1331→
+  1332→  1332→- New company drive
+  1333→  1333→- Registration deadline
+  1334→  1334→- Drive date
+  1335→  1335→- Round schedule
+  1336→  1336→- Round result
+  1337→  1337→- Selection result
+  1338→  1338→
+  1339→  1339→Admin can create announcements.
+  1340→  1340→
+  1341→  1341→==================================================
+  1342→  1342→36. UPCOMING DRIVE PAGE
+  1343→  1343→==================================================
+  1344→  1344→
+  1345→  1345→Students should see upcoming eligible companies.
+  1346→  1346→
+  1347→  1347→Example card:
+  1348→  1348→
+  1349→  1349→[COMPANY LOGO]
+  1350→  1350→
+  1351→  1351→TCS
+  1352→  1352→
+  1353→  1353→Software Engineer
+  1354→  1354→
+  1355→  1355→CTC: ₹7 LPA
+  1356→  1356→
+  1357→  1357→Eligible:
+  1358→  1358→AI & DS
+  1359→  1359→
+  1360→  1360→Drive Date:
+  1361→  1361→20 October 2026
+  1362→  1362→
+  1363→  1363→Registration closes:
+  1364→  1364→18 October 2026
+  1365→  1365→
+  1366→  1366→[View Details]
+  1367→  1367→
+  1368→  1368→[Will Attend]
+  1369→  1369→
+  1370→  1370→[Will Not Attend]
+  1371→  1371→
+  1372→  1372→==================================================
+  1373→  1373→37. ADMIN DRIVE PAGE
+  1374→  1374→==================================================
+  1375→  1375→
+  1376→  1376→Admin drive page should contain tabs:
+  1377→  1377→
+  1378→  1378→Overview
+  1379→  1379→Eligible Students
+  1380→  1380→Attendance
+  1381→  1381→Rounds
+  1382→  1382→Round Results
+  1383→  1383→Final Results
+  1384→  1384→Analytics
+  1385→  1385→Reports
+  1386→  1386→
+  1387→  1387→Overview:
+  1388→  1388→
+  1389→  1389→Company
+  1390→  1390→Drive date
+  1391→  1391→Eligible count
+  1392→  1392→Registered
+  1393→  1393→Attended
+  1394→  1394→Current participants
+  1395→  1395→Selected
+  1396→  1396→
+  1397→  1397→==================================================
+  1398→  1398→38. REAL-TIME DASHBOARD
+  1399→  1399→==================================================
+  1400→  1400→
+  1401→  1401→When Admin updates a student's status:
+  1402→  1402→
+  1403→  1403→The dashboard statistics should update automatically.
+  1404→  1404→
+  1405→  1405→Example:
+  1406→  1406→
+  1407→  1407→Student selected.
+  1408→  1408→
+  1409→  1409→Selected count:
+  1410→  1410→
+  1411→  1411→31 → 32
+  1412→  1412→
+  1413→  1413→Placed students:
+  1414→  1414→
+  1415→  1415→319 → 320
+  1416→  1416→
+  1417→  1417→Use Supabase realtime where appropriate.
+  1418→  1418→
+  1419→  1419→==================================================
+  1420→  1420→39. DATABASE DESIGN
+  1421→  1421→==================================================
+  1422→  1422→
+  1423→  1423→Create a proper relational database.
+  1424→  1424→
+  1425→  1425→Suggested tables:
+  1426→  1426→
+  1427→  1427→profiles
+  1428→  1428→students
+  1429→  1429→departments
+  1430→  1430→years
+  1431→  1431→classes
+  1432→  1432→skills
+  1433→  1433→student_skills
+  1434→  1434→certifications
+  1435→  1435→projects
+  1436→  1436→companies
+  1437→  1437→company_drives
+  1438→  1438→drive_eligibility
+  1439→  1439→drive_participants
+  1440→  1440→recruitment_rounds
+  1441→  1441→student_round_results
+  1442→  1442→placement_results
+  1443→  1443→notifications
+  1444→  1444→admin_users
+  1445→  1445→placement_rules
+  1446→  1446→audit_logs
+  1447→  1447→
+  1448→  1448→Use foreign keys properly.
+  1449→  1449→
+  1450→  1450→Avoid storing repeated data unnecessarily.
+  1451→  1451→
+  1452→  1452→Use normalized relational design.
+  1453→  1453→
+  1454→  1454→==================================================
+  1455→  1455→40. IMPORTANT DATABASE RELATIONSHIP
+  1456→  1456→==================================================
+  1457→  1457→
+  1458→  1458→One student can have:
+  1459→  1459→
+  1460→  1460→Many skills
+  1461→  1461→
+  1462→  1462→Many certifications
+  1463→  1463→
+  1464→  1464→Many projects
+  1465→  1465→
+  1466→  1466→Many company participations
+  1467→  1467→
+  1468→  1468→Each company can have:
+  1469→  1469→
+  1470→  1470→Many drives
+  1471→  1471→
+  1472→  1472→Each drive can have:
+  1473→  1473→
+  1474→  1474→Many students
+  1475→  1475→
+  1476→  1476→Each drive can have:
+  1477→  1477→
+  1478→  1478→Many rounds
+  1479→  1479→
+  1480→  1480→Each student participating in a drive can have:
+  1481→  1481→
+  1482→  1482→Many round results
+  1483→  1483→
+  1484→  1484→One final result.
+  1485→  1485→
+  1486→  1486→Design the database accordingly.
+  1487→  1487→
+  1488→  1488→==================================================
+  1489→  1489→41. SECURITY
+  1490→  1490→==================================================
+  1491→  1491→
+  1492→  1492→Implement:
+  1493→  1493→
+  1494→  1494→Supabase Authentication
+  1495→  1495→
+  1496→  1496→Role-based authorization
+  1497→  1497→
+  1498→  1498→Row Level Security
+  1499→  1499→
+  1500→  1500→Students can only edit their own profile.
+  1501→  1501→
+  1502→  1502→Students can only view their own private placement records unless the institution intentionally exposes shared information.
+  1503→  1503→
+  1504→  1504→Admin can manage all records.
+  1505→  1505→
+  1506→  1506→Prevent students from modifying:
+  1507→  1507→
+  1508→  1508→Final selection status
+  1509→  1509→Other students
+  1510→  1510→Company data
+  1511→  1511→Round results
+  1512→  1512→
+  1513→  1513→Protect uploaded resumes and certificates.
+  1514→  1514→
+  1515→  1515→Do not expose service-role keys in frontend.
+  1516→  1516→
+  1517→  1517→Use environment variables.
+  1518→  1518→
+  1519→  1519→==================================================
+  1520→  1520→42. AUDIT LOG
+  1521→  1521→==================================================
+  1522→  1522→
+  1523→  1523→Create an audit log.
+  1524→  1524→
+  1525→  1525→Whenever Admin changes important data record:
+  1526→  1526→
+  1527→  1527→Store:
+  1528→  1528→
+  1529→  1529→Admin
+  1530→  1530→Action
+  1531→  1531→Student
+  1532→  1532→Company
+  1533→  1533→Drive
+  1534→  1534→Previous Value
+  1535→  1535→New Value
+  1536→  1536→Timestamp
+  1537→  1537→
+  1538→  1538→Examples:
+  1539→  1539→
+  1540→  1540→Admin changed:
+  1541→  1541→
+  1542→  1542→Student A
+  1543→  1543→
+  1544→  1544→TCS
+  1545→  1545→
+  1546→  1546→Round 2
+  1547→  1547→
+  1548→  1548→Pending → Cleared
+  1549→  1549→
+  1550→  1550→This should be logged.
+  1551→  1551→
+  1552→  1552→==================================================
+  1553→  1553→43. ADMIN REPORTS
+  1554→  1554→==================================================
+  1555→  1555→
+  1556→  1556→Create reports such as:
+  1557→  1557→
+  1558→  1558→Overall Placement Report
+  1559→  1559→
+  1560→  1560→Department Placement Report
+  1561→  1561→
+  1562→  1562→Company Drive Report
+  1563→  1563→
+  1564→  1564→Student Participation Report
+  1565→  1565→
+  1566→  1566→Selected Students Report
+  1567→  1567→
+  1568→  1568→Unplaced Students Report
+  1569→  1569→
+  1570→  1570→Round-wise Report
+  1571→  1571→
+  1572→  1572→Skill-wise Report
+  1573→  1573→
+  1574→  1574→Attendance Report
+  1575→  1575→
+  1576→  1576→Allow filtering before generating reports.
+  1577→  1577→
+  1578→  1578→==================================================
+  1579→  1579→44. UI DESIGN
+  1580→  1580→==================================================
+  1581→  1581→
+  1582→  1582→Use a professional college management dashboard style.
+  1583→  1583→
+  1584→  1584→Do NOT make the UI look like a generic simple CRUD application.
+  1585→  1585→
+  1586→  1586→Use:
+  1587→  1587→
+  1588→  1588→- Clean sidebar
+  1589→  1589→- Top navigation
+  1590→  1590→- Dashboard cards
+  1591→  1591→- Charts
+  1592→  1592→- Tables
+  1593→  1593→- Search
+  1594→  1594→- Filters
+  1595→  1595→- Badges
+  1596→  1596→- Progress bars
+  1597→  1597→- Timeline
+  1598→  1598→- Modals
+  1599→  1599→- Tabs
+  1600→  1600→- Responsive design
+  1601→  1601→
+  1602→  1602→Use a consistent design system.
+  1603→  1603→
+  1604→  1604→Desktop should be the primary experience because staff will mostly use computers.
+  1605→  1605→
+  1606→  1606→It must also work on tablets and mobile devices.
+  1607→  1607→
+  1608→  1608→==================================================
+  1609→  1609→45. EMPTY STATES
+  1610→  1610→==================================================
+  1611→  1611→
+  1612→  1612→Every page must have useful empty states.
+  1613→  1613→
+  1614→  1614→Example:
+  1615→  1615→
+  1616→  1616→No companies created yet.
+  1617→  1617→
+  1618→  1618→[Create Company]
+  1619→  1619→
+  1620→  1620→No active placement drives.
+  1621→  1621→
+  1622→  1622→[Create Drive]
+  1623→  1623→
+  1624→  1624→No students found.
+  1625→  1625→
+  1626→  1626→Try changing your filters.
+  1627→  1627→
+  1628→  1628→==================================================
+  1629→  1629→46. LOADING STATES
+  1630→  1630→==================================================
+  1631→  1631→
+  1632→  1632→Every database operation must have loading indicators.
+  1633→  1633→
+  1634→  1634→Do not leave the UI frozen.
+  1635→  1635→
+  1636→  1636→Use skeleton loaders where appropriate.
+  1637→  1637→
+  1638→  1638→==================================================
+  1639→  1639→47. ERROR HANDLING
+  1640→  1640→==================================================
+  1641→  1641→
+  1642→  1642→Handle:
+  1643→  1643→
+  1644→  1644→Authentication errors
+  1645→  1645→Database errors
+  1646→  1646→Duplicate students
+  1647→  1647→Duplicate company
+  1648→  1648→Invalid CSV
+  1649→  1649→Invalid student data
+  1650→  1650→File upload errors
+  1651→  1651→Permission errors
+  1652→  1652→Network errors
+  1653→  1653→
+  1654→  1654→Show user-friendly messages.
+  1655→  1655→
+  1656→  1656→Never show raw database errors to normal users.
+  1657→  1657→
+  1658→  1658→==================================================
+  1659→  1659→48. MOBILE RESPONSIVENESS
+  1660→  1660→==================================================
+  1661→  1661→
+  1662→  1662→The system must be fully responsive.
+  1663→  1663→
+  1664→  1664→Admin tables should become horizontally scrollable or transform into mobile cards.
+  1665→  1665→
+  1666→  1666→Charts should resize properly.
+  1667→  1667→
+  1668→  1668→Forms should work on mobile.
+  1669→  1669→
+  1670→  1670→==================================================
+  1671→  1671→49. ADMIN SETTINGS
+  1672→  1672→==================================================
+  1673→  1673→
+  1674→  1674→Admin settings should allow:
+  1675→  1675→
+  1676→  1676→College Information
+  1677→  1677→Departments
+  1678→  1678→Years
+  1679→  1679→Classes
+  1680→  1680→Skills
+  1681→  1681→Placement Rules
+  1682→  1682→Company Settings
+  1683→  1683→Notification Settings
+  1684→  1684→
+  1685→  1685→Admin should be able to add custom fields later.
+  1686→  1686→
+  1687→  1687→==================================================
+  1688→  1688→50. DYNAMIC CUSTOM FIELDS
+  1689→  1689→==================================================
+  1690→  1690→
+  1691→  1691→IMPORTANT REQUIREMENT:
+  1692→  1692→
+  1693→  1693→Admin should be able to add new student information fields without modifying the application code.
+  1694→  1694→
+  1695→  1695→Example:
+  1696→  1696→
+  1697→  1697→Admin wants:
+  1698→  1698→
+  1699→  1699→"Preferred Programming Language"
+  1700→  1700→
+  1701→  1701→Create custom field:
+  1702→  1702→
+  1703→  1703→Field Name:
+  1704→  1704→Preferred Programming Language
+  1705→  1705→
+  1706→  1706→Type:
+  1707→  1707→Dropdown
+  1708→  1708→
+  1709→  1709→Options:
+  1710→  1710→Java
+  1711→  1711→Python
+  1712→  1712→C++
+  1713→  1713→
+  1714→  1714→Another field:
+  1715→  1715→
+  1716→  1716→"Communication Rating"
+  1717→  1717→
+  1718→  1718→Type:
+  1719→  1719→Number
+  1720→  1720→
+  1721→  1721→Another:
+  1722→  1722→
+  1723→  1723→"Internship Experience"
+  1724→  1724→
+  1725→  1725→Type:
+  1726→  1726→Yes/No
+  1727→  1727→
+  1728→  1728→The system should dynamically display these fields in student registration/profile forms.
+  1729→  1729→
+  1730→  1730→Create a custom_fields configuration table.
+  1731→  1731→
+  1732→  1732→Support field types:
+  1733→  1733→
+  1734→  1734→Text
+  1735→  1735→Number
+  1736→  1736→Dropdown
+  1737→  1737→Multi-select
+  1738→  1738→Boolean
+  1739→  1739→Date
+  1740→  1740→File
+  1741→  1741→Textarea
+  1742→  1742→
+  1743→  1743→Admin can:
+  1744→  1744→
+  1745→  1745→Add
+  1746→  1746→Edit
+  1747→  1747→Disable
+  1748→  1748→Delete
+  1749→  1749→
+  1750→  1750→custom fields.
+  1751→  1751→
+  1752→  1752→==================================================
+  1753→  1753→51. PLACEMENT ELIGIBILITY ENGINE
+  1754→  1754→==================================================
+  1755→  1755→
+  1756→  1756→Create a reusable eligibility engine.
+  1757→  1757→
+  1758→  1758→Admin can configure:
+  1759→  1759→
+  1760→  1760→Minimum CGPA
+  1761→  1761→Maximum Backlogs
+  1762→  1762→Departments
+  1763→  1763→Years
+  1764→  1764→Classes
+  1765→  1765→Required Skills
+  1766→  1766→Gender if institution policy legally permits and requires it
+  1767→  1767→Other custom fields
+  1768→  1768→
+  1769→  1769→When creating a company drive:
+  1770→  1770→
+  1771→  1771→Automatically calculate eligible students.
+  1772→  1772→
+  1773→  1773→Show:
+  1774→  1774→
+  1775→  1775→Eligible Students: 540
+  1776→  1776→
+  1777→  1777→Not Eligible: 710
+  1778→  1778→
+  1779→  1779→Allow Admin to view why a student is not eligible.
+  1780→  1780→
+  1781→  1781→Example:
+  1782→  1782→
+  1783→  1783→Student A
+  1784→  1784→
+  1785→  1785→Not Eligible
+  1786→  1786→
+  1787→  1787→Reason:
+  1788→  1788→
+  1789→  1789→CGPA 6.4 < required 7.0
+  1790→  1790→
+  1791→  1791→OR
+  1792→  1792→
+  1793→  1793→Backlogs 2 > maximum allowed 0
+  1794→  1794→
+  1795→  1795→==================================================
+  1796→  1796→52. DRIVE REGISTRATION CONTROL
+  1797→  1797→==================================================
+  1798→  1798→
+  1799→  1799→Admin can control:
+  1800→  1800→
+  1801→  1801→Registration Start
+  1802→  1802→Registration End
+  1803→  1803→
+  1804→  1804→After deadline:
+  1805→  1805→
+  1806→  1806→Students cannot register.
+  1807→  1807→
+  1808→  1808→Display:
+  1809→  1809→
+  1810→  1810→Registration Closed
+  1811→  1811→
+  1812→  1812→If drive date has passed:
+  1813→  1813→
+  1814→  1814→Drive status automatically becomes:
+  1815→  1815→
+  1816→  1816→Completed
+  1817→  1817→
+  1818→  1818→if appropriate.
+  1819→  1819→
+  1820→  1820→==================================================
+  1821→  1821→53. COMPANY LOGO SYSTEM
+  1822→  1822→==================================================
+  1823→  1823→
+  1824→  1824→When creating a company:
+  1825→  1825→
+  1826→  1826→Input:
+  1827→  1827→
+  1828→  1828→Company Name
+  1829→  1829→
+  1830→  1830→Automatically search for/retrieve the official company logo using a reliable logo service or company domain.
+  1831→  1831→
+  1832→  1832→Store:
+  1833→  1833→
+  1834→  1834→company_logo_url
+  1835→  1835→
+  1836→  1836→Also store:
+  1837→  1837→
+  1838→  1838→company_domain
+  1839→  1839→
+  1840→  1840→If automatic retrieval fails:
+  1841→  1841→
+  1842→  1842→Allow Admin to upload a logo manually.
+  1843→  1843→
+  1844→  1844→Use a fallback generic company icon.
+  1845→  1845→
+  1846→  1846→Do not use random unrelated logos.
+  1847→  1847→
+  1848→  1848→==================================================
+  1849→  1849→54. DATA VISUALIZATION
+  1850→  1850→==================================================
+  1851→  1851→
+  1852→  1852→Use charts such as:
+  1853→  1853→
+  1854→  1854→Bar Chart
+  1855→  1855→Pie/Donut Chart
+  1856→  1856→Line Chart
+  1857→  1857→Funnel Chart
+  1858→  1858→Progress Chart
+  1859→  1859→
+  1860→  1860→Examples:
+  1861→  1861→
+  1862→  1862→Department-wise placements
+  1863→  1863→
+  1864→  1864→Company-wise selections
+  1865→  1865→
+  1866→  1866→Year-wise placement
+  1867→  1867→
+  1868→  1868→Round conversion
+  1869→  1869→
+  1870→  1870→Skill distribution
+  1871→  1871→
+  1872→  1872→Drive attendance
+  1873→  1873→
+  1874→  1874→==================================================
+  1875→  1875→55. IMPORTANT STAFF USE CASE
+  1876→  1876→==================================================
+  1877→  1877→
+  1878→  1878→The complete system should make this workflow extremely easy:
+  1879→  1879→
+  1880→  1880→STEP 1:
+  1881→  1881→
+  1882→  1882→Students register.
+  1883→  1883→
+  1884→  1884→STEP 2:
+  1885→  1885→
+  1886→  1886→Admin sees all students.
+  1887→  1887→
+  1888→  1888→STEP 3:
+  1889→  1889→
+  1890→  1890→Admin creates:
+  1891→  1891→
+  1892→  1892→"TCS Campus Drive"
+  1893→  1893→
+  1894→  1894→STEP 4:
+  1895→  1895→
+  1896→  1896→System automatically identifies eligible students.
+  1897→  1897→
+  1898→  1898→STEP 5:
+  1899→  1899→
+  1900→  1900→Students confirm:
+  1901→  1901→
+  1902→  1902→Attend / Not Attend
+  1903→  1903→
+  1904→  1904→STEP 6:
+  1905→  1905→
+  1906→  1906→Admin sees attendance.
+  1907→  1907→
+  1908→  1908→STEP 7:
+  1909→  1909→
+  1910→  1910→Drive happens.
+  1911→  1911→
+  1912→  1912→STEP 8:
+  1913→  1913→
+  1914→  1914→Admin updates Round 1.
+  1915→  1915→
+  1916→  1916→STEP 9:
+  1917→  1917→
+  1918→  1918→Only students who cleared Round 1 proceed.
+  1919→  1919→
+  1920→  1920→STEP 10:
+  1921→  1921→
+  1922→  1922→Admin updates Round 2.
+  1923→  1923→
+  1924→  1924→STEP 11:
+  1925→  1925→
+  1926→  1926→Continue until final interview.
+  1927→  1927→
+  1928→  1928→STEP 12:
+  1929→  1929→
+  1930→  1930→Admin marks:
+  1931→  1931→
+  1932→  1932→Selected / Rejected / On Hold
+  1933→  1933→
+  1934→  1934→STEP 13:
+  1935→  1935→
+  1936→  1936→Dashboard automatically updates.
+  1937→  1937→
+  1938→  1938→STEP 14:
+  1939→  1939→
+  1940→  1940→Staff can analyze:
+  1941→  1941→
+  1942→  1942→Which department performed best?
+  1943→  1943→
+  1944→  1944→Which class has more selections?
+  1945→  1945→
+  1946→  1946→Which students attended many companies?
+  1947→  1947→
+  1948→  1948→Which students are still unplaced?
+  1949→  1949→
+  1950→  1950→Which students have Java/SQL skills?
+  1951→  1951→
+  1952→  1952→Which students are suitable for the next company?
+  1953→  1953→
+  1954→  1954→==================================================
+  1955→  1955→56. "NEXT COMPANY" DECISION DASHBOARD
+  1956→  1956→==================================================
+  1957→  1957→
+  1958→  1958→Create a special Admin feature:
+  1959→  1959→
+  1960→  1960→"Next Company Recommendations"
+  1961→  1961→
+  1962→  1962→When Admin creates or selects an upcoming company, show:
+  1963→  1963→
+  1964→  1964→Recommended Students
+  1965→  1965→
+  1966→  1966→Potentially Eligible
+  1967→  1967→
+  1968→  1968→Already Placed
+  1969→  1969→
+  1970→  1970→Already Attended This Company
+  1971→  1971→
+  1972→  1972→Not Eligible
+  1973→  1973→
+  1974→  1974→Students with matching strong skills
+  1975→  1975→
+  1976→  1976→For each student show:
+  1977→  1977→
+  1978→  1978→Name
+  1979→  1979→Register Number
+  1980→  1980→Department
+  1981→  1981→Year
+  1982→  1982→Class
+  1983→  1983→CGPA
+  1984→  1984→Strong Skills
+  1985→  1985→Companies Attended
+  1986→  1986→Rounds Cleared
+  1987→  1987→Placement Status
+  1988→  1988→Company Match %
+  1989→  1989→Reason for recommendation
+  1990→  1990→
+  1991→  1991→Example:
+  1992→  1992→
+  1993→  1993→Student:
+  1994→  1994→Praveen Kumar
+  1995→  1995→
+  1996→  1996→Match:
+  1997→  1997→94%
+  1998→  1998→
+  1999→  1999→Why recommended:
+  2000→  2000→
+
+[showing lines 1-2000 of 2002; use offset=2001 with limit to continue reading]
