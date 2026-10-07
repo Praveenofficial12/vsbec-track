@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { EmptyState, CardSkeleton } from '@/components/common/States'
 import { StatCard } from '@/components/common/StatCard'
-import { ArrowLeft, User, Award, Building2, Target, CheckCircle2, XCircle, ExternalLink, Code, Calendar, Briefcase, Github } from 'lucide-react'
+import { ArrowLeft, User, Award, Building2, Target, CheckCircle2, XCircle, ExternalLink, Code, Calendar, Briefcase, Github, Link2, Linkedin, Code2, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Student } from '@/lib/types'
 
@@ -118,6 +118,68 @@ export function AdminStudentDetail() {
                 <div><Label className="text-xs text-muted-foreground">Date of Birth</Label><p className="font-medium">{formatDate(student.dateOfBirth)}</p></div>
                 <div><Label className="text-xs text-muted-foreground">Gender</Label><p className="font-medium">{student.gender || '—'}</p></div>
                 <div><Label className="text-xs text-muted-foreground">Preferred Role</Label><p className="font-medium">{student.preferredRole || '—'}</p></div>
+              </CardContent>
+            </Card>
+
+            {/* Profile Links — LinkedIn, LeetCode, GitHub, Resume */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Link2 className="h-4 w-4" />
+                  Profile Links & Resume
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {/* LinkedIn */}
+                  <div className="flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-accent/30">
+                    <Linkedin className="h-5 w-5 shrink-0 text-blue-600" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-muted-foreground">LinkedIn</p>
+                      {student.linkedinUrl ? (
+                        <a href={student.linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline truncate block">
+                          {student.linkedinUrl.replace(/^https?:\/\/(www\.)?/, '').substring(0, 40)}
+                        </a>
+                      ) : <p className="text-sm text-muted-foreground">Not provided</p>}
+                    </div>
+                  </div>
+                  {/* LeetCode */}
+                  <div className="flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-accent/30">
+                    <Code2 className="h-5 w-5 shrink-0 text-amber-600" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-muted-foreground">LeetCode</p>
+                      {student.leetcodeUrl ? (
+                        <a href={student.leetcodeUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-amber-600 hover:underline truncate block">
+                          {student.leetcodeUrl.replace(/^https?:\/\/(www\.)?/, '').substring(0, 40)}
+                        </a>
+                      ) : <p className="text-sm text-muted-foreground">Not provided</p>}
+                    </div>
+                  </div>
+                  {/* GitHub */}
+                  <div className="flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-accent/30">
+                    <Github className="h-5 w-5 shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-muted-foreground">GitHub</p>
+                      {student.githubUrl ? (
+                        <a href={student.githubUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:underline truncate block">
+                          {student.githubUrl.replace(/^https?:\/\/(www\.)?/, '').substring(0, 40)}
+                        </a>
+                      ) : <p className="text-sm text-muted-foreground">Not provided</p>}
+                    </div>
+                  </div>
+                  {/* Resume */}
+                  <div className="flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-accent/30">
+                    <FileText className="h-5 w-5 shrink-0 text-emerald-600" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-muted-foreground">Resume / CV</p>
+                      {student.resumeUrl ? (
+                        <a href={student.resumeUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-emerald-600 hover:underline">
+                          View Resume
+                        </a>
+                      ) : <p className="text-sm text-muted-foreground">Not uploaded</p>}
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

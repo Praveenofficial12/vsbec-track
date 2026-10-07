@@ -44,7 +44,7 @@ export function StudentLogin() {
       {/* Animated background: college entrance arch image at 10% opacity */}
       <div className="pointer-events-none absolute inset-0">
         <img
-          src={COLLEGE_IMAGES.entranceArch}
+          src={COLLEGE_IMAGES.entranceGate}
           alt="V.S.B. Engineering College entrance arch"
           className="h-full w-full object-cover opacity-10"
           loading="lazy"

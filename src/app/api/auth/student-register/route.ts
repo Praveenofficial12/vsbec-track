@@ -83,6 +83,7 @@ export async function POST(req: NextRequest) {
         linkedinUrl: body.linkedinUrl,
         leetcodeUrl: body.leetcodeUrl,
         githubUrl: body.githubUrl,
+        resumeUrl: body.resumeUrl,
         placementStatus: 'UNPLACED',
         placementEligible: true,
       },

@@ -38,11 +38,11 @@ const WORKFLOW_STEPS = [
 
 const CAMPUS_IMAGES = [
   { src: COLLEGE_IMAGES.mainBuilding, label: 'Main Building', caption: 'Administrative block & central wing' },
-  { src: COLLEGE_IMAGES.entranceArch, label: 'Entrance Arch', caption: 'Grand welcome to V.S.B. campus' },
   { src: COLLEGE_IMAGES.entranceGate, label: 'Main Gate', caption: 'The gateway to engineering excellence' },
-  { src: COLLEGE_IMAGES.campusBuilding, label: 'Campus Block', caption: 'Academic block surrounded by greenery' },
+  { src: COLLEGE_IMAGES.campusSignage, label: 'Campus Block', caption: 'College building with official signage' },
+  { src: COLLEGE_IMAGES.campusBuilding, label: 'Academic Block', caption: 'Academic block surrounded by greenery' },
   { src: COLLEGE_IMAGES.campusAerial, label: 'Campus View', caption: 'Lush green campus environment' },
-  { src: COLLEGE_IMAGES.students, label: 'Student Life', caption: 'Vibrant campus community events' },
+  { src: COLLEGE_IMAGES.campusWide, label: 'Campus Panorama', caption: 'Wide view of the V.S.B. campus' },
 ]
 
 export function LandingPage() {
@@ -386,7 +386,7 @@ export function LandingPage() {
       {/* CTA Section with campus banner background */}
       <section className="relative overflow-hidden border-t border-border text-white">
         <img
-          src={COLLEGE_IMAGES.campusBanner}
+          src={COLLEGE_IMAGES.campusWide}
           alt="V.S.B. Engineering College, Karur campus"
           className="absolute inset-0 h-full w-full object-cover"
           loading="lazy"
