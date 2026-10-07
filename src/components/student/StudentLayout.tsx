@@ -9,6 +9,7 @@ import {
   GraduationCap, LayoutDashboard, User, Award, Building2, Target,
   History, Bell, Settings, LogOut, Menu, Search, ChevronRight, Shield
 } from 'lucide-react'
+import { COLLEGE_LOGO } from '@/lib/college'
 import type { ViewKey } from '@/lib/types'
 
 const NAV_ITEMS: { key: ViewKey; label: string; icon: any }[] = [
@@ -38,8 +39,8 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
     <div className="flex h-full flex-col bg-sidebar">
       {/* Logo */}
       <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-4">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-soft">
-          <GraduationCap className="h-5 w-5" />
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg overflow-hidden shadow-soft">
+          <img src={COLLEGE_LOGO} alt="VSBEC Logo" className="h-full w-full object-contain" />
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-bold">V.S.B. Engineering</p>

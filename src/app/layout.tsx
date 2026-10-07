@@ -31,7 +31,8 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "V.S.B. Engineering College, Karur — Placement Department" }],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/vsbec-logo.png",
+    apple: "/vsbec-logo.png",
   },
 };
 

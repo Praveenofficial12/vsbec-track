@@ -20,7 +20,7 @@ import { toast } from 'sonner'
 import {
   ArrowLeft, Calendar, Briefcase, MapPin, Users, Building2, Target,
   CheckCircle2, XCircle, Clock, Award, Activity, AlertCircle, ListChecks,
-  Trophy, Loader2, Download, IndianRupee, Trash2, RotateCcw, PartyPopper,
+  Trophy, Loader2, Download, IndianRupee, Trash2, RotateCcw, PartyPopper, Bell,
 } from 'lucide-react'
 import type { Drive, DriveParticipation, Student } from '@/lib/types'
 
@@ -288,6 +288,33 @@ export function AdminDriveDetail() {
                     <p className="mb-1 text-xs text-muted-foreground">Selection Process</p>
                     <p className="text-xs">{drive.selectionProcess}</p>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Admin Announcement — post messages visible to students */}
+              <Card className="border-amber-200 dark:border-amber-800">
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Bell className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    Drive Announcement
+                  </CardTitle>
+                  <CardDescription>Post a message or update visible to all students viewing this drive</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <textarea
+                    className="w-full rounded-lg border border-border bg-background p-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 min-h-[80px]"
+                    placeholder="Type an announcement for students (e.g., Round 1 starts at 9 AM tomorrow. Bring your laptop.)"
+                    defaultValue={drive.announcement || ''}
+                    onBlur={async (e) => {
+                      try {
+                        await apiPut(`/api/drives/${driveId}`, { announcement: e.target.value })
+                        toast.success('Announcement updated')
+                      } catch {
+                        toast.error('Failed to update announcement')
+                      }
+                    }}
+                  />
+                  <p className="mt-2 text-xs text-muted-foreground">Click outside the text area to save. Students will see this message in the drive details.</p>
                 </CardContent>
               </Card>
             </div>

@@ -128,6 +128,7 @@ export interface Drive {
   requiredSkills?: string | null
   preferredSkills?: string | null
   selectionProcess?: string | null
+  announcement?: string | null
   status: 'UPCOMING' | 'REGISTRATION_OPEN' | 'ONGOING' | 'COMPLETED' | 'CANCELLED'
   createdAt: string
   updatedAt: string

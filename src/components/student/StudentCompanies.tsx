@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { EmptyState, CardSkeleton } from '@/components/common/States'
 import {
   Building2, Search, Calendar, Briefcase, MapPin, ExternalLink, CheckCircle2, X,
-  Trophy, Clock, RefreshCw, AlertCircle, ListChecks,
+  Trophy, Clock, RefreshCw, AlertCircle, ListChecks, Bell,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Company, Drive, DriveParticipation, Round, RoundResult, Student } from '@/lib/types'
@@ -420,6 +420,19 @@ export function StudentCompanies() {
                   <div>
                     <p className="mb-2 text-xs text-muted-foreground">Selection Process</p>
                     <p className="text-sm">{selectedDrive.selectionProcess}</p>
+                  </div>
+                )}
+
+                {/* Admin Announcement — visible to students */}
+                {selectedDrive.announcement && (
+                  <div className="rounded-lg border-2 border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
+                    <div className="flex items-start gap-2">
+                      <Bell className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                      <div>
+                        <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">📢 Announcement from Placement Office</p>
+                        <p className="mt-1 text-sm text-amber-800 dark:text-amber-300">{selectedDrive.announcement}</p>
+                      </div>
+                    </div>
                   </div>
                 )}
 

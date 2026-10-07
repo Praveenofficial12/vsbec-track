@@ -9,6 +9,7 @@ import {
   GraduationCap, LayoutDashboard, Users, Building2, Target, BarChart3,
   Sparkles, FileText, Settings, ScrollText, LogOut, Menu, Bell, Search, ChevronRight, Shield
 } from 'lucide-react'
+import { COLLEGE_LOGO } from '@/lib/college'
 import type { ViewKey } from '@/lib/types'
 
 const NAV_ITEMS: { key: ViewKey; label: string; icon: any; section: string }[] = [
@@ -44,8 +45,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const Sidebar = (
     <div className="flex h-full flex-col bg-sidebar">
       <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-4">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-soft">
-          <Shield className="h-5 w-5" />
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg overflow-hidden shadow-soft">
+          <img src={COLLEGE_LOGO} alt="VSBEC Logo" className="h-full w-full object-contain" />
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-bold">V.S.B. Engineering</p>

@@ -111,6 +111,7 @@ model Drive {
   requiredSkills   String? // CSV
   preferredSkills  String? // CSV
   selectionProcess String?
+  announcement     String? // Admin can post messages/announcements visible to students
   status           String   @default("UPCOMING") // UPCOMING | REGISTRATION_OPEN | ONGOING | COMPLETED | CANCELLED
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt

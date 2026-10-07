@@ -8,7 +8,7 @@ import {
   Clock, Star, BookOpen, Award, Zap, ChevronRight, Layers, MapPin,
 } from 'lucide-react'
 import {
-  COLLEGE_NAME, COLLEGE_LOCATION, COLLEGE_TAGLINE, COLLEGE_IMAGES,
+  COLLEGE_NAME, COLLEGE_LOCATION, COLLEGE_TAGLINE, COLLEGE_IMAGES, COLLEGE_LOGO,
 } from '@/lib/college'
 
 const FEATURES = [
@@ -42,7 +42,6 @@ const CAMPUS_IMAGES = [
   { src: COLLEGE_IMAGES.campusSignage, label: 'Campus Block', caption: 'College building with official signage' },
   { src: COLLEGE_IMAGES.campusBuilding, label: 'Academic Block', caption: 'Academic block surrounded by greenery' },
   { src: COLLEGE_IMAGES.campusAerial, label: 'Campus View', caption: 'Lush green campus environment' },
-  { src: COLLEGE_IMAGES.campusWide, label: 'Campus Panorama', caption: 'Wide view of the V.S.B. campus' },
 ]
 
 export function LandingPage() {
@@ -54,9 +53,7 @@ export function LandingPage() {
       <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-soft animate-glow">
-              <GraduationCap className="h-5 w-5" />
-            </div>
+            <img src={COLLEGE_LOGO} alt="V.S.B. Engineering College Logo" className="h-10 w-10 rounded-lg object-contain shadow-soft" />
             <div>
               <p className="text-sm font-bold leading-tight">V.S.B. Engineering</p>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Karur · Placement System</p>
@@ -413,9 +410,7 @@ export function LandingPage() {
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
-                <GraduationCap className="h-4 w-4" />
-              </div>
+              <img src={COLLEGE_LOGO} alt="V.S.B. Engineering College Logo" className="h-8 w-8 rounded-md object-contain" />
               <div>
                 <p className="text-sm font-semibold">V.S.B. Engineering College, Karur — Placement Management System</p>
                 <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} V.S.B. Engineering College, {COLLEGE_LOCATION}. All rights reserved.</p>

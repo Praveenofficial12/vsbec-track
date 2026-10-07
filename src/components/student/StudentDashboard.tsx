@@ -28,10 +28,15 @@ export function StudentDashboard() {
     if (!user?.id) return
     Promise.all([
       apiGet<{ student: Student }>(`/api/students/${user.id}`),
-      apiGet<{ drives: Drive[] }>(`/api/drives?status=REGISTRATION_OPEN`),
+      // Fetch all drives and filter to show upcoming, registration open, and ongoing
+      apiGet<{ drives: Drive[] }>('/api/drives'),
     ]).then(([sRes, dRes]) => {
       setStudent(sRes.student)
-      setUpcomingDrives(dRes.drives.slice(0, 3))
+      // Show drives that are upcoming, registration open, or ongoing (not completed/cancelled)
+      const activeDrives = dRes.drives.filter(d =>
+        ['UPCOMING', 'REGISTRATION_OPEN', 'ONGOING'].includes(d.status)
+      ).slice(0, 4)
+      setUpcomingDrives(activeDrives)
     }).catch((e) => console.error(e)).finally(() => setLoading(false))
   }, [user?.id])
 

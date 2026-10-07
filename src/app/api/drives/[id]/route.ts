@@ -49,6 +49,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         requiredSkills: body.requiredSkills,
         preferredSkills: body.preferredSkills,
         selectionProcess: body.selectionProcess,
+        announcement: body.announcement,
         status: body.status,
       },
     })

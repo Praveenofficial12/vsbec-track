@@ -6,6 +6,9 @@ export const COLLEGE_FULL = 'V.S.B. Engineering College, Karur'
 export const COLLEGE_LOCATION = 'Karur, Tamil Nadu, India'
 export const COLLEGE_TAGLINE = 'Empowering Engineers · Building Careers · Shaping Futures'
 
+// Official V.S.B. Engineering College logo (local file)
+export const COLLEGE_LOGO = '/vsbec-logo.png'
+
 // High-resolution V.S.B. Engineering College campus images
 // All verified as authentic VSBEC images with no watermarks or text overlays
 export const COLLEGE_IMAGES = {
