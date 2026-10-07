@@ -21,10 +21,10 @@ const FEATURES = [
 ]
 
 const STATS = [
-  { value: '60+', label: 'Students Managed', icon: GraduationCap },
-  { value: '8', label: 'Companies Onboarded', icon: Building2 },
-  { value: '7', label: 'Active Placement Drives', icon: Target },
-  { value: '95%', label: 'Profile Completion', icon: TrendingUp },
+  { value: '13', label: 'Departments', icon: GraduationCap },
+  { value: '5', label: 'Recruitment Rounds', icon: Target },
+  { value: '100+', label: 'Skills Trackable', icon: Building2 },
+  { value: '24/7', label: 'Real-time Updates', icon: TrendingUp },
 ]
 
 const WORKFLOW_STEPS = [
@@ -40,6 +40,9 @@ const CAMPUS_IMAGES = [
   { src: COLLEGE_IMAGES.mainBuilding, label: 'Main Building', caption: 'Administrative block & central wing' },
   { src: COLLEGE_IMAGES.entranceArch, label: 'Entrance Arch', caption: 'Grand welcome to V.S.B. campus' },
   { src: COLLEGE_IMAGES.entranceGate, label: 'Main Gate', caption: 'The gateway to engineering excellence' },
+  { src: COLLEGE_IMAGES.campusBuilding, label: 'Campus Block', caption: 'Academic block surrounded by greenery' },
+  { src: COLLEGE_IMAGES.campusAerial, label: 'Campus View', caption: 'Lush green campus environment' },
+  { src: COLLEGE_IMAGES.students, label: 'Student Life', caption: 'Vibrant campus community events' },
 ]
 
 export function LandingPage() {

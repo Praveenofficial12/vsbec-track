@@ -83,6 +83,7 @@ export function AdminSettings() {
   const [editingDept, setEditingDept] = useState<DeptRow | null>(null)
   const [newDeptPassword, setNewDeptPassword] = useState('')
   const [showDeptPassword, setShowDeptPassword] = useState<Record<string, boolean>>({})
+  const [showAllPasswords, setShowAllPasswords] = useState(false)
   const [copiedDept, setCopiedDept] = useState<string | null>(null)
   const [savingDept, setSavingDept] = useState(false)
 
@@ -442,6 +443,14 @@ export function AdminSettings() {
                     <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
                       {deptRows.length} departments · {totalDeptStudents} students
                     </Badge>
+                    <Button
+                      variant={showAllPasswords ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setShowAllPasswords(!showAllPasswords)}
+                      className={showAllPasswords ? "bg-emerald-600 hover:bg-emerald-700" : ""}
+                    >
+                      {showAllPasswords ? <><EyeOff className="mr-2 h-3.5 w-3.5" /> Hide All</> : <><Eye className="mr-2 h-3.5 w-3.5" /> View All Passwords</>}
+                    </Button>
                     <Button variant="outline" size="sm" onClick={loadDeptPasswords} disabled={deptLoading}>
                       <RefreshCw className={`mr-2 h-3.5 w-3.5 ${deptLoading ? 'animate-spin' : ''}`} />
                       Refresh
@@ -467,7 +476,7 @@ export function AdminSettings() {
                       </TableHeader>
                       <TableBody>
                         {deptRows.map((row) => {
-                          const visible = !!showDeptPassword[row.department]
+                          const visible = showAllPasswords || !!showDeptPassword[row.department]
                           return (
                             <TableRow key={row.department}>
                               <TableCell><Badge variant="outline" className="font-mono">{row.department}</Badge></TableCell>
