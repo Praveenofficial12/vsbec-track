@@ -88,7 +88,14 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json()
-    const { participationId, roundId, status, finalResult, jobRole, ctc, joiningLocation, joiningDate } = body
+    const { participationId, roundId, status, finalResult, jobRole, ctc, joiningLocation, joiningDate, source } = body
+
+    // The `source` field marks who initiated this update. When a student
+    // self-reports their round result, the audit trail records a distinct
+    // STUDENT_SELF_MARK action so admins can distinguish self-reported vs
+    // admin-curated updates.
+    const isStudentSource = String(source || '').toUpperCase() === 'STUDENT'
+    const auditAction = isStudentSource ? 'STUDENT_SELF_MARK' : undefined
 
     if (roundId) {
       // Update round result
@@ -105,6 +112,13 @@ export async function PUT(req: NextRequest) {
         // Update current round on participation
         const round = await db.round.findUnique({ where: { id: roundId } })
         const participation = await db.driveParticipation.findUnique({ where: { id: participationId } })
+
+        // When a student self-reports NOT_CLEARED or ABSENT, auto-mark the
+        // participation attendance as REJECTED (consistent with the rule that
+        // a student who fails a round is no longer active in that drive).
+        const failedStatuses = ['NOT_CLEARED', 'ABSENT']
+        const failedRound = failedStatuses.includes(status)
+
         if (round && participation) {
           if (status === 'CLEARED' && round.roundNumber > participation.currentRound) {
             await db.driveParticipation.update({
@@ -114,17 +128,22 @@ export async function PUT(req: NextRequest) {
                 attendance: 'IN_PROGRESS',
               },
             })
+          } else if (isStudentSource && failedRound) {
+            await db.driveParticipation.update({
+              where: { id: participationId },
+              data: { attendance: 'REJECTED' },
+            })
           }
         }
 
         await db.auditLog.create({
           data: {
             adminEmail: 'Vsbec@2027',
-            action: 'UPDATE_ROUND_RESULT',
+            action: auditAction || 'UPDATE_ROUND_RESULT',
             entity: 'RoundResult',
             entityId: updated.id,
             previousValue: existing.status,
-            newValue: status,
+            newValue: `${status}${isStudentSource ? ' (self-reported)' : ''}`,
           },
         })
 
@@ -133,6 +152,25 @@ export async function PUT(req: NextRequest) {
         const created = await db.roundResult.create({
           data: { participationId, roundId, status },
         })
+
+        // Auto-REJECTED attendance when student self-reports a failure.
+        if (isStudentSource && ['NOT_CLEARED', 'ABSENT'].includes(status)) {
+          await db.driveParticipation.update({
+            where: { id: participationId },
+            data: { attendance: 'REJECTED' },
+          })
+        }
+
+        await db.auditLog.create({
+          data: {
+            adminEmail: 'Vsbec@2027',
+            action: auditAction || 'UPDATE_ROUND_RESULT',
+            entity: 'RoundResult',
+            entityId: created.id,
+            newValue: `${status}${isStudentSource ? ' (self-reported)' : ''}`,
+          },
+        })
+
         return NextResponse.json({ success: true, roundResult: created })
       }
     }
@@ -173,11 +211,11 @@ export async function PUT(req: NextRequest) {
     await db.auditLog.create({
       data: {
         adminEmail: 'Vsbec@2027',
-        action: 'MARK_FINAL_RESULT',
+        action: auditAction || 'MARK_FINAL_RESULT',
         entity: 'Participation',
         entityId: participationId,
         previousValue: participation.attendance,
-        newValue: finalResult || 'IN_PROGRESS',
+        newValue: `${finalResult || 'IN_PROGRESS'}${isStudentSource ? ' (self-reported)' : ''}`,
       },
     })
 

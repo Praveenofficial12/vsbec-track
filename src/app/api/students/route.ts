@@ -14,6 +14,11 @@ export async function GET(req: NextRequest) {
     const strongSkill = searchParams.get('strongSkill')
     const minCgpa = searchParams.get('minCgpa')
     const maxBacklogs = searchParams.get('maxBacklogs')
+    // NEW: filter students who failed (NOT_CLEARED / ABSENT) a specific round
+    // identified by its name (e.g. "Aptitude", "Coding", "GD", "Technical HR",
+    // "General HR"). Performs a substring match so "Aptitude" also matches
+    // legacy round names like "Aptitude Test".
+    const roundNotCleared = searchParams.get('roundNotCleared')
     const limit = parseInt(searchParams.get('limit') || '200')
     const offset = parseInt(searchParams.get('offset') || '0')
 
@@ -38,6 +43,21 @@ export async function GET(req: NextRequest) {
     }
     if (strongSkill) {
       where.strongSkills = { contains: strongSkill }
+    }
+    if (roundNotCleared) {
+      // Only return students who have at least one round result with status
+      // NOT_CLEARED or ABSENT in a round whose name contains the supplied
+      // value (case-insensitive on the round name where supported).
+      where.participations = {
+        some: {
+          roundResults: {
+            some: {
+              status: { in: ['NOT_CLEARED', 'ABSENT'] },
+              round: { roundName: { contains: roundNotCleared } },
+            },
+          },
+        },
+      }
     }
 
     const [students, total] = await Promise.all([
@@ -75,6 +95,10 @@ export async function GET(req: NextRequest) {
           strongSkills: true,
           resumeUrl: true,
           profilePhoto: true,
+          // Public profile links (new)
+          linkedinUrl: true,
+          leetcodeUrl: true,
+          githubUrl: true,
           createdAt: true,
         },
       }),

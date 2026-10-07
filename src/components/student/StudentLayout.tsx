@@ -42,8 +42,8 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
           <GraduationCap className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-bold">VSBEC Placement</p>
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Student Portal</p>
+          <p className="truncate text-sm font-bold">V.S.B. Engineering</p>
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Student Portal · Karur</p>
         </div>
       </div>
 

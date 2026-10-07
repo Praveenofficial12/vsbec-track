@@ -1,12 +1,44 @@
 // Seed script for VSBEC Placement Management System
+// V.S.B. Engineering College, Karur
 import { PrismaClient } from '@prisma/client'
+import { DEPARTMENT_PASSWORDS, DEPARTMENTS } from '../src/lib/department-auth'
 
 const db = new PrismaClient()
 
-const DEPARTMENTS = ['AI & DS', 'CSE', 'IT', 'ECE', 'EEE', 'MECH', 'CIVIL']
 const YEARS = ['1st Year', '2nd Year', '3rd Year', '4th Year']
 const SECTIONS = ['A', 'B', 'C', 'D']
-const SKILLS = ['Java', 'Python', 'C', 'C++', 'JavaScript', 'React', 'HTML', 'CSS', 'SQL', 'MongoDB', 'MySQL', 'Machine Learning', 'Artificial Intelligence', 'Data Science', 'Cloud', 'UI/UX', 'Testing', 'Cyber Security']
+const SKILLS = [
+  // Languages
+  'Java', 'Python', 'C', 'C++', 'C#', 'JavaScript', 'TypeScript', 'Go', 'Rust', 'Kotlin',
+  'Swift', 'Ruby', 'PHP', 'Scala', 'R', 'MATLAB', 'Dart',
+  // Web front-end
+  'HTML', 'CSS', 'React', 'Angular', 'Vue', 'Next.js', 'Tailwind CSS', 'Bootstrap',
+  'jQuery', 'Redux', 'Sass', 'Material UI',
+  // Back-end frameworks
+  'Node.js', 'Express.js', 'Spring Boot', 'Django', 'Flask', 'FastAPI', 'Ruby on Rails',
+  'ASP.NET', 'Laravel', 'NestJS', 'GraphQL', 'REST APIs',
+  // Mobile
+  'Android', 'iOS', 'React Native', 'Flutter',
+  // Databases
+  'SQL', 'MySQL', 'PostgreSQL', 'MongoDB', 'Redis', 'SQLite', 'Oracle',
+  'Microsoft SQL Server', 'Cassandra', 'DynamoDB', 'Elasticsearch', 'Firebase Firestore',
+  // Cloud / DevOps
+  'Cloud', 'AWS', 'Azure', 'Google Cloud', 'Docker', 'Kubernetes', 'Terraform', 'CI/CD',
+  'Jenkins', 'GitHub Actions', 'Linux', 'Bash Scripting',
+  // Data / ML / AI
+  'Machine Learning', 'Deep Learning', 'Artificial Intelligence', 'Data Science', 'NLP',
+  'Computer Vision', 'TensorFlow', 'PyTorch', 'Keras', 'scikit-learn', 'Pandas', 'NumPy',
+  'Tableau', 'Power BI', 'Big Data', 'Hadoop', 'Spark',
+  // Testing / QA
+  'Testing', 'Selenium', 'Cypress', 'JUnit', 'Jest', 'Playwright', 'Postman',
+  // Security
+  'Cyber Security', 'Penetration Testing', 'OWASP',
+  // Soft / Design / Other
+  'UI/UX', 'Figma', 'Design Thinking', 'Agile', 'Scrum', 'Project Management',
+  'Communication', 'Problem Solving', 'Data Structures', 'Algorithms',
+  'Operating Systems', 'Computer Networks', 'DBMS', 'OOP', 'System Design',
+  'Microservices', 'Git', 'GitHub',
+]
 
 const FIRST_NAMES = ['Praveen', 'Aarav', 'Vikram', 'Diya', 'Ananya', 'Karthik', 'Priya', 'Rahul', 'Sneha', 'Arjun', 'Kavya', 'Vignesh', 'Divya', 'Surya', 'Meera', 'Gokul', 'Lakshmi', 'Sanjay', 'Anitha', 'Bala', 'Deepa', 'Hari', 'Isha', 'Jeeva', 'Keerthi', 'Madhav', 'Nila', 'Om', 'Pooja', 'Ravi', 'Sara', 'Tarun', 'Uma', 'Varun', 'Yamini', 'Zara', 'Akash', 'Bhavani', 'Chinmayi', 'Dinesh']
 const LAST_NAMES = ['Kumar', 'Sharma', 'Reddy', 'Iyer', 'Nair', 'Menon', 'Pillai', 'Gupta', 'Patel', 'Singh', 'Verma', 'Rao', 'Nair', 'Krishnan', 'Subramanian', 'Raman', 'Chandran', 'Pandey', 'Joshi', 'Mehta']
@@ -15,7 +47,7 @@ const COMPANIES = [
   { name: 'TCS', website: 'https://tcs.com', industry: 'IT Services', jobRole: 'Software Engineer', ctc: '7 LPA', location: 'Pan India', logoDomain: 'tcs.com' },
   { name: 'Infosys', website: 'https://infosys.com', industry: 'IT Services', jobRole: 'Systems Engineer', ctc: '6.5 LPA', location: 'Pan India', logoDomain: 'infosys.com' },
   { name: 'Accenture', website: 'https://accenture.com', industry: 'Consulting', jobRole: 'Associate Software Engineer', ctc: '8 LPA', location: 'Bangalore', logoDomain: 'accenture.com' },
-  { name: 'Cognizant', website: 'https:cognizant.com', industry: 'IT Services', jobRole: 'Programmer Analyst', ctc: '6 LPA', location: 'Chennai', logoDomain: 'cognizant.com' },
+  { name: 'Cognizant', website: 'https://cognizant.com', industry: 'IT Services', jobRole: 'Programmer Analyst', ctc: '6 LPA', location: 'Chennai', logoDomain: 'cognizant.com' },
   { name: 'Wipro', website: 'https://wipro.com', industry: 'IT Services', jobRole: 'Project Engineer', ctc: '6.5 LPA', location: 'Pan India', logoDomain: 'wipro.com' },
   { name: 'Zoho', website: 'https://zoho.com', industry: 'SaaS', jobRole: 'Software Developer', ctc: '9 LPA', location: 'Chennai', logoDomain: 'zoho.com' },
   { name: 'HCLTech', website: 'https://hcltech.com', industry: 'IT Services', jobRole: 'Graduate Engineer Trainee', ctc: '6 LPA', location: 'Noida', logoDomain: 'hcltech.com' },
@@ -34,10 +66,22 @@ function randomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min
 }
 
-async function main() {
-  console.log('🌱 Seeding database...')
+// 5-round recruitment process — matches the new drives POST default
+const ROUND_NAMES = [
+  { roundNumber: 1, roundName: 'Aptitude', description: 'Quantitative, Logical Reasoning, Verbal ability' },
+  { roundNumber: 2, roundName: 'Coding', description: 'Online coding assessment + technical MCQs' },
+  { roundNumber: 3, roundName: 'GD', description: 'Group Discussion — communication & teamwork' },
+  { roundNumber: 4, roundName: 'Technical HR', description: 'Technical interview on core subjects & projects' },
+  { roundNumber: 5, roundName: 'General HR', description: 'Behavioural & HR interview — final selection' },
+]
 
-  // Clean existing data
+const SELECTION_PROCESS = 'Aptitude -> Coding -> GD -> Technical HR -> General HR'
+
+async function main() {
+  console.log('🌱 Seeding VSBEC Placement database...')
+
+  // Clean existing data (including the new UserActivityLog table)
+  await db.userActivityLog.deleteMany()
   await db.roundResult.deleteMany()
   await db.driveParticipation.deleteMany()
   await db.round.deleteMany()
@@ -62,7 +106,7 @@ async function main() {
       password: 'admin@123',
     },
   })
-  console.log(`✅ Admin created: ${admin.email}`)
+  console.log(`✅ Admin created: ${admin.email} / admin@123`)
 
   // Create placement rules
   await db.placementRule.create({
@@ -91,7 +135,6 @@ async function main() {
   // Create companies
   const companyRecords = []
   for (const c of COMPANIES) {
-    // Auto-fetch logo from Google's favicon service
     const logoUrl = `https://www.google.com/s2/favicons?domain=${c.logoDomain}&sz=128`
     const company = await db.company.create({
       data: {
@@ -106,14 +149,14 @@ async function main() {
   }
   console.log(`✅ Created ${companyRecords.length} companies`)
 
-  // Create drives
+  // Create drives — use the 13 official department codes for eligibility
   const drivesData = [
-    { companyName: 'TCS', driveName: 'TCS Campus Drive 2026', driveDate: '2026-10-20', status: 'REGISTRATION_OPEN', minCgpa: 6.5, maxBacklogs: 0, eligibleDepartments: 'AI & DS,CSE,IT', eligibleYears: '4th Year', requiredSkills: 'Java,SQL' },
-    { companyName: 'Infosys', driveName: 'Infosys Campus Recruitment 2026', driveDate: '2026-11-05', status: 'REGISTRATION_OPEN', minCgpa: 6.0, maxBacklogs: 0, eligibleDepartments: 'AI & DS,CSE,IT,ECE', eligibleYears: '4th Year', requiredSkills: 'Java,Python,SQL' },
-    { companyName: 'Accenture', driveName: 'Accenture Hiring 2026', driveDate: '2026-09-25', status: 'ONGOING', minCgpa: 7.0, maxBacklogs: 0, eligibleDepartments: 'AI & DS,CSE,IT', eligibleYears: '4th Year', requiredSkills: 'JavaScript,React,SQL' },
-    { companyName: 'Cognizant', driveName: 'CTS GenC 2026', driveDate: '2026-08-15', status: 'COMPLETED', minCgpa: 6.0, maxBacklogs: 1, eligibleDepartments: 'AI & DS,CSE,IT,ECE,EEE', eligibleYears: '4th Year', requiredSkills: 'Java,SQL' },
-    { companyName: 'Wipro', driveName: 'Wipro Elite NLTH 2026', driveDate: '2026-09-10', status: 'COMPLETED', minCgpa: 6.5, maxBacklogs: 0, eligibleDepartments: 'AI & DS,CSE,IT,ECE,EEE,MECH,CIVIL', eligibleYears: '4th Year', requiredSkills: 'Java,Python' },
-    { companyName: 'Zoho', driveName: 'Zoho Software Developer 2026', driveDate: '2026-10-30', status: 'UPCOMING', minCgpa: 7.5, maxBacklogs: 0, eligibleDepartments: 'CSE,IT,AI & DS', eligibleYears: '4th Year', requiredSkills: 'Java,C++,SQL' },
+    { companyName: 'TCS', driveName: 'TCS Campus Drive 2026', driveDate: '2026-10-20', status: 'REGISTRATION_OPEN', minCgpa: 6.5, maxBacklogs: 0, eligibleDepartments: 'AI-DS,CSE,IT,CSBS', eligibleYears: '4th Year', requiredSkills: 'Java,SQL' },
+    { companyName: 'Infosys', driveName: 'Infosys Campus Recruitment 2026', driveDate: '2026-11-05', status: 'REGISTRATION_OPEN', minCgpa: 6.0, maxBacklogs: 0, eligibleDepartments: 'AI-DS,CSE,IT,ECE,CSBS', eligibleYears: '4th Year', requiredSkills: 'Java,Python,SQL' },
+    { companyName: 'Accenture', driveName: 'Accenture Hiring 2026', driveDate: '2026-09-25', status: 'ONGOING', minCgpa: 7.0, maxBacklogs: 0, eligibleDepartments: 'AI-DS,CSE,IT,AI-ML', eligibleYears: '4th Year', requiredSkills: 'JavaScript,React,SQL' },
+    { companyName: 'Cognizant', driveName: 'CTS GenC 2026', driveDate: '2026-08-15', status: 'COMPLETED', minCgpa: 6.0, maxBacklogs: 1, eligibleDepartments: 'AI-DS,CSE,IT,ECE,EEE', eligibleYears: '4th Year', requiredSkills: 'Java,SQL' },
+    { companyName: 'Wipro', driveName: 'Wipro Elite NLTH 2026', driveDate: '2026-09-10', status: 'COMPLETED', minCgpa: 6.5, maxBacklogs: 0, eligibleDepartments: 'AI-DS,CSE,IT,ECE,EEE,MECH,CIVIL', eligibleYears: '4th Year', requiredSkills: 'Java,Python' },
+    { companyName: 'Zoho', driveName: 'Zoho Software Developer 2026', driveDate: '2026-10-30', status: 'UPCOMING', minCgpa: 7.5, maxBacklogs: 0, eligibleDepartments: 'CSE,IT,AI-DS,CSBS', eligibleYears: '4th Year', requiredSkills: 'Java,C++,SQL' },
     { companyName: 'HCLTech', driveName: 'HCL TechBee 2026', driveDate: '2026-11-12', status: 'UPCOMING', minCgpa: 6.5, maxBacklogs: 1, eligibleDepartments: 'CSE,IT,ECE,EEE', eligibleYears: '4th Year', requiredSkills: 'Python,SQL' },
   ]
 
@@ -136,7 +179,7 @@ async function main() {
         maxBacklogs: d.maxBacklogs,
         requiredSkills: d.requiredSkills,
         preferredSkills: 'React,Cloud',
-        selectionProcess: 'Aptitude Test -> Technical Assessment -> Technical Interview -> HR Interview',
+        selectionProcess: SELECTION_PROCESS,
         status: d.status,
       },
     })
@@ -144,16 +187,9 @@ async function main() {
   }
   console.log(`✅ Created ${driveRecords.length} drives`)
 
-  // Create rounds for each drive
-  const roundsData = [
-    { roundNumber: 1, roundName: 'Aptitude Test', description: 'Quantitative, Logical Reasoning, Verbal' },
-    { roundNumber: 2, roundName: 'Technical Assessment', description: 'Coding + Technical MCQs' },
-    { roundNumber: 3, roundName: 'Technical Interview', description: 'Technical discussion on core subjects' },
-    { roundNumber: 4, roundName: 'HR Interview', description: 'Behavioural and HR round' },
-    { roundNumber: 5, roundName: 'Final Selection', description: 'Final result declaration' },
-  ]
+  // Create the 5 standard rounds for each drive (Aptitude -> Coding -> GD -> Technical HR -> General HR)
   for (const drive of driveRecords) {
-    for (const r of roundsData) {
+    for (const r of ROUND_NAMES) {
       const isCompleted = drive.status === 'COMPLETED'
       const isOngoing = drive.status === 'ONGOING'
       let status = 'UPCOMING'
@@ -175,17 +211,19 @@ async function main() {
       })
     }
   }
-  console.log(`✅ Created rounds for all drives`)
+  console.log(`✅ Created ${ROUND_NAMES.length} rounds per drive (Aptitude, Coding, GD, Technical HR, General HR)`)
 
-  // Create students
-  console.log('🌱 Creating 60 students...')
+  // Create students — distributed across all 13 official departments.
+  // Per spec, the official department password becomes the student's login password.
+  console.log('🌱 Creating 60 students across 13 departments...')
   const students = []
   for (let i = 0; i < 60; i++) {
     const firstName = randomItem(FIRST_NAMES)
     const lastName = randomItem(LAST_NAMES)
     const fullName = `${firstName} ${lastName}`
-    const dept = randomItem(DEPARTMENTS)
-    const year = dept === 'CSE' || dept === 'IT' || dept === 'AI & DS' ? randomItem(YEARS.slice(2)) : randomItem(YEARS)
+    const dept = DEPARTMENTS[i % DEPARTMENTS.length]
+    const deptPassword = DEPARTMENT_PASSWORDS[dept] // student's login password === department password
+    const year = ['CSE', 'IT', 'AI-DS', 'CSBS', 'AI-ML'].includes(dept) ? randomItem(YEARS.slice(2)) : randomItem(YEARS)
     const section = randomItem(SECTIONS)
     const regNo = `VSB${String(2400 + i).padStart(4, '0')}`
     const cgpa = randomFloat(6.0, 9.5, 2)
@@ -202,7 +240,7 @@ async function main() {
         collegeEmail: `${regNo.toLowerCase()}@vsbec.edu.in`,
         personalEmail: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@gmail.com`,
         mobile: `+91${randomInt(7000000000, 9999999999)}`,
-        password: 'student@123',
+        password: deptPassword, // official department password becomes the login password
         dateOfBirth: `200${randomInt(2, 5)}-0${randomInt(1, 9)}-${String(randomInt(1, 28)).padStart(2, '0')}`,
         gender: Math.random() < 0.5 ? 'Male' : 'Female',
         department: dept,
@@ -225,6 +263,9 @@ async function main() {
         preferredLocation: randomItem(['Chennai', 'Bangalore', 'Hyderabad', 'Pune', 'Remote']),
         skills: skills.join(', '),
         strongSkills: strongSkills.join(', '),
+        linkedinUrl: `https://linkedin.com/in/${firstName.toLowerCase()}-${lastName.toLowerCase()}-${randomInt(100, 999)}`,
+        leetcodeUrl: `https://leetcode.com/${firstName.toLowerCase()}${randomInt(100, 999)}`,
+        githubUrl: `https://github.com/${firstName.toLowerCase()}${lastName.toLowerCase()}`,
       },
     })
     students.push(student)
@@ -278,7 +319,9 @@ async function main() {
       },
     })
   }
-  console.log(`✅ Created ${students.length} students with certs, projects, notifications`)
+  console.log(`✅ Created ${students.length} students with certs, projects, notifications, social links`)
+  console.log(`   Department distribution: 60 students / ${DEPARTMENTS.length} departments`)
+  console.log(`   Each student's password = their department's official password (e.g. CSE → ${DEPARTMENT_PASSWORDS.CSE})`)
 
   // Create participations for completed/ongoing drives
   const completedDrives = driveRecords.filter(d => d.status === 'COMPLETED' || d.status === 'ONGOING')
@@ -379,9 +422,13 @@ async function main() {
 
   console.log('🎉 Seeding complete!')
   console.log(`   - 1 Admin: Vsbec@2027 / admin@123`)
-  console.log(`   - ${students.length} Students: VSB2400+ / student@123`)
+  console.log(`   - ${students.length} Students: VSB2400+ / each uses their official department password`)
   console.log(`   - ${companyRecords.length} Companies`)
-  console.log(`   - ${driveRecords.length} Drives`)
+  console.log(`   - ${driveRecords.length} Drives, each with ${ROUND_NAMES.length} rounds (Aptitude → Coding → GD → Technical HR → General HR)`)
+  console.log(`   - Department passwords (also student login passwords):`)
+  for (const dept of DEPARTMENTS) {
+    console.log(`       ${dept.padEnd(6)} → ${DEPARTMENT_PASSWORDS[dept]}`)
+  }
 }
 
 main()

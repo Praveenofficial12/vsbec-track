@@ -6,8 +6,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { ArrowLeft, GraduationCap, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { ArrowLeft, GraduationCap, Eye, EyeOff, Loader2, MapPin } from 'lucide-react'
 import { apiPost } from '@/lib/api'
+import { COLLEGE_NAME, COLLEGE_LOCATION, COLLEGE_IMAGES } from '@/lib/college'
 
 export function StudentLogin() {
   const setView = useAppStore((s) => s.setView)
@@ -38,14 +39,28 @@ export function StudentLogin() {
     }
   }
 
-  const fillDemo = () => {
-    setRegisterNumber('VSB2400')
-    setPassword('student@123')
-  }
-
   return (
-    <div className="flex min-h-screen flex-col bg-muted/30">
-      <div className="flex flex-1 items-center justify-center px-4 py-12">
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-muted/30">
+      {/* Animated background: college entrance arch image at 10% opacity */}
+      <div className="pointer-events-none absolute inset-0">
+        <img
+          src={COLLEGE_IMAGES.entranceArch}
+          alt="V.S.B. Engineering College entrance arch"
+          className="h-full w-full object-cover opacity-10"
+          loading="lazy"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/40 via-teal-50/30 to-emerald-100/40 dark:from-emerald-950/30 dark:via-teal-950/20 dark:to-emerald-950/40" />
+      </div>
+
+      {/* Floating orbs */}
+      <div className="animate-float pointer-events-none absolute -left-24 top-20 h-64 w-64 rounded-full bg-emerald-400/30 blur-3xl" />
+      <div className="animate-float-slow pointer-events-none absolute -right-24 top-40 h-72 w-72 rounded-full bg-teal-400/25 blur-3xl" />
+      <div className="animate-float pointer-events-none absolute bottom-0 right-1/3 h-48 w-48 rounded-full bg-amber-400/15 blur-3xl" />
+
+      {/* Slow rotating ring */}
+      <div className="animate-spin-slow pointer-events-none absolute -right-32 top-10 h-80 w-80 rounded-full border-2 border-dashed border-emerald-400/30 dark:border-emerald-700/30" />
+
+      <div className="relative flex flex-1 items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
           <button
             onClick={() => setView('landing')}
@@ -55,16 +70,21 @@ export function StudentLogin() {
             Back to home
           </button>
 
-          <Card className="overflow-hidden border-border shadow-soft-lg">
+          <Card className="animate-scale-in overflow-hidden border-border shadow-soft-lg">
             <div className="relative bg-gradient-to-br from-emerald-600 to-teal-700 p-8 text-white">
+              {/* Marquee shimmer across the header */}
+              <div className="animate-marquee pointer-events-none absolute inset-0 opacity-40" />
               <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
               <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
               <div className="relative">
                 <div className="mb-3 inline-flex h-14 w-14 items-center justify-center rounded-xl bg-white/15 backdrop-blur">
                   <GraduationCap className="h-7 w-7" />
                 </div>
-                <h1 className="text-2xl font-bold">Student Login</h1>
+                <h1 className="animate-gradient-text text-2xl font-bold">Student Login</h1>
                 <p className="mt-1 text-sm text-white/80">Access your placement dashboard</p>
+                <p className="mt-2 flex items-center gap-1 text-xs text-white/70">
+                  <MapPin className="h-3 w-3" /> {COLLEGE_NAME} · {COLLEGE_LOCATION}
+                </p>
               </div>
             </div>
 
@@ -77,14 +97,14 @@ export function StudentLogin() {
                     type="text"
                     value={registerNumber}
                     onChange={(e) => setRegisterNumber(e.target.value)}
-                    placeholder="e.g. VSB2400"
+                    placeholder="e.g. VSB2400 or college email"
                     required
                     className="bg-background"
                   />
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="pwd">Password</Label>
+                    <Label htmlFor="pwd">Department Password</Label>
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-xs text-muted-foreground hover:text-foreground">
                       {showPassword ? <EyeOff className="inline h-3 w-3" /> : <Eye className="inline h-3 w-3" />} {showPassword ? 'Hide' : 'Show'}
                     </button>
@@ -94,16 +114,12 @@ export function StudentLogin() {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
+                    placeholder="Enter your department password"
                     required
                     className="bg-background"
                   />
-                </div>
-
-                <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-800 dark:bg-emerald-900/20">
-                  <p className="text-xs text-emerald-800 dark:text-emerald-300">
-                    <strong>Demo account:</strong> Use <code className="rounded bg-emerald-100 px-1 font-mono dark:bg-emerald-900/40">VSB2400</code> / <code className="rounded bg-emerald-100 px-1 font-mono dark:bg-emerald-900/40">student@123</code>
-                    <button type="button" onClick={fillDemo} className="ml-2 font-semibold underline">Use demo</button>
+                  <p className="text-xs text-muted-foreground">
+                    Your department password is your login password. Contact your placement coordinator if you don't have it.
                   </p>
                 </div>
 

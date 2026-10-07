@@ -51,6 +51,11 @@ model Student {
   // Resume
   resumeUrl         String?
 
+  // Public profile links
+  linkedinUrl       String?
+  leetcodeUrl       String?
+  githubUrl         String?
+
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -253,4 +258,21 @@ model CustomField {
   options   String? // CSV for dropdown
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
+}
+
+// Tracks every meaningful user action (login, registration, page visits, failures)
+// across students and admins. Used for audit/security dashboards.
+model UserActivityLog {
+  id         String   @id @default(cuid())
+  userId     String?  // Student.registerNumber | AdminUser.email | null for anonymous
+  userType   String   // STUDENT | ADMIN | UNKNOWN
+  action     String   // LOGIN | REGISTER | VISIT | LOGIN_FAILED | LOGOUT
+  detail     String?  // free-form extra context (e.g. route path, reason)
+  ipAddress  String?
+  userAgent  String?
+  timestamp  DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([timestamp])
 }

@@ -42,17 +42,59 @@ export function AdminReports() {
   useEffect(() => { generate() }, [reportType, department, year, section])
 
   const handleExport = () => {
-    if (!report) return
-    let csv = ''
-    if (reportType === 'overall' && report.students) {
-      csv = ['Register Number,Name,Department,Year,Section,CGPA,Status', ...report.students.map((s: any) => `${s.registerNumber},${s.fullName},${s.department},${s.year},${s.section},${s.cgpa},${s.placementStatus}`)].join('\n')
-    } else if (reportType === 'selected' && report.records) {
-      csv = ['Student Name,Register Number,Department,Company,Job Role,CTC,Joining Date', ...report.records.map((r: any) => `${r.studentName},${r.registerNumber},${r.department},${r.company},${r.jobRole || ''},${r.ctc || ''},${r.joiningDate || ''}`)].join('\n')
-    } else if (reportType === 'unplaced' && report.students) {
-      csv = ['Register Number,Name,Department,Year,Section,CGPA,Skills', ...report.students.map((s: any) => `${s.registerNumber},${s.fullName},${s.department},${s.year},${s.section},${s.cgpa},${(s.skills || '').replace(/,/g, ';')}`)].join('\n')
-    } else if (reportType === 'department' && report.departments) {
-      csv = ['Department,Total,Placed,Unplaced,In Process', ...report.departments.map((d: any) => `${d.department},${d.total},${d.placed},${d.unplaced},${d.inProcess}`)].join('\n')
+    if (!report) {
+      toast.error('No report loaded yet — generate a report first.')
+      return
     }
+
+    let rows: string[][] = []
+    let headerLine = ''
+
+    if (reportType === 'overall' && Array.isArray(report.students) && report.students.length > 0) {
+      headerLine = 'Register Number,Name,Department,Year,Section,CGPA,Status'
+      rows = report.students.map((s: any) => [
+        s.registerNumber ?? '', s.fullName ?? '', s.department ?? '',
+        s.year ?? '', s.section ?? '', s.cgpa ?? '', s.placementStatus ?? '',
+      ])
+    } else if (reportType === 'selected' && Array.isArray(report.records) && report.records.length > 0) {
+      headerLine = 'Student Name,Register Number,Department,Company,Job Role,CTC,Joining Date'
+      rows = report.records.map((r: any) => [
+        r.studentName ?? '', r.registerNumber ?? '', r.department ?? '',
+        r.company ?? '', r.jobRole ?? '', r.ctc ?? '', r.joiningDate ?? '',
+      ])
+    } else if (reportType === 'unplaced' && Array.isArray(report.students) && report.students.length > 0) {
+      headerLine = 'Register Number,Name,Department,Year,Section,CGPA,Skills'
+      rows = report.students.map((s: any) => [
+        s.registerNumber ?? '', s.fullName ?? '', s.department ?? '',
+        s.year ?? '', s.section ?? '', s.cgpa ?? '', (s.skills ?? '').replace(/,/g, ';'),
+      ])
+    } else if (reportType === 'department' && Array.isArray(report.departments) && report.departments.length > 0) {
+      headerLine = 'Department,Total,Placed,Unplaced,In Process'
+      rows = report.departments.map((d: any) => [
+        d.department ?? '', d.total ?? '', d.placed ?? '', d.unplaced ?? '', d.inProcess ?? '',
+      ])
+    }
+
+    if (rows.length === 0) {
+      // Friendly empty-state toast instead of downloading an empty CSV
+      const labels: Record<string, string> = {
+        overall: 'overall placement',
+        selected: 'selected students',
+        unplaced: 'unplaced students',
+        department: 'department-wise',
+      }
+      toast.error(`No ${labels[reportType] || ''} records to export — adjust your filters and try again.`)
+      return
+    }
+
+    const escape = (val: unknown) => {
+      if (val === null || val === undefined) return ''
+      const s = String(val)
+      if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`
+      return s
+    }
+
+    const csv = [headerLine, ...rows.map((r) => r.map(escape).join(','))].join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -60,7 +102,7 @@ export function AdminReports() {
     a.download = `${reportType}_report_${Date.now()}.csv`
     a.click()
     URL.revokeObjectURL(url)
-    toast.success('Report exported successfully')
+    toast.success(`Exported ${rows.length} records to CSV`)
   }
 
   return (
@@ -110,7 +152,7 @@ export function AdminReports() {
               <SelectTrigger className="w-40 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All Departments</SelectItem>
-                {['AI & DS', 'CSE', 'IT', 'ECE', 'EEE', 'MECH', 'CIVIL'].map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                {['AI-DS', 'AI-ML', 'BT', 'BME', 'CHEM', 'CIVIL', 'CCE', 'CSBS', 'CSE', 'ECE', 'EEE', 'IT', 'MECH'].map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={year} onValueChange={setYear}>

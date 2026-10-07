@@ -15,10 +15,21 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "VSBEC Placement Management System",
-  description: "Complete placement management ERP for VS Barkatullah Engineering College - manage students, companies, drives, rounds, analytics.",
-  keywords: ["VSBEC", "Placement", "ERP", "College", "Recruitment", "Analytics"],
-  authors: [{ name: "VSBEC Placement Department" }],
+  title: "V.S.B. Engineering College, Karur — Placement Management System",
+  description:
+    "Official placement management portal of V.S.B. Engineering College, Karur — manage students, companies, placement drives, recruitment rounds, analytics and reports.",
+  keywords: [
+    "V.S.B. Engineering College",
+    "VSBEC",
+    "Karur",
+    "Placement Management System",
+    "Placement ERP",
+    "College Placements",
+    "Tamil Nadu Engineering College",
+    "Recruitment",
+    "Analytics",
+  ],
+  authors: [{ name: "V.S.B. Engineering College, Karur — Placement Department" }],
   icons: {
     icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
   },

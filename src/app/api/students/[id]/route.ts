@@ -62,6 +62,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         strongSkills: body.strongSkills,
         resumeUrl: body.resumeUrl,
         profilePhoto: body.profilePhoto,
+        linkedinUrl: body.linkedinUrl,
+        leetcodeUrl: body.leetcodeUrl,
+        githubUrl: body.githubUrl,
       },
     })
 
@@ -69,5 +72,54 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   } catch (error) {
     console.error('Update student error:', error)
     return NextResponse.json({ error: 'Failed to update student' }, { status: 500 })
+  }
+}
+
+// DELETE: Cascade-delete a student and all their dependent records
+// (round results → participations → certifications → projects → notifications → student).
+// Also writes an AuditLog entry for traceability.
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params
+
+    const student = await db.student.findUnique({ where: { id }, select: { id: true, fullName: true, registerNumber: true } })
+    if (!student) {
+      return NextResponse.json({ error: 'Student not found' }, { status: 404 })
+    }
+
+    // Find every participation this student has so we can wipe their round results first.
+    const participations = await db.driveParticipation.findMany({
+      where: { studentId: id },
+      select: { id: true },
+    })
+    const participationIds = participations.map((p) => p.id)
+
+    await db.$transaction(async (tx) => {
+      if (participationIds.length > 0) {
+        await tx.roundResult.deleteMany({ where: { participationId: { in: participationIds } } })
+      }
+      await tx.driveParticipation.deleteMany({ where: { studentId: id } })
+      await tx.certification.deleteMany({ where: { studentId: id } })
+      await tx.project.deleteMany({ where: { studentId: id } })
+      await tx.notification.deleteMany({ where: { studentId: id } })
+      await tx.student.delete({ where: { id } })
+
+      await tx.auditLog.create({
+        data: {
+          adminEmail: 'Vsbec@2027',
+          action: 'DELETE_STUDENT',
+          entity: 'Student',
+          entityId: id,
+          studentName: student.fullName,
+          previousValue: student.registerNumber,
+          newValue: 'DELETED',
+        },
+      })
+    })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Delete student error:', error)
+    return NextResponse.json({ error: 'Failed to delete student' }, { status: 500 })
   }
 }

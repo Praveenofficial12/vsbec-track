@@ -1,7 +1,7 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAppStore } from '@/lib/store'
-import { apiGet, apiPost, formatDate, STATUS_COLORS, getCompanyLogo } from '@/lib/api'
+import { apiGet, apiPost, apiPut, formatDate, STATUS_COLORS, getCompanyLogo } from '@/lib/api'
 import { StudentLayout } from './StudentLayout'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,9 +10,26 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { EmptyState, CardSkeleton } from '@/components/common/States'
-import { Building2, Search, Calendar, Briefcase, MapPin, Globe, ExternalLink, CheckCircle2, X } from 'lucide-react'
+import {
+  Building2, Search, Calendar, Briefcase, MapPin, ExternalLink, CheckCircle2, X,
+  Trophy, Clock, RefreshCw, AlertCircle, ListChecks,
+} from 'lucide-react'
 import { toast } from 'sonner'
-import type { Company, Drive, Student } from '@/lib/types'
+import type { Company, Drive, DriveParticipation, Round, RoundResult, Student } from '@/lib/types'
+
+const ROUND_STATUS_OPTIONS = [
+  { value: 'PENDING', label: 'Pending' },
+  { value: 'CLEARED', label: 'Cleared' },
+  { value: 'NOT_CLEARED', label: 'Not Cleared' },
+  { value: 'ABSENT', label: 'Absent' },
+  { value: 'ON_HOLD', label: 'On Hold' },
+] as const
+
+const FINAL_RESULT_OPTIONS = [
+  { value: 'SELECTED', label: 'Selected', className: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
+  { value: 'REJECTED', label: 'Not Selected', className: 'bg-rose-600 hover:bg-rose-700 text-white' },
+  { value: 'ON_HOLD', label: 'On Hold', className: 'bg-amber-500 hover:bg-amber-600 text-white' },
+] as const
 
 export function StudentCompanies() {
   const user = useAppStore((s) => s.user)
@@ -23,18 +40,76 @@ export function StudentCompanies() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [selectedDrive, setSelectedDrive] = useState<Drive | null>(null)
+  const [myParticipation, setMyParticipation] = useState<DriveParticipation | null>(null)
+  const [roundResults, setRoundResults] = useState<RoundResult[]>([])
+  const [updatingRound, setUpdatingRound] = useState<string | null>(null)
+  const [updatingFinal, setUpdatingFinal] = useState(false)
+  const lastRefreshRef = useRef<number>(Date.now())
 
-  useEffect(() => {
-    Promise.all([
-      apiGet<{ companies: Company[] }>('/api/companies'),
-      apiGet<{ drives: Drive[] }>('/api/drives'),
-      user?.id ? apiGet<{ student: Student }>(`/api/students/${user.id}`) : Promise.resolve(null),
-    ]).then(([c, d, s]) => {
+  const loadStudentAndDrives = async () => {
+    try {
+      const [c, d] = await Promise.all([
+        apiGet<{ companies: Company[] }>('/api/companies'),
+        apiGet<{ drives: Drive[] }>('/api/drives'),
+      ])
       setCompanies(c.companies)
       setDrives(d.drives)
-      if (s) setStudent(s.student)
-    }).finally(() => setLoading(false))
+      if (user?.id) {
+        const r = await apiGet<{ student: Student }>(`/api/students/${user.id}`)
+        setStudent(r.student)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadStudentAndDrives()
   }, [user?.id])
+
+  // Auto-refresh every 15 seconds so the student can see round updates
+  // (from admin or their own self-marks) without manually refreshing.
+  useEffect(() => {
+    const id = setInterval(async () => {
+      // Re-fetch the selected drive's participation so the round status form
+      // stays in sync if the admin updates results.
+      if (selectedDrive && user?.id) {
+        try {
+          const r = await apiGet<{ participations: DriveParticipation[] }>(
+            `/api/participations?studentId=${user.id}&driveId=${selectedDrive.id}`
+          )
+          const p = r.participations?.[0] || null
+          setMyParticipation(p)
+          setRoundResults(p?.roundResults || [])
+        } catch {
+          /* best-effort */
+        }
+      }
+      lastRefreshRef.current = Date.now()
+    }, 15000)
+    return () => clearInterval(id)
+  }, [selectedDrive, user?.id])
+
+  // Load the student's participation whenever a drive is opened
+  useEffect(() => {
+    if (!selectedDrive || !user?.id) {
+      setMyParticipation(null)
+      setRoundResults([])
+      return
+    }
+    apiGet<{ participations: DriveParticipation[] }>(
+      `/api/participations?studentId=${user.id}&driveId=${selectedDrive.id}`
+    ).then((r) => {
+      const p = r.participations?.[0] || null
+      setMyParticipation(p)
+      setRoundResults(p?.roundResults || [])
+    }).catch(() => {
+      setMyParticipation(null)
+      setRoundResults([])
+    })
+  }, [selectedDrive, user?.id])
 
   const filteredDrives = drives.filter((d) => {
     if (statusFilter !== 'ALL' && d.status !== statusFilter) return false
@@ -62,15 +137,82 @@ export function StudentCompanies() {
         attendance: willAttend ? 'ATTENDING' : 'NOT_ATTENDING',
         action: 'STUDENT_CONFIRM',
       })
-      toast.success(willAttend ? 'Marked as attending!' : 'Marked as not attending')
-      setSelectedDrive(null)
+      toast.success(willAttend ? 'Marked as attending! Track your rounds below.' : 'Marked as not attending')
+      // Refresh participation state
+      const r = await apiGet<{ participations: DriveParticipation[] }>(
+        `/api/participations?studentId=${user?.id}&driveId=${drive.id}`
+      )
+      const p = r.participations?.[0] || null
+      setMyParticipation(p)
+      setRoundResults(p?.roundResults || [])
       // Refresh student data
       if (user?.id) {
-        const r = await apiGet<{ student: Student }>(`/api/students/${user.id}`)
-        setStudent(r.student)
+        const sr = await apiGet<{ student: Student }>(`/api/students/${user.id}`)
+        setStudent(sr.student)
       }
     } catch (e: any) {
       toast.error(e.message || 'Failed to update attendance')
+    }
+  }
+
+  const handleRoundStatusChange = async (round: Round, newStatus: string) => {
+    if (!myParticipation) return
+    setUpdatingRound(round.id)
+    try {
+      await apiPut('/api/participations', {
+        participationId: myParticipation.id,
+        roundId: round.id,
+        status: newStatus,
+        source: 'STUDENT',
+      })
+      toast.success(`Round "${round.roundName}" updated to ${newStatus.replace(/_/g, ' ')}`)
+      // Refresh participation + student
+      const r = await apiGet<{ participations: DriveParticipation[] }>(
+        `/api/participations?studentId=${user?.id}&driveId=${selectedDrive?.id}`
+      )
+      const p = r.participations?.[0] || null
+      setMyParticipation(p)
+      setRoundResults(p?.roundResults || [])
+      if (user?.id) {
+        const sr = await apiGet<{ student: Student }>(`/api/students/${user.id}`)
+        setStudent(sr.student)
+      }
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to update round status')
+    } finally {
+      setUpdatingRound(null)
+    }
+  }
+
+  const handleFinalResult = async (finalResult: string) => {
+    if (!myParticipation || !selectedDrive) return
+    setUpdatingFinal(true)
+    try {
+      await apiPut('/api/participations', {
+        participationId: myParticipation.id,
+        finalResult,
+        jobRole: selectedDrive.jobRole,
+        ctc: selectedDrive.ctc,
+        joiningLocation: selectedDrive.location,
+        joiningDate: '2026-07-01',
+        source: 'STUDENT',
+      })
+      toast.success(`Final result self-reported: ${finalResult.replace(/_/g, ' ')}`)
+      // Refresh
+      const r = await apiGet<{ participations: DriveParticipation[] }>(
+        `/api/participations?studentId=${user?.id}&driveId=${selectedDrive.id}`
+      )
+      const p = r.participations?.[0] || null
+      setMyParticipation(p)
+      setRoundResults(p?.roundResults || [])
+      if (user?.id) {
+        const sr = await apiGet<{ student: Student }>(`/api/students/${user.id}`)
+        setStudent(sr.student)
+      }
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to update final result')
+    } finally {
+      setUpdatingFinal(false)
     }
   }
 
@@ -78,12 +220,25 @@ export function StudentCompanies() {
     return <StudentLayout><div className="p-6"><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} className="h-48" />)}</div></div></StudentLayout>
   }
 
+  const rounds = selectedDrive?.rounds || []
+  const isAttending = myParticipation && ['ATTENDING', 'IN_PROGRESS', 'SELECTED', 'REJECTED', 'ON_HOLD'].includes(myParticipation.attendance)
+
+  const getRoundStatus = (roundId: string): string => {
+    const rr = roundResults.find((r) => r.roundId === roundId)
+    return rr?.status || 'PENDING'
+  }
+
   return (
     <StudentLayout>
       <div className="space-y-6 p-4 sm:p-6">
-        <div>
-          <h1 className="text-2xl font-bold">Companies & Drives</h1>
-          <p className="text-sm text-muted-foreground">Browse all companies and placement drives</p>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Companies & Drives</h1>
+            <p className="text-sm text-muted-foreground">Browse all companies and placement drives</p>
+          </div>
+          <Badge variant="outline" className="w-fit border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+            <Clock className="mr-1 h-3 w-3" /> Auto-refreshes every 15s
+          </Badge>
         </div>
 
         {/* Filters */}
@@ -176,9 +331,9 @@ export function StudentCompanies() {
           </div>
         )}
 
-        {/* Drive Detail Modal */}
+        {/* Drive Detail Modal with interactive round status form */}
         <Dialog open={!!selectedDrive} onOpenChange={(open) => !open && setSelectedDrive(null)}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto scrollbar-thin">
             <DialogHeader>
               <div className="flex items-start gap-4">
                 <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-lg bg-muted ring-1 ring-border">
@@ -268,15 +423,110 @@ export function StudentCompanies() {
                   </div>
                 )}
 
-                <div className="flex gap-2 border-t border-border pt-4">
-                  <Button variant="outline" className="flex-1" onClick={() => handleAttend(selectedDrive, false)}>
-                    Will Not Attend
-                  </Button>
-                  <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700" onClick={() => handleAttend(selectedDrive, true)}>
-                    <CheckCircle2 className="mr-2 h-4 w-4" />
-                    Will Attend
-                  </Button>
-                </div>
+                {/* Attendance buttons */}
+                {!isAttending && (
+                  <div className="flex gap-2 border-t border-border pt-4">
+                    <Button variant="outline" className="flex-1" onClick={() => handleAttend(selectedDrive, false)}>
+                      Will Not Attend
+                    </Button>
+                    <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700" onClick={() => handleAttend(selectedDrive, true)}>
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      Will Attend
+                    </Button>
+                  </div>
+                )}
+
+                {/* Interactive round status form — shown after the student
+                    marks "Will Attend". The student can self-mark each
+                    round and the form auto-refreshes every 15s. */}
+                {isAttending && myParticipation && (
+                  <div className="space-y-4 border-t border-border pt-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                          <ListChecks className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                          Round Status
+                        </p>
+                        <p className="text-xs text-muted-foreground">Self-report your progress in each round. Updates every 15 seconds.</p>
+                      </div>
+                      <Badge variant="outline" className={STATUS_COLORS[myParticipation.attendance] || STATUS_COLORS.PENDING}>
+                        {myParticipation.attendance.replace(/_/g, ' ')}
+                      </Badge>
+                    </div>
+
+                    {rounds.length === 0 ? (
+                      <p className="rounded-lg border border-dashed border-border bg-muted/30 p-4 text-center text-xs text-muted-foreground">
+                        No rounds have been configured for this drive yet.
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {rounds.map((round, idx) => {
+                          const status = getRoundStatus(round.id)
+                          return (
+                            <div key={round.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3">
+                              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                                status === 'CLEARED' ? 'bg-emerald-600 text-white' :
+                                status === 'NOT_CLEARED' || status === 'ABSENT' ? 'bg-rose-600 text-white' :
+                                status === 'ON_HOLD' ? 'bg-amber-500 text-white' :
+                                'bg-muted text-muted-foreground'
+                              }`}>
+                                {idx + 1}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-medium">{round.roundName}</p>
+                                <p className="truncate text-xs text-muted-foreground">{round.description}</p>
+                              </div>
+                              <Select
+                                value={status}
+                                onValueChange={(v) => handleRoundStatusChange(round, v)}
+                                disabled={updatingRound === round.id}
+                              >
+                                <SelectTrigger className="h-8 w-36 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {ROUND_STATUS_OPTIONS.map((opt) => (
+                                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+
+                    {/* Final Result section — 3 buttons */}
+                    <div className="rounded-xl border border-border bg-muted/30 p-4">
+                      <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+                        <Trophy className="h-4 w-4 text-amber-500" />
+                        Final Result
+                      </p>
+                      <p className="mb-3 text-xs text-muted-foreground">
+                        Self-report your final outcome. This is your own declaration — admin will confirm the official status.
+                      </p>
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                        {FINAL_RESULT_OPTIONS.map((opt) => (
+                          <Button
+                            key={opt.value}
+                            type="button"
+                            variant="outline"
+                            disabled={updatingFinal}
+                            onClick={() => handleFinalResult(opt.value)}
+                            className={`${opt.className} border-0`}
+                          >
+                            {opt.label}
+                          </Button>
+                        ))}
+                      </div>
+                      {myParticipation.finalResult && (
+                        <p className="mt-3 text-xs text-muted-foreground">
+                          Current final result: <Badge variant="outline" className={STATUS_COLORS[myParticipation.finalResult] || STATUS_COLORS.PENDING}>{myParticipation.finalResult.replace(/_/g, ' ')} (self-reported)</Badge>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </DialogContent>

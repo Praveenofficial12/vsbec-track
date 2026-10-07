@@ -218,4 +218,135 @@
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
   }
+
+  /* ===== VSBEC placement portal animations ===== */
+
+  /* Floating up/down movement */
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-22px) rotate(2deg); }
+  }
+  .animate-float {
+    animation: float 4s ease-in-out infinite;
+  }
+  .animate-float-slow {
+    animation: float 7s ease-in-out infinite;
+  }
+
+  /* Slow rotation */
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .animate-spin-slow {
+    animation: spin-slow 20s linear infinite;
+  }
+
+  /* Bounce-in entrance */
+  @keyframes bounce-in {
+    0% { opacity: 0; transform: scale(0.7); }
+    50% { opacity: 1; transform: scale(1.08); }
+    70% { transform: scale(0.96); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  .animate-bounce-in {
+    animation: bounce-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  /* Slide-in entrances */
+  @keyframes slide-in-left {
+    0% { opacity: 0; transform: translateX(-40px); }
+    100% { opacity: 1; transform: translateX(0); }
+  }
+  .animate-slide-in-left {
+    animation: slide-in-left 0.6s ease-out both;
+  }
+
+  @keyframes slide-in-right {
+    0% { opacity: 0; transform: translateX(40px); }
+    100% { opacity: 1; transform: translateX(0); }
+  }
+  .animate-slide-in-right {
+    animation: slide-in-right 0.6s ease-out both;
+  }
+
+  /* Scale-in entrance */
+  @keyframes scale-in {
+    0% { opacity: 0; transform: scale(0.92); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  .animate-scale-in {
+    animation: scale-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /* Animated gradient text */
+  @keyframes gradient-text-shift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  .animate-gradient-text {
+    background: linear-gradient(120deg, oklch(0.55 0.13 165) 0%, oklch(0.6 0.16 200) 25%, oklch(0.62 0.18 145) 50%, oklch(0.65 0.16 200) 75%, oklch(0.55 0.13 165) 100%);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradient-text-shift 6s ease infinite;
+  }
+  .animate-gradient-text-violet {
+    background: linear-gradient(120deg, oklch(0.55 0.22 300) 0%, oklch(0.6 0.2 320) 25%, oklch(0.55 0.2 280) 50%, oklch(0.6 0.22 320) 75%, oklch(0.55 0.22 300) 100%);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradient-text-shift 6s ease infinite;
+  }
+
+  /* Glowing pulse box-shadow */
+  @keyframes glow {
+    0%, 100% {
+      box-shadow: 0 0 16px 2px oklch(0.55 0.13 165 / 0.35);
+    }
+    50% {
+      box-shadow: 0 0 32px 8px oklch(0.6 0.16 200 / 0.55);
+    }
+  }
+  .animate-glow {
+    animation: glow 2.8s ease-in-out infinite;
+  }
+  .animate-glow-violet {
+    animation-name: glowViolet;
+  }
+  @keyframes glowViolet {
+    0%, 100% {
+      box-shadow: 0 0 16px 2px oklch(0.55 0.22 300 / 0.35);
+    }
+    50% {
+      box-shadow: 0 0 32px 8px oklch(0.6 0.22 320 / 0.55);
+    }
+  }
+
+  /* Marquee shimmer for accent banners */
+  @keyframes marquee {
+    0% { background-position: 0% 0; }
+    100% { background-position: -200% 0; }
+  }
+  .animate-marquee {
+    background: linear-gradient(90deg, transparent 0%, oklch(0.95 0.05 165 / 0.55) 45%, oklch(0.92 0.06 200 / 0.7) 50%, oklch(0.95 0.05 165 / 0.55) 55%, transparent 100%);
+    background-size: 200% 100%;
+    animation: marquee 3.5s linear infinite;
+  }
+
+  /* 3D tilt-card effect */
+  .tilt-card {
+    transform-style: preserve-3d;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease;
+    will-change: transform;
+  }
+  .tilt-card:hover {
+    transform: perspective(900px) rotateX(6deg) rotateY(-6deg) translateZ(0) translateY(-4px);
+    box-shadow: 0 18px 40px oklch(0.16 0.02 165 / 0.16);
+  }
+  .tilt-card-violet:hover {
+    box-shadow: 0 18px 40px oklch(0.4 0.15 320 / 0.18);
+  }
 }

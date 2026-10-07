@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
 import { useAppStore } from '@/lib/store'
-import { apiGet, csvToArray, STATUS_COLORS, formatDate, avatarColor, initials } from '@/lib/api'
+import { apiGet, apiDelete, csvToArray, STATUS_COLORS, formatDate, avatarColor, initials } from '@/lib/api'
 import { AdminLayout } from './AdminLayout'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -12,17 +12,35 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { EmptyState, CardSkeleton } from '@/components/common/States'
 import {
-  Users, Search, Download, Filter, Eye, Award, X, RefreshCw, UserCheck
+  Users, Search, Download, Filter, Eye, Award, X, RefreshCw, UserCheck, Trash2, AlertTriangle,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import type { Student } from '@/lib/types'
 
-const DEPARTMENTS = ['ALL', 'AI & DS', 'CSE', 'IT', 'ECE', 'EEE', 'MECH', 'CIVIL']
+// 13 official V.S.B. Engineering College departments (matches DEPARTMENT_PASSWORDS)
+const DEPARTMENTS = [
+  'ALL', 'AI-DS', 'AI-ML', 'BT', 'BME', 'CHEM', 'CIVIL', 'CCE', 'CSBS', 'CSE', 'ECE', 'EEE', 'IT', 'MECH',
+]
 const YEARS = ['ALL', '1st Year', '2nd Year', '3rd Year', '4th Year']
 const SECTIONS = ['ALL', 'A', 'B', 'C', 'D']
 const STATUSES = ['ALL', 'PLACED', 'IN_PROCESS', 'UNPLACED']
 const SKILLS = ['ALL', 'Java', 'Python', 'JavaScript', 'React', 'SQL', 'Cloud', 'Machine Learning', 'C++']
+
+// Round-wise filter buttons — uses the new 5-round naming convention
+const ROUND_FILTERS = [
+  { value: '', label: 'All Students' },
+  { value: 'Aptitude', label: 'Apti Not Cleared' },
+  { value: 'Coding', label: 'Coding Not Cleared' },
+  { value: 'GD', label: 'GD Not Cleared' },
+  { value: 'Technical HR', label: 'Technical HR Not Cleared' },
+  { value: 'General HR', label: 'General HR Not Cleared' },
+]
 
 export function AdminStudents() {
   const setView = useAppStore((s) => s.setView)
@@ -32,15 +50,18 @@ export function AdminStudents() {
   const [filters, setFilters] = useState({
     search: '', department: 'ALL', year: 'ALL', section: 'ALL',
     placementStatus: 'ALL', skill: 'ALL', strongSkill: 'ALL', minCgpa: '', maxBacklogs: '',
+    roundNotCleared: '',
   })
   const [selected, setSelectedStudents] = useState<string[]>([])
+  const [deleteTarget, setDeleteTarget] = useState<Student | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const fetchStudents = useCallback(async () => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
       Object.entries(filters).forEach(([k, v]) => {
-        if (v && v !== 'ALL') params.append(k, v)
+        if (v && v !== 'ALL' && v !== '') params.append(k, v)
       })
       const r = await apiGet<{ students: Student[]; total: number }>(`/api/students?${params}`)
       setStudents(r.students)
@@ -53,7 +74,11 @@ export function AdminStudents() {
 
   useEffect(() => { fetchStudents() }, [fetchStudents])
 
-  const handleReset = () => setFilters({ search: '', department: 'ALL', year: 'ALL', section: 'ALL', placementStatus: 'ALL', skill: 'ALL', strongSkill: 'ALL', minCgpa: '', maxBacklogs: '' })
+  const handleReset = () => setFilters({
+    search: '', department: 'ALL', year: 'ALL', section: 'ALL',
+    placementStatus: 'ALL', skill: 'ALL', strongSkill: 'ALL', minCgpa: '', maxBacklogs: '',
+    roundNotCleared: '',
+  })
 
   const toggleSelect = (id: string) => {
     setSelectedStudents(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id])
@@ -64,8 +89,26 @@ export function AdminStudents() {
     setView('admin-student-detail')
   }
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      await apiDelete(`/api/students/${deleteTarget.id}`)
+      toast.success(`Deleted ${deleteTarget.fullName}'s record`)
+      setStudents(prev => prev.filter(s => s.id !== deleteTarget.id))
+      setDeleteTarget(null)
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to delete student')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   const handleExport = () => {
-    if (students.length === 0) return
+    if (students.length === 0) {
+      toast.error('No students to export — adjust your filters first.')
+      return
+    }
     const headers = ['Register Number', 'Name', 'Email', 'Department', 'Year', 'Section', 'CGPA', 'Backlogs', 'Placement Status', 'Skills']
     const rows = students.map(s => [
       s.registerNumber, s.fullName, s.collegeEmail, s.department, s.year, s.section,
@@ -79,6 +122,7 @@ export function AdminStudents() {
     a.download = `students_export_${Date.now()}.csv`
     a.click()
     URL.revokeObjectURL(url)
+    toast.success(`Exported ${students.length} students to CSV`)
   }
 
   return (
@@ -99,6 +143,27 @@ export function AdminStudents() {
               Export CSV
             </Button>
           </div>
+        </div>
+
+        {/* Round-wise filter buttons */}
+        <div className="flex flex-wrap gap-2">
+          {ROUND_FILTERS.map((rf) => {
+            const isActive = (filters.roundNotCleared || '') === rf.value
+            return (
+              <Button
+                key={rf.label}
+                size="sm"
+                variant={isActive ? 'default' : 'outline'}
+                onClick={() => setFilters((f) => ({ ...f, roundNotCleared: rf.value }))}
+                className={isActive
+                  ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                  : 'border-border hover:border-rose-300 hover:text-rose-600 dark:hover:border-rose-800'
+                }
+              >
+                {rf.label}
+              </Button>
+            )
+          })}
         </div>
 
         {/* Filters */}
@@ -183,7 +248,7 @@ export function AdminStudents() {
                       <TableHead>CGPA</TableHead>
                       <TableHead className="hidden lg:table-cell">Strong Skills</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="w-10"></TableHead>
+                      <TableHead className="w-20">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -233,16 +298,33 @@ export function AdminStudents() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100" onClick={(e) => { e.stopPropagation(); handleView(s.id) }}>
-                                    <Eye className="h-3.5 w-3.5" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>View profile</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <div className="flex items-center gap-1">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100" onClick={(e) => { e.stopPropagation(); handleView(s.id) }}>
+                                      <Eye className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>View profile</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100 text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-900/20"
+                                      onClick={(e) => { e.stopPropagation(); setDeleteTarget(s) }}
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Delete student</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
                           </TableCell>
                         </TableRow>
                       )
@@ -254,6 +336,32 @@ export function AdminStudents() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-rose-600" />
+              Delete Student Record
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to permanently delete <strong>{deleteTarget?.fullName}</strong> ({deleteTarget?.registerNumber})?
+              This will also remove all of their certifications, projects, drive participations, and round results. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-rose-600 hover:bg-rose-700"
+            >
+              {deleting ? 'Deleting...' : 'Delete Permanently'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   )
 }

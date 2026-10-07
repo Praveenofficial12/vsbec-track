@@ -124,13 +124,16 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    // Create default rounds
+    // Create default rounds — names aligned with the VSBEC placement workflow
+    // (these are also the round-name tokens the /api/students endpoint matches
+    // against when filtering students who failed a particular round via the
+    // `roundNotCleared` query parameter).
     const defaultRounds = [
-      { roundNumber: 1, roundName: 'Aptitude Test', description: 'Quantitative, Logical Reasoning, Verbal' },
-      { roundNumber: 2, roundName: 'Technical Assessment', description: 'Coding + Technical MCQs' },
-      { roundNumber: 3, roundName: 'Technical Interview', description: 'Technical discussion on core subjects' },
-      { roundNumber: 4, roundName: 'HR Interview', description: 'Behavioural and HR round' },
-      { roundNumber: 5, roundName: 'Final Selection', description: 'Final result declaration' },
+      { roundNumber: 1, roundName: 'Aptitude', description: 'Quantitative, Logical Reasoning, Verbal' },
+      { roundNumber: 2, roundName: 'Coding', description: 'Online coding assessment + technical MCQs' },
+      { roundNumber: 3, roundName: 'GD', description: 'Group Discussion' },
+      { roundNumber: 4, roundName: 'Technical HR', description: 'Technical interview on core subjects' },
+      { roundNumber: 5, roundName: 'General HR', description: 'General / behavioural HR interview' },
     ]
     for (const r of defaultRounds) {
       await db.round.create({

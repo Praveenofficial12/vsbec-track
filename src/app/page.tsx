@@ -1,6 +1,7 @@
 'use client'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useAppStore } from '@/lib/store'
+import { apiPost } from '@/lib/api'
 import { LandingPage } from '@/components/landing/LandingPage'
 import { AdminLogin } from '@/components/auth/AdminLogin'
 import { StudentLogin } from '@/components/auth/StudentLogin'
@@ -26,10 +27,25 @@ import { AdminReports } from '@/components/admin/AdminReports'
 import { AdminAuditLogs } from '@/components/admin/AdminAuditLogs'
 import { AdminSettings } from '@/components/admin/AdminSettings'
 
+// Views that require an authenticated session. Each visit is logged to the
+// backend via /api/log-activity so the placement office has an audit trail
+// of which student / admin accessed which dashboard page.
+const STUDENT_VIEWS = [
+  'student-dashboard', 'student-profile', 'student-skills', 'student-companies',
+  'student-drives', 'student-history', 'student-notifications', 'student-settings',
+]
+const ADMIN_VIEWS = [
+  'admin-dashboard', 'admin-students', 'admin-student-detail', 'admin-companies',
+  'admin-company-detail', 'admin-drives', 'admin-drive-detail', 'admin-analytics',
+  'admin-recommendations', 'admin-reports', 'admin-audit-logs', 'admin-settings',
+]
+const AUTHED_VIEWS = new Set([...STUDENT_VIEWS, ...ADMIN_VIEWS])
+
 export default function Home() {
   const view = useAppStore((s) => s.view)
   const user = useAppStore((s) => s.user)
   const setView = useAppStore((s) => s.setView)
+  const lastLoggedView = useRef<string | null>(null)
 
   // Apply theme on mount
   useEffect(() => {
@@ -40,12 +56,28 @@ export default function Home() {
 
   // Guard: redirect to login if trying to access dashboard without session
   useEffect(() => {
-    const studentViews = ['student-dashboard', 'student-profile', 'student-skills', 'student-companies', 'student-drives', 'student-history', 'student-notifications', 'student-settings']
-    const adminViews = ['admin-dashboard', 'admin-students', 'admin-student-detail', 'admin-companies', 'admin-company-detail', 'admin-drives', 'admin-drive-detail', 'admin-analytics', 'admin-recommendations', 'admin-reports', 'admin-audit-logs', 'admin-settings']
-
-    if (studentViews.includes(view) && !user) setView('student-login')
-    if (adminViews.includes(view) && !user) setView('admin-login')
+    if (STUDENT_VIEWS.includes(view) && !user) setView('student-login')
+    if (ADMIN_VIEWS.includes(view) && !user) setView('admin-login')
   }, [view, user, setView])
+
+  // Fire-and-forget visit logging for authenticated dashboard visits.
+  // We dedupe per view change so the same view doesn't get re-logged on every
+  // re-render (e.g. theme toggle).
+  useEffect(() => {
+    if (!user) return
+    if (!AUTHED_VIEWS.has(view)) return
+    if (lastLoggedView.current === view) return
+    lastLoggedView.current = view
+    apiPost('/api/log-activity', {
+      userType: user.role,
+      userId: user.registerNumber || user.email,
+      registerNumber: user.registerNumber || undefined,
+      email: user.email,
+      department: (user as any).department || undefined,
+      action: 'VISIT',
+      page: view,
+    }).catch(() => { /* visit logging is best-effort — never block the UI */ })
+  }, [view, user])
 
   // Public views
   if (view === 'landing') return <LandingPage />

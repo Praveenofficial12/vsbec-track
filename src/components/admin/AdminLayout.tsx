@@ -48,8 +48,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           <Shield className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-bold">VSBEC Placement</p>
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Admin Portal</p>
+          <p className="truncate text-sm font-bold">V.S.B. Engineering</p>
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Admin Portal · Karur</p>
         </div>
       </div>
 
