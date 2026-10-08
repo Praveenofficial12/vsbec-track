@@ -62,9 +62,9 @@ export function AdminDriveDetail() {
     }
   }
 
-  const handleMarkCompleted = async () => {
+  const handleMarkComplete = async () => {
     if (!drive) return
-    setMarkingCompleted(true)
+    setMarkingComplete(true)
     try {
       await apiPut(`/api/drives/${drive.id}`, { status: 'COMPLETED' })
       toast.success('Drive marked as completed')
@@ -72,13 +72,13 @@ export function AdminDriveDetail() {
     } catch (e: any) {
       toast.error(e.message || 'Failed to mark drive as completed')
     } finally {
-      setMarkingCompleted(false)
+      setMarkingComplete(false)
     }
   }
 
   const handleReopenDrive = async () => {
     if (!drive) return
-    setMarkingCompleted(true)
+    setMarkingComplete(true)
     try {
       await apiPut(`/api/drives/${drive.id}`, { status: 'ONGOING' })
       toast.success('Drive reopened — status set to Ongoing')
@@ -86,7 +86,7 @@ export function AdminDriveDetail() {
     } catch (e: any) {
       toast.error(e.message || 'Failed to reopen drive')
     } finally {
-      setMarkingCompleted(false)
+      setMarkingComplete(false)
     }
   }
 
@@ -191,23 +191,23 @@ export function AdminDriveDetail() {
                 {isCompleted ? (
                   <Button
                     onClick={handleReopenDrive}
-                    disabled={markingCompleted}
+                    disabled={markingComplete}
                     variant="secondary"
                     size="sm"
                     className="bg-white text-violet-700 hover:bg-violet-50"
                   >
-                    {markingCompleted ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
+                    {markingComplete ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
                     Reopen Drive
                   </Button>
                 ) : (
                   <Button
-                    onClick={handleMarkCompleted}
-                    disabled={markingCompleted}
+                    onClick={handleMarkComplete}
+                    disabled={markingComplete}
                     variant="secondary"
                     size="sm"
                     className="bg-white text-violet-700 hover:bg-violet-50"
                   >
-                    {markingCompleted ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+                    {markingComplete ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
                     Mark as Completed
                   </Button>
                 )}

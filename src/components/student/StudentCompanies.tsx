@@ -345,7 +345,7 @@ export function StudentCompanies() {
               const participation = student?.participations?.find(p => p.driveId === drive.id)
               const alreadyParticipated = !!participation
               // Block drive if student marked NOT_ATTENDING, REJECTED, or WITHDRAWN
-              const driveBlocked = participation && ['NOT_ATTENDING', 'REJECTED', 'WITHDRAWN'].includes(participation.attendance)
+              const driveBlocked = participation && ['NOT_ATTENDING', 'REJECTED', 'WITHDRAWN', 'SELECTED'].includes(participation.attendance)
               const canOpen = eligible && !driveBlocked
               return (
                 <Card
@@ -361,7 +361,19 @@ export function StudentCompanies() {
                       return
                     }
                     if (!eligible) {
-                      toast.error('You are not eligible for this drive. Please check the eligibility criteria.')
+                      // Build a detailed eligibility message
+                      const reasons: string[] = []
+                      const years = (drive.eligibleYears || '').split(',').map(s => s.trim()).filter(Boolean)
+                      if (years.length > 0 && !years.includes(student?.year || '')) reasons.push(`Year must be ${years.join(' or ')}`)
+                      if (drive.minCgpa && student?.cgpa !== null && student?.cgpa !== undefined && (student.cgpa || 0) < drive.minCgpa) reasons.push(`CGPA must be >= ${drive.minCgpa} (yours: ${student.cgpa})`)
+                      if (drive.maxBacklogs !== null && drive.maxBacklogs !== undefined && (student?.backlogs || 0) > drive.maxBacklogs) reasons.push(`Backlogs must be <= ${drive.maxBacklogs} (yours: ${student?.backlogs})`)
+                      if (drive.minTenthPercentage && student?.tenthPercentage !== null && student?.tenthPercentage !== undefined && (student.tenthPercentage || 0) < drive.minTenthPercentage) reasons.push(`10th % must be >= ${drive.minTenthPercentage} (yours: ${student.tenthPercentage})`)
+                      if (drive.minTwelfthPercentage && student?.twelfthPercentage !== null && student?.twelfthPercentage !== undefined && (student.twelfthPercentage || 0) < drive.minTwelfthPercentage) reasons.push(`12th % must be >= ${drive.minTwelfthPercentage} (yours: ${student.twelfthPercentage})`)
+
+                      const msg = reasons.length > 0
+                        ? `You are not eligible for this drive:\n\n• ${reasons.join('\n• ')}`
+                        : 'You are not eligible for this drive.'
+                      toast.error(msg, { duration: 8000 })
                       return
                     }
                     setSelectedDrive(drive)
