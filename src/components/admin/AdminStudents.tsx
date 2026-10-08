@@ -55,6 +55,9 @@ export function AdminStudents() {
   const [selected, setSelectedStudents] = useState<string[]>([])
   const [deleteTarget, setDeleteTarget] = useState<Student | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [totalCount, setTotalCount] = useState(0)
+  const [currentPage, setCurrentPage] = useState(0)
+  const pageSize = 100
 
   const fetchStudents = useCallback(async () => {
     setLoading(true)
@@ -63,14 +66,17 @@ export function AdminStudents() {
       Object.entries(filters).forEach(([k, v]) => {
         if (v && v !== 'ALL' && v !== '') params.append(k, v)
       })
+      params.set('limit', String(pageSize))
+      params.set('offset', String(currentPage * pageSize))
       const r = await apiGet<{ students: Student[]; total: number }>(`/api/students?${params}`)
       setStudents(r.students)
+      setTotalCount(r.total)
     } catch (e) {
       console.error(e)
     } finally {
       setLoading(false)
     }
-  }, [filters])
+  }, [filters, currentPage])
 
   useEffect(() => { fetchStudents() }, [fetchStudents])
 
@@ -131,7 +137,7 @@ export function AdminStudents() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold">Students</h1>
-            <p className="text-sm text-muted-foreground">{loading ? 'Loading...' : `${students.length} students found`}</p>
+            <p className="text-sm text-muted-foreground">{loading ? 'Loading...' : `${totalCount} students found (showing ${students.length})`}</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleReset}>
@@ -335,6 +341,37 @@ export function AdminStudents() {
             )}
           </CardContent>
         </Card>
+
+        {/* Pagination */}
+        {totalCount > pageSize && (
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-sm text-muted-foreground">
+              Showing {currentPage * pageSize + 1}–{Math.min((currentPage + 1) * pageSize, totalCount)} of {totalCount} students
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage === 0}
+                onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
+              >
+                ← Previous
+              </Button>
+              <span className="text-sm font-medium">Page {currentPage + 1} of {Math.ceil(totalCount / pageSize)}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={(currentPage + 1) * pageSize >= totalCount}
+                onClick={() => setCurrentPage(p => p + 1)}
+              >
+                Next →
+              </Button>
+            </div>
+          </div>
+        )}
+        {totalCount > 0 && totalCount <= pageSize && (
+          <p className="text-sm text-muted-foreground">Showing all {totalCount} student{totalCount !== 1 ? 's' : ''}</p>
+        )}
       </div>
 
       {/* Delete confirmation dialog */}

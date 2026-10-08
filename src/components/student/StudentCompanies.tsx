@@ -233,6 +233,15 @@ export function StudentCompanies() {
 
   const handleFinalResult = async (finalResult: string) => {
     if (!myParticipation || !selectedDrive) return
+
+    // Show confirmation popup
+    const messages: Record<string, string> = {
+      'SELECTED': `You are marking yourself as "Selected" for ${selectedDrive.company?.name}.\n\nThis will close the drive. You will be redirected to My Drives.\n\nDo you want to proceed?`,
+      'REJECTED': `You are marking yourself as "Not Selected" for ${selectedDrive.company?.name}.\n\nThis will close the drive. You will be redirected to My Drives.\n\nDo you want to proceed?`,
+      'ON_HOLD': `You are marking your result as "On Hold" for ${selectedDrive.company?.name}.\n\nThe drive will remain open and you can re-enter details later.\n\nDo you want to proceed?`,
+    }
+    if (!confirm(messages[finalResult] || 'Confirm final result?')) return
+
     setUpdatingFinal(true)
     try {
       await apiPut('/api/participations', {
@@ -244,14 +253,25 @@ export function StudentCompanies() {
         joiningDate: '2026-07-01',
         source: 'STUDENT',
       })
-      toast.success(`Final result self-reported: ${finalResult.replace(/_/g, ' ')}`)
-      // Refresh
-      const r = await apiGet<{ participations: DriveParticipation[] }>(
-        `/api/participations?studentId=${user?.id}&driveId=${selectedDrive.id}`
-      )
-      const p = r.participations?.[0] || null
-      setMyParticipation(p)
-      setRoundResults(p?.roundResults || [])
+
+      if (finalResult === 'ON_HOLD') {
+        toast.success('Result marked as On Hold. You can re-enter details later.')
+        // Refresh to show updated state but keep dialog open
+        const r = await apiGet<{ participations: DriveParticipation[] }>(
+          `/api/participations?studentId=${user?.id}&driveId=${selectedDrive.id}`
+        )
+        const p = r.participations?.[0] || null
+        setMyParticipation(p)
+        setRoundResults(p?.roundResults || [])
+      } else {
+        // SELECTED or REJECTED — close the drive and redirect
+        toast.success(`Final result: ${finalResult.replace(/_/g, ' ')}. The drive is now closed for you.`)
+        setSelectedDrive(null)
+        setTimeout(() => {
+          useAppStore.getState().setView('student-drives')
+        }, 500)
+      }
+
       if (user?.id) {
         const sr = await apiGet<{ student: Student }>(`/api/students/${user.id}`)
         setStudent(sr.student)

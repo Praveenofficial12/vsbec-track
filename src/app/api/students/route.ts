@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     // "General HR"). Performs a substring match so "Aptitude" also matches
     // legacy round names like "Aptitude Test".
     const roundNotCleared = searchParams.get('roundNotCleared')
-    const limit = parseInt(searchParams.get('limit') || '200')
+    const limit = parseInt(searchParams.get('limit') || '100')
     const offset = parseInt(searchParams.get('offset') || '0')
 
     const where: any = {}
