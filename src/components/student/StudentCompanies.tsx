@@ -279,8 +279,18 @@ export function StudentCompanies() {
               return (
                 <Card
                   key={drive.id}
-                  className="group cursor-pointer overflow-hidden border-border transition-all hover:-translate-y-1 hover:border-emerald-300 hover:shadow-soft-lg dark:hover:border-emerald-800"
-                  onClick={() => setSelectedDrive(drive)}
+                  className={`group overflow-hidden border-border transition-all ${
+                    eligible
+                      ? 'cursor-pointer hover:-translate-y-1 hover:border-emerald-300 hover:shadow-soft-lg dark:hover:border-emerald-800'
+                      : 'cursor-not-allowed opacity-75'
+                  }`}
+                  onClick={() => {
+                    if (!eligible) {
+                      toast.error('You are not eligible for this drive. Please check the eligibility criteria.')
+                      return
+                    }
+                    setSelectedDrive(drive)
+                  }}
                 >
                   <CardContent className="p-5">
                     <div className="mb-3 flex items-start justify-between gap-2">
@@ -475,41 +485,73 @@ export function StudentCompanies() {
                       <div className="space-y-2">
                         {rounds.map((round, idx) => {
                           const status = getRoundStatus(round.id)
+                          // Check if any previous round was NOT_CLEARED or ABSENT — if so, drive is closed
+                          const previousRoundFailed = idx > 0 && rounds.slice(0, idx).some((prevRound) => {
+                            const prevStatus = getRoundStatus(prevRound.id)
+                            return prevStatus === 'NOT_CLEARED' || prevStatus === 'ABSENT'
+                          })
+                          // Check if all previous rounds are CLEARED — only then can this round be marked
+                          const previousRoundsCleared = idx === 0 || rounds.slice(0, idx).every((prevRound) => {
+                            return getRoundStatus(prevRound.id) === 'CLEARED'
+                          })
+                          // If drive is already rejected, lock everything
+                          const driveClosed = myParticipation?.finalResult === 'REJECTED' || previousRoundFailed
+
                           return (
-                            <div key={round.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3">
+                            <div key={round.id} className={`flex flex-wrap items-center gap-3 rounded-lg border p-3 ${
+                              driveClosed ? 'border-rose-200 bg-rose-50/50 dark:border-rose-800 dark:bg-rose-900/10' :
+                              previousRoundsCleared ? 'border-border bg-card' : 'border-border bg-muted/30 opacity-70'
+                            }`}>
                               <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
                                 status === 'CLEARED' ? 'bg-emerald-600 text-white' :
                                 status === 'NOT_CLEARED' || status === 'ABSENT' ? 'bg-rose-600 text-white' :
                                 status === 'ON_HOLD' ? 'bg-amber-500 text-white' :
                                 'bg-muted text-muted-foreground'
                               }`}>
-                                {idx + 1}
+                                {status === 'CLEARED' ? <CheckCircle2 className="h-4 w-4" /> :
+                                 status === 'NOT_CLEARED' || status === 'ABSENT' ? <X className="h-4 w-4" /> :
+                                 idx + 1}
                               </div>
                               <div className="min-w-0 flex-1">
                                 <p className="truncate text-sm font-medium">{round.roundName}</p>
                                 <p className="truncate text-xs text-muted-foreground">{round.description}</p>
+                                {driveClosed && status === 'NOT_CLEARED' && (
+                                  <p className="text-[10px] font-medium text-rose-600 dark:text-rose-400">Drive closed — not cleared</p>
+                                )}
+                                {!previousRoundsCleared && !driveClosed && (
+                                  <p className="text-[10px] text-muted-foreground">Locked — clear previous rounds first</p>
+                                )}
                               </div>
-                              <Select
-                                value={status}
-                                onValueChange={(v) => handleRoundStatusChange(round, v)}
-                                disabled={updatingRound === round.id}
-                              >
-                                <SelectTrigger className="h-8 w-36 text-xs">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {ROUND_STATUS_OPTIONS.map((opt) => (
-                                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              {driveClosed ? (
+                                <Badge variant="outline" className={`${STATUS_COLORS[status] || STATUS_COLORS.PENDING} text-xs`}>
+                                  {status ? status.replace(/_/g, ' ') : 'Locked'}
+                                </Badge>
+                              ) : previousRoundsCleared ? (
+                                <Select
+                                  value={status}
+                                  onValueChange={(v) => handleRoundStatusChange(round, v)}
+                                  disabled={updatingRound === round.id}
+                                >
+                                  <SelectTrigger className="h-8 w-36 text-xs">
+                                    {updatingRound === round.id ? 'Updating...' : <SelectValue />}
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {ROUND_STATUS_OPTIONS.map((opt) => (
+                                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                <Badge variant="outline" className="text-xs text-muted-foreground">Locked</Badge>
+                              )}
                             </div>
                           )
                         })}
                       </div>
                     )}
 
-                    {/* Final Result section — 3 buttons */}
+                    {/* Final Result section — only shown if drive is not closed/rejected */}
+                    {myParticipation?.finalResult !== 'REJECTED' && (
                     <div className="rounded-xl border border-border bg-muted/30 p-4">
                       <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
                         <Trophy className="h-4 w-4 text-amber-500" />
@@ -538,6 +580,7 @@ export function StudentCompanies() {
                         </p>
                       )}
                     </div>
+                    )}
                   </div>
                 )}
               </div>

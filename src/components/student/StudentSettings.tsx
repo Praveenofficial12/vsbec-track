@@ -87,35 +87,6 @@ export function StudentSettings() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Key className="h-4 w-4" />
-              Security
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Current Password</Label>
-              <Input type="password" placeholder="••••••••" />
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">New Password</Label>
-                <Input type="password" placeholder="Enter new password" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Confirm Password</Label>
-                <Input type="password" placeholder="Confirm new password" />
-              </div>
-            </div>
-            <Button onClick={() => toast.success('Password updated successfully!')}>
-              <Save className="mr-2 h-4 w-4" />
-              Update Password
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
             <CardTitle className="text-base flex items-center gap-2 text-rose-600 dark:text-rose-400">
               <LogOut className="h-4 w-4" />
               Sign Out

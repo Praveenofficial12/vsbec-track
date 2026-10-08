@@ -28,6 +28,14 @@ export function StudentProfile() {
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState<any>({})
+  const [showProjectForm, setShowProjectForm] = useState(false)
+  const [projectForm, setProjectForm] = useState<any>({})
+
+  const fetchStudent = async () => {
+    if (!user?.id) return
+    const r = await apiGet<{ student: Student }>(`/api/students/${user.id}`)
+    setStudent(r.student)
+  }
 
   useEffect(() => {
     if (!user?.id) return
@@ -123,7 +131,6 @@ export function StudentProfile() {
             <TabsTrigger value="personal">Personal</TabsTrigger>
             <TabsTrigger value="academic">Academic</TabsTrigger>
             <TabsTrigger value="links">Links</TabsTrigger>
-            <TabsTrigger value="certifications">Certs</TabsTrigger>
             <TabsTrigger value="projects">Projects</TabsTrigger>
           </TabsList>
 
@@ -349,66 +356,34 @@ export function StudentProfile() {
             </Card>
           </TabsContent>
 
-          {/* Certifications */}
-          <TabsContent value="certifications" className="space-y-4 animate-fade-in-up">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Certifications ({student.certifications?.length || 0})</CardTitle>
-                <CardDescription>Your professional certifications</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {student.certifications?.length ? (
-                  <div className="space-y-3">
-                    {student.certifications.map((cert) => (
-                      <div key={cert.id} className="flex items-start gap-3 rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent/30">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
-                          <Award className="h-5 w-5" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-semibold">{cert.name}</p>
-                          <p className="text-sm text-muted-foreground">{cert.organization}</p>
-                          <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {formatDate(cert.certDate)}</span>
-                            {cert.credentialId && <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> {cert.credentialId}</span>}
-                            {cert.credentialUrl && (
-                              <a href={cert.credentialUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-emerald-600 hover:underline dark:text-emerald-400">
-                                <ExternalLink className="h-3 w-3" /> Verify
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="py-8 text-center text-sm text-muted-foreground">No certifications added yet.</p>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Projects */}
+          {/* Projects — with add functionality and mandatory fields */}
           <TabsContent value="projects" className="space-y-4 animate-fade-in-up">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Projects ({student.projects?.length || 0})</CardTitle>
-                <CardDescription>Your portfolio projects</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-base">Projects ({student.projects?.length || 0})</CardTitle>
+                    <CardDescription>Add your projects with GitHub repo, demo link, and tech stack</CardDescription>
+                  </div>
+                  <Button size="sm" onClick={() => { setShowProjectForm(true); setProjectForm({ name: '', description: '', technologies: '', projectType: '', githubUrl: '', liveUrl: '' }) }}>
+                    <Plus className="mr-1 h-3.5 w-3.5" /> Add Project
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {student.projects?.length ? (
                   <div className="space-y-3">
                     {student.projects.map((project) => (
-                      <div key={project.id} className="rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent/30">
+                      <div key={project.id} className="group rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent/30">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
                             <p className="font-semibold">{project.name}</p>
-                            <p className="mt-1 text-sm text-muted-foreground">{project.description}</p>
+                            {project.description && <p className="mt-1 text-sm text-muted-foreground">{project.description}</p>}
                             {project.technologies && (
                               <div className="mt-2 flex flex-wrap gap-1.5">
                                 {csvToArray(project.technologies).map((t) => (
                                   <Badge key={t} variant="outline" className="text-xs">
-                                    <Code className="mr-1 h-2.5 w-2.5" />
-                                    {t}
+                                    <Code className="mr-1 h-2.5 w-2.5" /> {t}
                                   </Badge>
                                 ))}
                               </div>
@@ -416,7 +391,7 @@ export function StudentProfile() {
                             <div className="mt-2 flex flex-wrap items-center gap-3 text-xs">
                               {project.githubUrl && (
                                 <a href={project.githubUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-muted-foreground hover:text-foreground">
-                                  <Github className="h-3 w-3" /> GitHub
+                                  <Github className="h-3 w-3" /> Repo Link
                                 </a>
                               )}
                               {project.liveUrl && (
@@ -424,18 +399,82 @@ export function StudentProfile() {
                                   <LinkIcon className="h-3 w-3" /> Live Demo
                                 </a>
                               )}
+                              {project.projectType && <span className="text-muted-foreground">· {project.projectType}</span>}
                             </div>
                           </div>
-                          <Badge variant="outline" className="shrink-0">{project.projectType}</Badge>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-600 opacity-0 transition-opacity hover:bg-rose-50 dark:hover:bg-rose-900/20 group-hover:opacity-100"
+                            onClick={async () => { if (confirm('Delete this project?')) { try { await apiDelete(`/api/projects/${project.id}`); toast.success('Project deleted'); fetchStudent(); } catch (e: any) { toast.error(e.message) } } }}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="py-8 text-center text-sm text-muted-foreground">No projects added yet.</p>
+                  <div className="rounded-lg border border-dashed border-border py-10 text-center">
+                    <Code className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
+                    <p className="text-sm font-medium">No projects added yet</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Add your projects with GitHub repo link, live demo link, and tech stack</p>
+                    <Button size="sm" variant="outline" className="mt-4" onClick={() => { setShowProjectForm(true); setProjectForm({ name: '', description: '', technologies: '', projectType: '', githubUrl: '', liveUrl: '' }) }}>
+                      <Plus className="mr-1 h-3.5 w-3.5" /> Add Your First Project
+                    </Button>
+                  </div>
                 )}
               </CardContent>
             </Card>
+
+            {/* Add Project Dialog */}
+            <Dialog open={showProjectForm} onOpenChange={setShowProjectForm}>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Add Project</DialogTitle>
+                  <DialogDescription>GitHub profile is required. Fill in all fields below.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Project Name *</Label>
+                    <Input value={projectForm.name || ''} onChange={(e) => setProjectForm((f: any) => ({ ...f, name: e.target.value }))} placeholder="e.g. E-Commerce Platform" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Description</Label>
+                    <Textarea value={projectForm.description || ''} onChange={(e) => setProjectForm((f: any) => ({ ...f, description: e.target.value }))} placeholder="Brief description of the project" rows={2} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Tech Stack Used *</Label>
+                      <Input value={projectForm.technologies || ''} onChange={(e) => setProjectForm((f: any) => ({ ...f, technologies: e.target.value }))} placeholder="React, Node.js, MongoDB" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Domain *</Label>
+                      <Input value={projectForm.projectType || ''} onChange={(e) => setProjectForm((f: any) => ({ ...f, projectType: e.target.value }))} placeholder="e.g. Web App / ML / Mobile" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1.5"><Github className="h-3.5 w-3.5" /> GitHub Repo Link *</Label>
+                    <Input value={projectForm.githubUrl || ''} onChange={(e) => setProjectForm((f: any) => ({ ...f, githubUrl: e.target.value }))} placeholder="https://github.com/username/repo" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1.5"><LinkIcon className="h-3.5 w-3.5 text-emerald-600" /> Live Demo Link *</Label>
+                    <Input value={projectForm.liveUrl || ''} onChange={(e) => setProjectForm((f: any) => ({ ...f, liveUrl: e.target.value }))} placeholder="https://your-project.vercel.app" />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowProjectForm(false)}>Cancel</Button>
+                  <Button onClick={async () => {
+                    if (!projectForm.name || !projectForm.technologies || !projectForm.projectType || !projectForm.githubUrl || !projectForm.liveUrl) {
+                      toast.error('Please fill all required fields (name, tech stack, domain, repo link, demo link)')
+                      return
+                    }
+                    try {
+                      await apiPost('/api/projects', { ...projectForm, studentId: user?.id })
+                      toast.success('Project added!')
+                      setShowProjectForm(false)
+                      fetchStudent()
+                    } catch (e: any) { toast.error(e.message) }
+                  }} className="bg-emerald-600 hover:bg-emerald-700">Add Project</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
         </Tabs>
       </div>
