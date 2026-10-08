@@ -39,10 +39,11 @@ const EMPTY_FORM = {
   eligibleClasses: ['A', 'B', 'C', 'D'] as string[],
   minCgpa: '6.5',
   maxBacklogs: '0',
-  // Eligibility criteria defaults to skills as requested
-  requiredSkills: ['Java', 'Python', 'SQL'] as string[],
+  minTenthPercentage: '60',
+  minTwelfthPercentage: '60',
+  requiredSkills: [] as string[],
   preferredSkills: [] as string[],
-  selectionProcess: 'Aptitude Test -> Technical Assessment -> Technical Interview -> HR Interview',
+  selectionProcess: 'Aptitude -> Coding -> GD -> Technical HR -> General HR',
   status: 'UPCOMING',
 }
 
@@ -133,6 +134,8 @@ export function AdminDrives() {
         eligibleClasses: form.eligibleClasses.join(','),
         minCgpa: form.minCgpa,
         maxBacklogs: form.maxBacklogs,
+        minTenthPercentage: form.minTenthPercentage,
+        minTwelfthPercentage: form.minTwelfthPercentage,
         requiredSkills: form.requiredSkills.join(','),
         preferredSkills: form.preferredSkills.join(','),
         selectionProcess: form.selectionProcess,
@@ -348,18 +351,7 @@ export function AdminDrives() {
                 </div>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Min CGPA</Label>
-                  <Input type="number" step="0.01" value={form.minCgpa} onChange={(e) => setForm((f: any) => ({ ...f, minCgpa: e.target.value }))} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Max Backlogs</Label>
-                  <Input type="number" value={form.maxBacklogs} onChange={(e) => setForm((f: any) => ({ ...f, maxBacklogs: e.target.value }))} />
-                </div>
-              </div>
-
-              {/* Eligibility Criteria — defaults to skills + 3rd/4th year */}
+              {/* Eligibility Criteria — Year, 10th%, 12th%, CGPA */}
               <div className="space-y-4 rounded-lg border-2 border-violet-200 bg-violet-50/30 p-4 dark:border-violet-800 dark:bg-violet-900/10">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold flex items-center gap-2">
@@ -371,25 +363,7 @@ export function AdminDrives() {
                   </Badge>
                 </div>
 
-                <div>
-                  <Label className="mb-2 block text-xs text-muted-foreground">
-                    Required Skills <span className="text-violet-600">(eligibility criteria)</span>
-                  </Label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {SKILLS.map(s => (
-                      <button key={s} type="button" onClick={() => toggleArr('requiredSkills', s)}
-                        className={`rounded-full border px-2.5 py-1 text-xs transition-all ${form.requiredSkills.includes(s) ? 'border-amber-500 bg-amber-500 text-white shadow-soft' : 'border-border bg-background hover:bg-accent'}`}>
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                  {form.requiredSkills.length > 0 && (
-                    <p className="mt-2 text-[10px] text-muted-foreground">
-                      {form.requiredSkills.length} skill{form.requiredSkills.length !== 1 ? 's' : ''} required — students must have these skills to be eligible.
-                    </p>
-                  )}
-                </div>
-
+                {/* Eligible Years */}
                 <div>
                   <Label className="mb-2 block text-xs text-muted-foreground">
                     Eligible Years <span className="text-violet-600">(3rd & 4th Year pre-selected)</span>
@@ -404,17 +378,37 @@ export function AdminDrives() {
                   </div>
                 </div>
 
-                <div>
-                  <Label className="mb-2 block text-xs text-muted-foreground">Eligible Departments</Label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {DEPARTMENTS.map(d => (
-                      <button key={d} type="button" onClick={() => toggleArr('eligibleDepartments', d)}
-                        className={`rounded-full border px-2.5 py-1 text-xs transition-all ${form.eligibleDepartments.includes(d) ? 'border-emerald-600 bg-emerald-600 text-white shadow-soft' : 'border-border bg-background hover:bg-accent'}`}>
-                        {d}
-                      </button>
-                    ))}
+                {/* Academic criteria: 10th %, 12th %, CGPA, Backlogs */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Min 10th Percentage</Label>
+                    <Input type="number" step="0.01" min="0" max="100" placeholder="e.g. 60"
+                      value={form.minTenthPercentage || ''}
+                      onChange={(e) => setForm((f: any) => ({ ...f, minTenthPercentage: e.target.value }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Min 12th Percentage</Label>
+                    <Input type="number" step="0.01" min="0" max="100" placeholder="e.g. 60"
+                      value={form.minTwelfthPercentage || ''}
+                      onChange={(e) => setForm((f: any) => ({ ...f, minTwelfthPercentage: e.target.value }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Min CGPA</Label>
+                    <Input type="number" step="0.01" min="0" max="10" placeholder="e.g. 6.5"
+                      value={form.minCgpa}
+                      onChange={(e) => setForm((f: any) => ({ ...f, minCgpa: e.target.value }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Max Backlogs</Label>
+                    <Input type="number" min="0" placeholder="e.g. 0"
+                      value={form.maxBacklogs}
+                      onChange={(e) => setForm((f: any) => ({ ...f, maxBacklogs: e.target.value }))} />
                   </div>
                 </div>
+
+                <p className="text-[10px] text-muted-foreground">
+                  Students must meet ALL criteria (year, 10th %, 12th %, CGPA, backlogs) to be eligible for this drive.
+                </p>
               </div>
 
               <div className="space-y-2">
