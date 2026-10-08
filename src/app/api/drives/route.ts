@@ -117,6 +117,8 @@ export async function POST(req: NextRequest) {
         eligibleClasses: body.eligibleClasses,
         minCgpa: body.minCgpa ? parseFloat(body.minCgpa) : null,
         maxBacklogs: body.maxBacklogs !== undefined && body.maxBacklogs !== '' ? parseInt(body.maxBacklogs) : null,
+        minTenthPercentage: body.minTenthPercentage ? parseFloat(body.minTenthPercentage) : null,
+        minTwelfthPercentage: body.minTwelfthPercentage ? parseFloat(body.minTwelfthPercentage) : null,
         requiredSkills: body.requiredSkills,
         preferredSkills: body.preferredSkills,
         selectionProcess: body.selectionProcess,

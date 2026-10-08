@@ -19,6 +19,7 @@ import {
   Settings as SettingsIcon, Building2, GraduationCap, Award, Target, Shield, Bell,
   Plus, Pencil, Save, Users, BookOpen, AlertCircle, Power,
   Clock, Activity, Key, Download, Eye, EyeOff, Copy, CheckCircle2, Loader2, RefreshCw,
+  Trash2, AlertTriangle,
 } from 'lucide-react'
 import {
   COLLEGE_NAME, COLLEGE_FULL, COLLEGE_SHORT, COLLEGE_LOCATION, COLLEGE_TAGLINE,
@@ -240,6 +241,7 @@ export function AdminSettings() {
             <TabsTrigger value="dept-passwords"><Key className="mr-1.5 h-3.5 w-3.5" />Dept Passwords</TabsTrigger>
             <TabsTrigger value="login-users"><Users className="mr-1.5 h-3.5 w-3.5" />Login Users</TabsTrigger>
             <TabsTrigger value="activity-logs"><Activity className="mr-1.5 h-3.5 w-3.5" />Activity Logs</TabsTrigger>
+            <TabsTrigger value="database" className="text-rose-600 dark:text-rose-400">Database</TabsTrigger>
           </TabsList>
 
           {/* Placement Rules */}
@@ -635,6 +637,58 @@ export function AdminSettings() {
                     </Table>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Database Management — Erase All Data */}
+          <TabsContent value="database" className="space-y-4 animate-fade-in-up">
+            <Card className="border-rose-200 dark:border-rose-800">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2 text-rose-600 dark:text-rose-400">
+                  <Trash2 className="h-4 w-4" />
+                  Erase All Data
+                </CardTitle>
+                <CardDescription>Remove all students, companies, drives, and related data for year-to-year management. Admin account is preserved.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="rounded-lg border-2 border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+                    <div className="text-sm">
+                      <p className="font-semibold text-amber-900 dark:text-amber-200">Warning: Destructive Action</p>
+                      <p className="mt-1 text-amber-800 dark:text-amber-300">This will permanently delete ALL students, companies, drives, rounds, participations, certifications, projects, notifications, and audit logs. The admin account and placement rules are preserved. This action CANNOT be undone.</p>
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  onClick={async () => {
+                    if (!confirm('Are you absolutely sure? This will delete ALL data (students, companies, drives). This CANNOT be undone. Type DELETE in the next prompt to confirm.')) return
+                    const confirmation = prompt('Type DELETE to confirm:')
+                    if (confirmation !== 'DELETE') { toast.error('Confirmation failed. Please type DELETE exactly.'); return }
+                    try {
+                      const res = await fetch('/api/admin/reset-database', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ mode: 'reseed' }),
+                      })
+                      const data = await res.json()
+                      if (res.ok) {
+                        toast.success(data.message || 'All data erased successfully')
+                        setTimeout(() => window.location.reload(), 2000)
+                      } else {
+                        toast.error(data.error || 'Failed to erase data')
+                      }
+                    } catch (e: any) {
+                      toast.error(e.message || 'Failed to erase data')
+                    }
+                  }}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Erase All Data (Remove All Users)
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>

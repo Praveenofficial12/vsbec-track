@@ -108,6 +108,8 @@ model Drive {
   eligibleClasses  String? // CSV
   minCgpa          Float?
   maxBacklogs      Int?
+  minTenthPercentage Float?
+  minTwelfthPercentage Float?
   requiredSkills   String? // CSV
   preferredSkills  String? // CSV
   selectionProcess String?

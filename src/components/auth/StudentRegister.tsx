@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
 import {
   ArrowLeft, ArrowRight, GraduationCap, Loader2, User, BookOpen, Target, Award,
@@ -73,7 +74,7 @@ export function StudentRegister() {
     degree: 'B.E.', year: '', section: '', semester: '', batch: '2022-2026', cgpa: '',
     tenthPercentage: '', twelfthPercentage: '', backlogs: '0', historyOfArrears: '0', graduationYear: '2026',
     preferredRole: '', preferredDomain: '', interestedTechs: '', preferredLocation: '',
-    linkedinUrl: '', leetcodeUrl: '', githubUrl: '',
+    linkedinUrl: '', leetcodeUrl: '', githubUrl: '', resumeUrl: '',
     skills: [] as string[], strongSkills: [] as string[],
   })
 
@@ -104,8 +105,8 @@ export function StudentRegister() {
 
   const validateStep = () => {
     if (step === 1) {
-      if (!form.fullName || !form.registerNumber || !form.collegeEmail) {
-        toast.error('Please fill in full name, register number and college email')
+      if (!form.fullName || !form.registerNumber || !form.collegeEmail || !form.personalEmail || !form.mobile || !form.dateOfBirth || !form.gender) {
+        toast.error('Please fill in all personal fields (name, register number, emails, mobile, DOB, gender)')
         return false
       }
       if (!form.department) {
@@ -122,8 +123,18 @@ export function StudentRegister() {
       }
     }
     if (step === 2) {
-      if (!form.department || !form.year || !form.section || !form.cgpa) {
-        toast.error('Please fill in all academic fields')
+      if (!form.department || !form.year || !form.section || !form.cgpa || !form.tenthPercentage || !form.twelfthPercentage || !form.semester || !form.batch) {
+        toast.error('Please fill in all academic fields (year, section, semester, batch, CGPA, 10th %, 12th %)')
+        return false
+      }
+    }
+    if (step === 3) {
+      if (!form.preferredRole || !form.preferredDomain || !form.preferredLocation) {
+        toast.error('Please fill in all placement preference fields')
+        return false
+      }
+      if (!form.linkedinUrl || !form.resumeUrl) {
+        toast.error('LinkedIn URL and Resume link are required')
         return false
       }
     }
@@ -150,6 +161,7 @@ export function StudentRegister() {
         twelfthPercentage: form.twelfthPercentage ? parseFloat(form.twelfthPercentage) : null,
         backlogs: parseInt(form.backlogs) || 0,
         historyOfArrears: parseInt(form.historyOfArrears) || 0,
+        resumeUrl: form.resumeUrl,
       }
       const res = await apiPost('/api/auth/student-register', payload)
       if (res.success) {
@@ -313,19 +325,19 @@ export function StudentRegister() {
                     <Input type="email" value={form.collegeEmail} onChange={(e) => updateForm('collegeEmail', e.target.value)} placeholder="e.g. vsb2400@vsbec.edu.in" />
                   </div>
                   <div className="space-y-2">
-                    <Label>Personal Email</Label>
+                    <Label>Personal Email *</Label>
                     <Input type="email" value={form.personalEmail} onChange={(e) => updateForm('personalEmail', e.target.value)} placeholder="e.g. you@gmail.com" />
                   </div>
                   <div className="space-y-2">
-                    <Label>Mobile Number</Label>
+                    <Label>Mobile Number *</Label>
                     <Input value={form.mobile} onChange={(e) => updateForm('mobile', e.target.value)} placeholder="e.g. +91 9876543210" />
                   </div>
                   <div className="space-y-2">
-                    <Label>Date of Birth</Label>
+                    <Label>Date of Birth *</Label>
                     <Input type="date" value={form.dateOfBirth} onChange={(e) => updateForm('dateOfBirth', e.target.value)} />
                   </div>
                   <div className="space-y-2">
-                    <Label>Gender</Label>
+                    <Label>Gender *</Label>
                     <Select value={form.gender} onValueChange={(v) => updateForm('gender', v)}>
                       <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
                       <SelectContent>
@@ -384,11 +396,11 @@ export function StudentRegister() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Semester</Label>
+                    <Label>Semester *</Label>
                     <Input type="number" min="1" max="8" value={form.semester} onChange={(e) => updateForm('semester', e.target.value)} placeholder="e.g. 6" />
                   </div>
                   <div className="space-y-2">
-                    <Label>Batch</Label>
+                    <Label>Batch *</Label>
                     <Input value={form.batch} onChange={(e) => updateForm('batch', e.target.value)} placeholder="e.g. 2022-2026" />
                   </div>
                   <div className="space-y-2">
@@ -396,11 +408,11 @@ export function StudentRegister() {
                     <Input type="number" step="0.01" min="0" max="10" value={form.cgpa} onChange={(e) => updateForm('cgpa', e.target.value)} placeholder="e.g. 8.5" />
                   </div>
                   <div className="space-y-2">
-                    <Label>10th Percentage</Label>
+                    <Label>10th Percentage *</Label>
                     <Input type="number" step="0.01" min="0" max="100" value={form.tenthPercentage} onChange={(e) => updateForm('tenthPercentage', e.target.value)} placeholder="e.g. 92.5" />
                   </div>
                   <div className="space-y-2">
-                    <Label>12th / Diploma %</Label>
+                    <Label>12th / Diploma % *</Label>
                     <Input type="number" step="0.01" min="0" max="100" value={form.twelfthPercentage} onChange={(e) => updateForm('twelfthPercentage', e.target.value)} placeholder="e.g. 89.5" />
                   </div>
                   <div className="space-y-2">
@@ -419,26 +431,32 @@ export function StudentRegister() {
               </div>
             )}
 
-            {/* Step 3: Placement Preferences */}
+            {/* Step 3: Placement Preferences + Profile Links */}
             {step === 3 && (
               <div className="space-y-4 animate-fade-in-up">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>Preferred Job Role</Label>
+                    <Label>Preferred Job Role *</Label>
                     <Input value={form.preferredRole} onChange={(e) => updateForm('preferredRole', e.target.value)} placeholder="e.g. Software Engineer" />
                   </div>
                   <div className="space-y-2">
-                    <Label>Preferred Domain</Label>
+                    <Label>Preferred Domain *</Label>
                     <Input value={form.preferredDomain} onChange={(e) => updateForm('preferredDomain', e.target.value)} placeholder="e.g. Software Development" />
                   </div>
                   <div className="space-y-2">
-                    <Label>Preferred Work Location</Label>
+                    <Label>Preferred Work Location *</Label>
                     <Input value={form.preferredLocation} onChange={(e) => updateForm('preferredLocation', e.target.value)} placeholder="e.g. Chennai" />
                   </div>
                   <div className="space-y-2">
                     <Label>Interested Technologies</Label>
                     <Input value={form.interestedTechs} onChange={(e) => updateForm('interestedTechs', e.target.value)} placeholder="e.g. React, Node.js" />
                   </div>
+                </div>
+                <Separator />
+                <div className="space-y-2">
+                  <Label>Resume / CV Link *</Label>
+                  <Input value={form.resumeUrl} onChange={(e) => updateForm('resumeUrl', e.target.value)} placeholder="https://drive.google.com/... or any public link" />
+                  <p className="text-xs text-muted-foreground">Paste a public link to your resume (Google Drive, Dropbox, etc.)</p>
                 </div>
               </div>
             )}

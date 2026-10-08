@@ -11,11 +11,14 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
+import { apiPost, apiDelete } from '@/lib/api'
 import {
   User, Mail, Phone, Calendar, MapPin, Award, Briefcase, FileText,
   Github, ExternalLink, Building2, GraduationCap, Save, Pencil,
-  CheckCircle2, ExternalLink as LinkIcon, Code
+  CheckCircle2, ExternalLink as LinkIcon, Code, Link2, Linkedin, Code2, Plus, Trash2, Upload, X
 } from 'lucide-react'
 import type { Student } from '@/lib/types'
 
@@ -40,6 +43,10 @@ export function StudentProfile() {
         tenthPercentage: r.student.tenthPercentage,
         twelfthPercentage: r.student.twelfthPercentage,
         backlogs: r.student.backlogs,
+        linkedinUrl: r.student.linkedinUrl,
+        leetcodeUrl: r.student.leetcodeUrl,
+        githubUrl: r.student.githubUrl,
+        resumeUrl: r.student.resumeUrl,
       })
     }).finally(() => setLoading(false))
   }, [user?.id])
@@ -115,6 +122,7 @@ export function StudentProfile() {
           <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
             <TabsTrigger value="personal">Personal</TabsTrigger>
             <TabsTrigger value="academic">Academic</TabsTrigger>
+            <TabsTrigger value="links">Links</TabsTrigger>
             <TabsTrigger value="certifications">Certs</TabsTrigger>
             <TabsTrigger value="projects">Projects</TabsTrigger>
           </TabsList>
@@ -268,6 +276,74 @@ export function StudentProfile() {
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">Graduation Year</Label>
                   <Input value={student.graduationYear || '—'} disabled />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Links Tab — LinkedIn, LeetCode, GitHub, Resume */}
+          <TabsContent value="links" className="space-y-4 animate-fade-in-up">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Link2 className="h-4 w-4" />
+                  Profile Links & Resume
+                </CardTitle>
+                <CardDescription>{editing ? 'Update your profile links below' : 'Your professional profile links'}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* LinkedIn */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Linkedin className="h-3.5 w-3.5 text-blue-600" /> LinkedIn Profile URL *
+                  </Label>
+                  <Input disabled={!editing} placeholder="https://linkedin.com/in/your-profile"
+                    value={editing ? form.linkedinUrl || '' : student.linkedinUrl || ''}
+                    onChange={(e) => setForm((f: any) => ({ ...f, linkedinUrl: e.target.value }))} />
+                  {!editing && student.linkedinUrl && (
+                    <a href={student.linkedinUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline">
+                      <ExternalLink className="h-3 w-3" /> Visit LinkedIn
+                    </a>)}
+                </div>
+                {/* LeetCode */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Code2 className="h-3.5 w-3.5 text-amber-600" /> LeetCode Profile URL
+                  </Label>
+                  <Input disabled={!editing} placeholder="https://leetcode.com/your-username"
+                    value={editing ? form.leetcodeUrl || '' : student.leetcodeUrl || ''}
+                    onChange={(e) => setForm((f: any) => ({ ...f, leetcodeUrl: e.target.value }))} />
+                  {!editing && student.leetcodeUrl && (
+                    <a href={student.leetcodeUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-amber-600 hover:underline">
+                      <ExternalLink className="h-3 w-3" /> Visit LeetCode
+                    </a>)}
+                </div>
+                {/* GitHub */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Github className="h-3.5 w-3.5" /> GitHub Profile URL
+                  </Label>
+                  <Input disabled={!editing} placeholder="https://github.com/your-username"
+                    value={editing ? form.githubUrl || '' : student.githubUrl || ''}
+                    onChange={(e) => setForm((f: any) => ({ ...f, githubUrl: e.target.value }))} />
+                  {!editing && student.githubUrl && (
+                    <a href={student.githubUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs hover:underline">
+                      <ExternalLink className="h-3 w-3" /> Visit GitHub
+                    </a>)}
+                </div>
+                <Separator />
+                {/* Resume */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <FileText className="h-3.5 w-3.5 text-emerald-600" /> Resume / CV Link *
+                  </Label>
+                  <Input disabled={!editing} placeholder="https://drive.google.com/..."
+                    value={editing ? form.resumeUrl || '' : student.resumeUrl || ''}
+                    onChange={(e) => setForm((f: any) => ({ ...f, resumeUrl: e.target.value }))} />
+                  {!editing && student.resumeUrl ? (
+                    <a href={student.resumeUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+                      <FileText className="h-4 w-4" /> View Resume <ExternalLink className="h-3 w-3" />
+                    </a>) : !editing && <p className="text-sm text-muted-foreground">No resume link provided. Click Edit to add one.</p>}
                 </div>
               </CardContent>
             </Card>

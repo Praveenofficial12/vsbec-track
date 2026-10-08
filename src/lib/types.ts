@@ -125,6 +125,8 @@ export interface Drive {
   eligibleClasses?: string | null
   minCgpa?: number | null
   maxBacklogs?: number | null
+  minTenthPercentage?: number | null
+  minTwelfthPercentage?: number | null
   requiredSkills?: string | null
   preferredSkills?: string | null
   selectionProcess?: string | null
