@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useAppStore } from '@/lib/store'
-import { apiGet, apiPost, formatDate, STATUS_COLORS, getCompanyLogo } from '@/lib/api'
+import { apiGet, apiPost, apiPut, apiDelete, formatDate, STATUS_COLORS, getCompanyLogo } from '@/lib/api'
 import { AdminLayout } from './AdminLayout'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'

@@ -506,10 +506,23 @@ export function StudentCompanies() {
                   </div>
                 )}
 
+                {/* Selection Process — shown as a visual flow matching the rounds */}
                 {selectedDrive.selectionProcess && (
                   <div>
                     <p className="mb-2 text-xs text-muted-foreground">Selection Process</p>
-                    <p className="text-sm">{selectedDrive.selectionProcess}</p>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {(selectedDrive.rounds || []).map((round, idx) => (
+                        <div key={round.id} className="flex items-center gap-1.5">
+                          {idx > 0 && <span className="text-xs text-muted-foreground">→</span>}
+                          <Badge variant="outline" className="text-xs font-medium">
+                            {round.roundName}
+                          </Badge>
+                        </div>
+                      ))}
+                      {(!selectedDrive.rounds || selectedDrive.rounds.length === 0) && (
+                        <p className="text-sm">{selectedDrive.selectionProcess}</p>
+                      )}
+                    </div>
                   </div>
                 )}
 
