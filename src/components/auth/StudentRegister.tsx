@@ -374,8 +374,14 @@ export function StudentRegister() {
                     <Input value={form.department} disabled className="bg-muted/50" />
                   </div>
                   <div className="space-y-2">
-                    <Label>Degree</Label>
-                    <Input value={form.degree} onChange={(e) => updateForm('degree', e.target.value)} />
+                    <Label>Degree *</Label>
+                    <Select value={form.degree} onValueChange={(v) => updateForm('degree', v)}>
+                      <SelectTrigger><SelectValue placeholder="Select degree" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="B.E.">B.E.</SelectItem>
+                        <SelectItem value="B.TECH">B.TECH</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Year *</Label>

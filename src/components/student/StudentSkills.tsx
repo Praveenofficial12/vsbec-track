@@ -5,12 +5,34 @@ import { apiGet, apiPut, csvToArray } from '@/lib/api'
 import { StudentLayout } from './StudentLayout'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { Award, CheckCircle2, X, Star, TrendingUp, Sparkles, Code2 } from 'lucide-react'
+import { Award, CheckCircle2, X, Star, TrendingUp, Sparkles, Code2, Search } from 'lucide-react'
 import type { Student } from '@/lib/types'
 
-const ALL_SKILLS = ['Java', 'Python', 'C', 'C++', 'JavaScript', 'React', 'HTML', 'CSS', 'SQL', 'MongoDB', 'MySQL', 'Machine Learning', 'Artificial Intelligence', 'Data Science', 'Cloud', 'UI/UX', 'Testing', 'Cyber Security']
+const ALL_SKILLS = [
+  // Programming Languages
+  'Java', 'Python', 'C', 'C++', 'C#', 'JavaScript', 'TypeScript', 'Go', 'Rust', 'Kotlin', 'Swift', 'Ruby', 'PHP', 'Scala', 'R', 'MATLAB', 'Dart',
+  // Web Technologies
+  'HTML', 'CSS', 'React', 'Angular', 'Vue.js', 'Next.js', 'Node.js', 'Express.js', 'Django', 'Flask', 'Spring Boot', 'Laravel', 'GraphQL', 'REST API', 'WebSockets',
+  // Mobile
+  'React Native', 'Flutter', 'Android', 'iOS', 'Xamarin',
+  // Databases
+  'SQL', 'MySQL', 'PostgreSQL', 'MongoDB', 'Redis', 'Firebase', 'DynamoDB', 'Oracle', 'Cassandra', 'Elasticsearch',
+  // Cloud & DevOps
+  'AWS', 'Azure', 'Google Cloud', 'Docker', 'Kubernetes', 'Jenkins', 'CI/CD', 'Terraform', 'Ansible', 'Linux', 'Shell Scripting',
+  // AI/ML
+  'Machine Learning', 'Artificial Intelligence', 'Deep Learning', 'NLP', 'Computer Vision', 'TensorFlow', 'PyTorch', 'Keras', 'Scikit-learn', 'Pandas', 'NumPy', 'Data Science', 'Big Data', 'Spark', 'Hadoop',
+  // Testing
+  'Testing', 'Selenium', 'JUnit', 'Cypress', 'Jest', 'Postman',
+  // Design
+  'UI/UX', 'Figma', 'Adobe XD', 'Photoshop',
+  // Other
+  'Cyber Security', 'Blockchain', 'IoT', 'Embedded Systems', 'VLSI', 'Robotics', 'Arduino', 'Raspberry Pi', 'MATLAB Simulink', 'AutoCAD', 'SolidWorks', 'CATIA',
+  // Soft / Methodologies
+  'Agile', 'Scrum', 'Git', 'GitHub', 'GitLab', 'Jira', 'Data Structures', 'Algorithms', 'OOP', 'System Design',
+]
 
 export function StudentSkills() {
   const user = useAppStore((s) => s.user)
@@ -19,6 +41,7 @@ export function StudentSkills() {
   const [skills, setSkills] = useState<string[]>([])
   const [strongSkills, setStrongSkills] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
+  const [skillSearch, setSkillSearch] = useState('')
 
   useEffect(() => {
     if (!user?.id) return
@@ -117,11 +140,21 @@ export function StudentSkills() {
               <Code2 className="h-4 w-4" />
               Select Your Skills
             </CardTitle>
-            <CardDescription>Click to select or deselect skills</CardDescription>
+            <CardDescription>Click to select or deselect skills ({ALL_SKILLS.length} available)</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {ALL_SKILLS.map((skill) => {
+            {/* Search input */}
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search skills..."
+                value={skillSearch}
+                onChange={(e) => setSkillSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2 max-h-80 overflow-y-auto scrollbar-thin p-1">
+              {ALL_SKILLS.filter(s => !skillSearch || s.toLowerCase().includes(skillSearch.toLowerCase())).map((skill) => {
                 const selected = skills.includes(skill)
                 return (
                   <button

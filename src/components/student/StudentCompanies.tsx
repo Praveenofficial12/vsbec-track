@@ -143,6 +143,9 @@ export function StudentCompanies() {
     if (!willAttend) {
       // Confirm before marking as not attending
       if (!confirm('Are you sure you want to mark as "Will Not Attend"? This drive will be closed for you and you cannot participate in it.')) return
+    } else {
+      // Confirm before marking as attending
+      if (!confirm(`Are you sure you want to attend "${drive.driveName}"? You can then track your round progress in this drive.`)) return
     }
     try {
       await apiPost('/api/participations', {
@@ -607,18 +610,26 @@ export function StudentCompanies() {
                       </div>
                     )}
 
-                    {/* Final Result section — only shown if drive is not closed/rejected */}
-                    {myParticipation?.finalResult !== 'REJECTED' && (
-                    <div className="rounded-xl border border-border bg-muted/30 p-4">
+                    {/* Final Result section — locked until ALL rounds are marked */}
+                    {myParticipation?.finalResult !== 'REJECTED' && (() => {
+                      const allRoundsMarked = rounds.length > 0 && rounds.every((r) => {
+                        const status = getRoundStatus(r.id)
+                        return status && status !== 'PENDING'
+                      })
+                      return (
+                    <div className={`rounded-xl border p-4 ${allRoundsMarked ? 'border-border bg-muted/30' : 'border-muted bg-muted/20 opacity-60'}`}>
                       <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
                         <Trophy className="h-4 w-4 text-amber-500" />
                         Final Result
+                        {!allRoundsMarked && <span className="ml-2 text-xs font-normal text-muted-foreground">(Locked — mark all rounds first)</span>}
                       </p>
-                      <p className="mb-3 text-xs text-muted-foreground">
-                        Self-report your final outcome. This is your own declaration — admin will confirm the official status.
-                      </p>
-                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                        {FINAL_RESULT_OPTIONS.map((opt) => (
+                      {allRoundsMarked ? (
+                        <>
+                          <p className="mb-3 text-xs text-muted-foreground">
+                            All rounds completed. Self-report your final outcome below.
+                          </p>
+                          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                            {FINAL_RESULT_OPTIONS.map((opt) => (
                           <Button
                             key={opt.value}
                             type="button"
@@ -636,8 +647,13 @@ export function StudentCompanies() {
                           Current final result: <Badge variant="outline" className={STATUS_COLORS[myParticipation.finalResult] || STATUS_COLORS.PENDING}>{myParticipation.finalResult.replace(/_/g, ' ')} (self-reported)</Badge>
                         </p>
                       )}
+                        </>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Complete all {rounds.length} rounds above to unlock the Final Result section.</p>
+                      )}
                     </div>
-                    )}
+                    )
+                    })()}
                   </div>
                 )}
               </div>

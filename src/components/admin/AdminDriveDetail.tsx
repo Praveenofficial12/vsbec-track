@@ -5,6 +5,8 @@ import { apiGet, apiPut, apiDelete, csvToArray, formatDate, STATUS_COLORS, avata
 import { AdminLayout } from './AdminLayout'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -20,7 +22,7 @@ import { toast } from 'sonner'
 import {
   ArrowLeft, Calendar, Briefcase, MapPin, Users, Building2, Target,
   CheckCircle2, XCircle, Clock, Award, Activity, AlertCircle, ListChecks,
-  Trophy, Loader2, Download, IndianRupee, Trash2, RotateCcw, PartyPopper, Bell,
+  Trophy, Loader2, Download, IndianRupee, Trash2, RotateCcw, PartyPopper, Bell, Save,
 } from 'lucide-react'
 import type { Drive, DriveParticipation, Student } from '@/lib/types'
 
@@ -30,9 +32,11 @@ export function AdminDriveDetail() {
   const [drive, setDrive] = useState<Drive | null>(null)
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState<string | null>(null)
-  const [markingCompleted, setMarkingCompleted] = useState(false)
+  const [markingComplete, setMarkingComplete] = useState(false)
   const [removeTarget, setRemoveTarget] = useState<DriveParticipation | null>(null)
   const [removing, setRemoving] = useState(false)
+  const [editEligibility, setEditEligibility] = useState(false)
+  const [eligForm, setEligForm] = useState({})
 
   const refreshDrive = async () => {
     if (!driveId) return
@@ -258,32 +262,95 @@ export function AdminDriveDetail() {
               </Card>
 
               <Card>
-                <CardHeader><CardTitle className="text-base">Eligibility Criteria</CardTitle></CardHeader>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base">Eligibility Criteria</CardTitle>
+                    <Button variant="outline" size="sm" onClick={() => {
+                      setEditEligibility(!editEligibility)
+                      if (!editEligibility) {
+                        setEligForm({
+                          minCgpa: drive.minCgpa?.toString() || '',
+                          maxBacklogs: drive.maxBacklogs?.toString() || '',
+                          minTenthPercentage: drive.minTenthPercentage?.toString() || '',
+                          minTwelfthPercentage: drive.minTwelfthPercentage?.toString() || '',
+                          eligibleYears: drive.eligibleYears || '',
+                        })
+                      }
+                    }}>
+                      {editEligibility ? 'Cancel' : 'Edit Criteria'}
+                    </Button>
+                  </div>
+                </CardHeader>
                 <CardContent className="space-y-3 text-sm">
-                  <div>
-                    <p className="mb-1 text-xs text-muted-foreground">Eligible Departments</p>
-                    <div className="flex flex-wrap gap-1">
-                      {csvToArray(drive.eligibleDepartments).map(d => <Badge key={d} variant="outline">{d}</Badge>)}
+                  {editEligibility ? (
+                    <div className="space-y-3">
+                      <div>
+                        <Label className="mb-1.5 block text-xs text-muted-foreground">Eligible Years (comma-separated)</Label>
+                        <Input value={eligForm.eligibleYears} onChange={(e) => setEligForm((f: any) => ({ ...f, eligibleYears: e.target.value }))} placeholder="3rd Year,4th Year" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="mb-1.5 block text-xs text-muted-foreground">Min CGPA</Label>
+                          <Input type="number" step="0.01" value={eligForm.minCgpa} onChange={(e) => setEligForm((f: any) => ({ ...f, minCgpa: e.target.value }))} />
+                        </div>
+                        <div>
+                          <Label className="mb-1.5 block text-xs text-muted-foreground">Max Backlogs</Label>
+                          <Input type="number" value={eligForm.maxBacklogs} onChange={(e) => setEligForm((f: any) => ({ ...f, maxBacklogs: e.target.value }))} />
+                        </div>
+                        <div>
+                          <Label className="mb-1.5 block text-xs text-muted-foreground">Min 10th Percentage</Label>
+                          <Input type="number" step="0.01" value={eligForm.minTenthPercentage} onChange={(e) => setEligForm((f: any) => ({ ...f, minTenthPercentage: e.target.value }))} />
+                        </div>
+                        <div>
+                          <Label className="mb-1.5 block text-xs text-muted-foreground">Min 12th Percentage</Label>
+                          <Input type="number" step="0.01" value={eligForm.minTwelfthPercentage} onChange={(e) => setEligForm((f: any) => ({ ...f, minTwelfthPercentage: e.target.value }))} />
+                        </div>
+                      </div>
+                      <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={async () => {
+                        try {
+                          await apiPut(`/api/drives/${driveId}`, {
+                            eligibleYears: eligForm.eligibleYears,
+                            minCgpa: eligForm.minCgpa || undefined,
+                            maxBacklogs: eligForm.maxBacklogs !== '' ? eligForm.maxBacklogs : undefined,
+                            minTenthPercentage: eligForm.minTenthPercentage || undefined,
+                            minTwelfthPercentage: eligForm.minTwelfthPercentage || undefined,
+                          })
+                          toast.success('Eligibility criteria updated!')
+                          setEditEligibility(false)
+                          await refreshDrive()
+                        } catch (e: any) { toast.error(e.message) }
+                      }}>
+                        <Save className="mr-2 h-3.5 w-3.5" /> Save Criteria
+                      </Button>
                     </div>
-                  </div>
-                  <div>
-                    <p className="mb-1 text-xs text-muted-foreground">Required Skills</p>
-                    <div className="flex flex-wrap gap-1">
-                      {csvToArray(drive.requiredSkills).map(s => (
-                        <Badge key={s} variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">{s}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <div className="flex-1 rounded-lg bg-muted/50 p-2 text-center">
-                      <p className="text-xs text-muted-foreground">Min CGPA</p>
-                      <p className="font-semibold">{drive.minCgpa}</p>
-                    </div>
-                    <div className="flex-1 rounded-lg bg-muted/50 p-2 text-center">
-                      <p className="text-xs text-muted-foreground">Max Backlogs</p>
-                      <p className="font-semibold">{drive.maxBacklogs ?? '—'}</p>
-                    </div>
-                  </div>
+                  ) : (
+                    <>
+                      <div>
+                        <p className="mb-1 text-xs text-muted-foreground">Eligible Years</p>
+                        <div className="flex flex-wrap gap-1">
+                          {csvToArray(drive.eligibleYears).map(y => <Badge key={y} variant="outline">{y}</Badge>)}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-lg bg-muted/50 p-2 text-center">
+                          <p className="text-xs text-muted-foreground">Min CGPA</p>
+                          <p className="font-semibold">{drive.minCgpa || '—'}</p>
+                        </div>
+                        <div className="rounded-lg bg-muted/50 p-2 text-center">
+                          <p className="text-xs text-muted-foreground">Max Backlogs</p>
+                          <p className="font-semibold">{drive.maxBacklogs ?? '—'}</p>
+                        </div>
+                        <div className="rounded-lg bg-muted/50 p-2 text-center">
+                          <p className="text-xs text-muted-foreground">Min 10th %</p>
+                          <p className="font-semibold">{drive.minTenthPercentage || '—'}</p>
+                        </div>
+                        <div className="rounded-lg bg-muted/50 p-2 text-center">
+                          <p className="text-xs text-muted-foreground">Min 12th %</p>
+                          <p className="font-semibold">{drive.minTwelfthPercentage || '—'}</p>
+                        </div>
+                      </div>
+                    </>
+                  )}
                   <div>
                     <p className="mb-1 text-xs text-muted-foreground">Selection Process</p>
                     <p className="text-xs">{drive.selectionProcess}</p>
