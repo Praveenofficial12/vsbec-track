@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { EmptyState, CardSkeleton } from '@/components/common/States'
 import {
   Building2, Search, Calendar, Briefcase, MapPin, ExternalLink, CheckCircle2, X,
-  Trophy, Clock, RefreshCw, AlertCircle, ListChecks, Bell,
+  Trophy, Clock, RefreshCw, AlertCircle, ListChecks, Bell, XCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Company, Drive, DriveParticipation, Round, RoundResult, Student } from '@/lib/types'
@@ -140,6 +140,10 @@ export function StudentCompanies() {
   }
 
   const handleAttend = async (drive: Drive, willAttend: boolean) => {
+    if (!willAttend) {
+      // Confirm before marking as not attending
+      if (!confirm('Are you sure you want to mark as "Will Not Attend"? This drive will be closed for you and you cannot participate in it.')) return
+    }
     try {
       await apiPost('/api/participations', {
         studentId: user?.id,
@@ -147,14 +151,20 @@ export function StudentCompanies() {
         attendance: willAttend ? 'ATTENDING' : 'NOT_ATTENDING',
         action: 'STUDENT_CONFIRM',
       })
-      toast.success(willAttend ? 'Marked as attending! Track your rounds below.' : 'Marked as not attending')
-      // Refresh participation state
-      const r = await apiGet<{ participations: DriveParticipation[] }>(
-        `/api/participations?studentId=${user?.id}&driveId=${drive.id}`
-      )
-      const p = r.participations?.[0] || null
-      setMyParticipation(p)
-      setRoundResults(p?.roundResults || [])
+      if (willAttend) {
+        toast.success('Marked as attending! Track your rounds below.')
+        // Refresh participation state
+        const r = await apiGet<{ participations: DriveParticipation[] }>(
+          `/api/participations?studentId=${user?.id}&driveId=${drive.id}`
+        )
+        const p = r.participations?.[0] || null
+        setMyParticipation(p)
+        setRoundResults(p?.roundResults || [])
+      } else {
+        toast.success('Marked as not attending. The drive is now closed for you.')
+        // Close the dialog — drive is blocked for this user
+        setSelectedDrive(null)
+      }
       // Refresh student data
       if (user?.id) {
         const sr = await apiGet<{ student: Student }>(`/api/students/${user.id}`)
@@ -167,6 +177,18 @@ export function StudentCompanies() {
 
   const handleRoundStatusChange = async (round: Round, newStatus: string) => {
     if (!myParticipation) return
+
+    // If marking as NOT_CLEARED or ABSENT, show confirmation popup
+    if (newStatus === 'NOT_CLEARED' || newStatus === 'ABSENT') {
+      const confirmed = window.confirm(
+        `You have not cleared the ${round.roundName} process.\n\n` +
+        `This will mark the entire drive as "Not Cleared" and close it for you. ` +
+        `You will be redirected to My Drives page.\n\n` +
+        `Do you want to proceed?`
+      )
+      if (!confirmed) return
+    }
+
     setUpdatingRound(round.id)
     try {
       await apiPut('/api/participations', {
@@ -175,7 +197,19 @@ export function StudentCompanies() {
         status: newStatus,
         source: 'STUDENT',
       })
-      toast.success(`Round "${round.roundName}" updated to ${newStatus.replace(/_/g, ' ')}`)
+
+      if (newStatus === 'NOT_CLEARED' || newStatus === 'ABSENT') {
+        // Drive is closed — show message and redirect to My Drives
+        toast.success('You have not cleared the process. The drive is now closed for you.')
+        setSelectedDrive(null)
+        // Redirect to My Drives page
+        setTimeout(() => {
+          useAppStore.getState().setView('student-drives')
+        }, 500)
+      } else {
+        toast.success(`Round "${round.roundName}" updated to ${newStatus.replace(/_/g, ' ')}`)
+      }
+
       // Refresh participation + student
       const r = await apiGet<{ participations: DriveParticipation[] }>(
         `/api/participations?studentId=${user?.id}&driveId=${selectedDrive?.id}`
@@ -285,16 +319,24 @@ export function StudentCompanies() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filteredDrives.map((drive) => {
               const eligible = isEligible(drive)
-              const alreadyParticipated = student?.participations?.some(p => p.driveId === drive.id)
+              const participation = student?.participations?.find(p => p.driveId === drive.id)
+              const alreadyParticipated = !!participation
+              // Block drive if student marked NOT_ATTENDING, REJECTED, or WITHDRAWN
+              const driveBlocked = participation && ['NOT_ATTENDING', 'REJECTED', 'WITHDRAWN'].includes(participation.attendance)
+              const canOpen = eligible && !driveBlocked
               return (
                 <Card
                   key={drive.id}
                   className={`group overflow-hidden border-border transition-all ${
-                    eligible
+                    canOpen
                       ? 'cursor-pointer hover:-translate-y-1 hover:border-emerald-300 hover:shadow-soft-lg dark:hover:border-emerald-800'
                       : 'cursor-not-allowed opacity-75'
                   }`}
                   onClick={() => {
+                    if (driveBlocked) {
+                      toast.error('This drive is closed for you. You marked it as not attending or not cleared.')
+                      return
+                    }
                     if (!eligible) {
                       toast.error('You are not eligible for this drive. Please check the eligibility criteria.')
                       return
@@ -340,7 +382,12 @@ export function StudentCompanies() {
                           <X className="mr-1 h-3 w-3" /> Not Eligible
                         </Badge>
                       )}
-                      {alreadyParticipated && (
+                      {driveBlocked && (
+                        <Badge variant="outline" className="border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-900/30 dark:text-rose-300">
+                          <XCircle className="mr-1 h-3 w-3" /> Closed
+                        </Badge>
+                      )}
+                      {alreadyParticipated && !driveBlocked && (
                         <Badge variant="secondary">Applied</Badge>
                       )}
                     </div>
