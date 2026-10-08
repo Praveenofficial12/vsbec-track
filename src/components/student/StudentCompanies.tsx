@@ -122,10 +122,20 @@ export function StudentCompanies() {
 
   const isEligible = (drive: Drive) => {
     if (!student) return false
-    const depts = (drive.eligibleDepartments || '').split(',').map(s => s.trim())
+    // Check eligible years (required)
+    const years = (drive.eligibleYears || '').split(',').map(s => s.trim()).filter(Boolean)
+    if (years.length > 0 && !years.includes(student.year || '')) return false
+    // Check eligible departments (optional — if empty, all departments are eligible)
+    const depts = (drive.eligibleDepartments || '').split(',').map(s => s.trim()).filter(Boolean)
     if (depts.length > 0 && !depts.includes(student.department || '')) return false
-    if (drive.minCgpa && (student.cgpa || 0) < drive.minCgpa) return false
+    // Check min CGPA (only if student has CGPA data)
+    if (drive.minCgpa && student.cgpa !== null && student.cgpa !== undefined && (student.cgpa || 0) < drive.minCgpa) return false
+    // Check max backlogs
     if (drive.maxBacklogs !== null && drive.maxBacklogs !== undefined && (student.backlogs || 0) > drive.maxBacklogs) return false
+    // Check min 10th percentage (only if student has the data)
+    if (drive.minTenthPercentage && student.tenthPercentage !== null && student.tenthPercentage !== undefined && (student.tenthPercentage || 0) < drive.minTenthPercentage) return false
+    // Check min 12th percentage (only if student has the data)
+    if (drive.minTwelfthPercentage && student.twelfthPercentage !== null && student.twelfthPercentage !== undefined && (student.twelfthPercentage || 0) < drive.minTwelfthPercentage) return false
     return true
   }
 

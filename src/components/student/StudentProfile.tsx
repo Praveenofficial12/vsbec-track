@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
@@ -42,15 +43,21 @@ export function StudentProfile() {
     apiGet<{ student: Student }>(`/api/students/${user.id}`).then((r) => {
       setStudent(r.student)
       setForm({
+        fullName: r.student.fullName,
         personalEmail: r.student.personalEmail,
         mobile: r.student.mobile,
+        dateOfBirth: r.student.dateOfBirth,
+        gender: r.student.gender,
         preferredRole: r.student.preferredRole,
         preferredDomain: r.student.preferredDomain,
         preferredLocation: r.student.preferredLocation,
+        interestedTechs: r.student.interestedTechs,
         cgpa: r.student.cgpa,
         tenthPercentage: r.student.tenthPercentage,
         twelfthPercentage: r.student.twelfthPercentage,
         backlogs: r.student.backlogs,
+        historyOfArrears: r.student.historyOfArrears,
+        semester: r.student.semester,
         linkedinUrl: r.student.linkedinUrl,
         leetcodeUrl: r.student.leetcodeUrl,
         githubUrl: r.student.githubUrl,
@@ -144,7 +151,8 @@ export function StudentProfile() {
               <CardContent className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">Full Name</Label>
-                  <Input value={student.fullName} disabled />
+                  <Input disabled={!editing} value={editing ? form.fullName || '' : student.fullName}
+                    onChange={(e) => setForm((f: any) => ({ ...f, fullName: e.target.value }))} />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">Register Number</Label>
@@ -156,27 +164,31 @@ export function StudentProfile() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">Personal Email</Label>
-                  <Input
-                    disabled={!editing}
-                    value={editing ? form.personalEmail || '' : student.personalEmail || ''}
-                    onChange={(e) => setForm((f: any) => ({ ...f, personalEmail: e.target.value }))}
-                  />
+                  <Input disabled={!editing} value={editing ? form.personalEmail || '' : student.personalEmail || ''}
+                    onChange={(e) => setForm((f: any) => ({ ...f, personalEmail: e.target.value }))} />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">Mobile Number</Label>
-                  <Input
-                    disabled={!editing}
-                    value={editing ? form.mobile || '' : student.mobile || ''}
-                    onChange={(e) => setForm((f: any) => ({ ...f, mobile: e.target.value }))}
-                  />
+                  <Input disabled={!editing} value={editing ? form.mobile || '' : student.mobile || ''}
+                    onChange={(e) => setForm((f: any) => ({ ...f, mobile: e.target.value }))} />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">Date of Birth</Label>
-                  <Input value={formatDate(student.dateOfBirth)} disabled />
+                  <Input disabled={!editing} type="date" value={editing ? (form.dateOfBirth || '') : (student.dateOfBirth || '')}
+                    onChange={(e) => setForm((f: any) => ({ ...f, dateOfBirth: e.target.value }))} />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">Gender</Label>
-                  <Input value={student.gender || '—'} disabled />
+                  {editing ? (
+                    <Select value={form.gender || ''} onValueChange={(v) => setForm((f: any) => ({ ...f, gender: v }))}>
+                      <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Male">Male</SelectItem>
+                        <SelectItem value="Female">Female</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : <Input value={student.gender || '—'} disabled />}
                 </div>
               </CardContent>
             </Card>
@@ -212,7 +224,8 @@ export function StudentProfile() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">Interested Technologies</Label>
-                  <Input value={student.interestedTechs || '—'} disabled />
+                  <Input disabled={!editing} value={editing ? form.interestedTechs || '' : student.interestedTechs || ''}
+                    onChange={(e) => setForm((f: any) => ({ ...f, interestedTechs: e.target.value }))} placeholder="e.g. React, Node.js" />
                 </div>
               </CardContent>
             </Card>
@@ -231,7 +244,8 @@ export function StudentProfile() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">Degree</Label>
-                  <Input value={student.degree || '—'} disabled />
+                  <Input disabled={!editing} value={editing ? form.degree || '' : student.degree || '—'}
+                    onChange={(e) => setForm((f: any) => ({ ...f, degree: e.target.value }))} />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">Year</Label>
@@ -243,46 +257,43 @@ export function StudentProfile() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">Semester</Label>
-                  <Input value={student.semester || '—'} disabled />
+                  <Input disabled={!editing} type="number" value={editing ? form.semester || '' : student.semester || '—'}
+                    onChange={(e) => setForm((f: any) => ({ ...f, semester: e.target.value }))} />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">Batch</Label>
-                  <Input value={student.batch || '—'} disabled />
+                  <Input disabled={!editing} value={editing ? form.batch || '' : student.batch || '—'}
+                    onChange={(e) => setForm((f: any) => ({ ...f, batch: e.target.value }))} />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">CGPA</Label>
-                  <Input
-                    disabled={!editing}
-                    type="number"
-                    step="0.01"
-                    value={editing ? form.cgpa || '' : student.cgpa || ''}
-                    onChange={(e) => setForm((f: any) => ({ ...f, cgpa: e.target.value }))}
-                  />
+                  <Input disabled={!editing} type="number" step="0.01" value={editing ? form.cgpa || '' : student.cgpa || ''}
+                    onChange={(e) => setForm((f: any) => ({ ...f, cgpa: e.target.value }))} />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">Backlogs</Label>
-                  <Input
-                    disabled={!editing}
-                    type="number"
-                    value={editing ? form.backlogs ?? 0 : student.backlogs}
-                    onChange={(e) => setForm((f: any) => ({ ...f, backlogs: e.target.value }))}
-                  />
+                  <Input disabled={!editing} type="number" value={editing ? form.backlogs ?? 0 : student.backlogs}
+                    onChange={(e) => setForm((f: any) => ({ ...f, backlogs: e.target.value }))} />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">10th Percentage</Label>
-                  <Input value={student.tenthPercentage ? `${student.tenthPercentage}%` : '—'} disabled />
+                  <Input disabled={!editing} type="number" step="0.01" value={editing ? form.tenthPercentage || '' : (student.tenthPercentage || '')}
+                    onChange={(e) => setForm((f: any) => ({ ...f, tenthPercentage: e.target.value }))} />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">12th Percentage</Label>
-                  <Input value={student.twelfthPercentage ? `${student.twelfthPercentage}%` : '—'} disabled />
+                  <Input disabled={!editing} type="number" step="0.01" value={editing ? form.twelfthPercentage || '' : (student.twelfthPercentage || '')}
+                    onChange={(e) => setForm((f: any) => ({ ...f, twelfthPercentage: e.target.value }))} />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">History of Arrears</Label>
-                  <Input value={student.historyOfArrears} disabled />
+                  <Input disabled={!editing} type="number" value={editing ? form.historyOfArrears ?? 0 : student.historyOfArrears}
+                    onChange={(e) => setForm((f: any) => ({ ...f, historyOfArrears: e.target.value }))} />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">Graduation Year</Label>
-                  <Input value={student.graduationYear || '—'} disabled />
+                  <Input disabled={!editing} value={editing ? form.graduationYear || '' : student.graduationYear || '—'}
+                    onChange={(e) => setForm((f: any) => ({ ...f, graduationYear: e.target.value }))} />
                 </div>
               </CardContent>
             </Card>
