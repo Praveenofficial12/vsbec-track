@@ -1,12 +1,13 @@
 'use client'
 import { StudentLayout } from './StudentLayout'
+import { useAppStore } from '@/lib/store'
+import { apiDelete } from '@/lib/api'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
-import { useAppStore } from '@/lib/store'
 import { Badge } from '@/components/ui/badge'
 import { User, Bell, Shield, Palette, Globe, Key, Save, LogOut } from 'lucide-react'
 import { toast } from 'sonner'
@@ -15,8 +16,13 @@ export function StudentSettings() {
   const user = useAppStore((s) => s.user)
   const logout = useAppStore((s) => s.logout)
   const setView = useAppStore((s) => s.setView)
+  const sessionToken = useAppStore((s) => s.sessionToken)
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Drop this tab's session row so the same user can log in elsewhere.
+    if (sessionToken) {
+      apiDelete(`/api/auth/session?token=${encodeURIComponent(sessionToken)}`).catch(() => {})
+    }
     logout()
     setView('landing')
   }

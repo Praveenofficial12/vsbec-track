@@ -131,7 +131,7 @@ export interface Drive {
   preferredSkills?: string | null
   selectionProcess?: string | null
   announcement?: string | null
-  status: 'UPCOMING' | 'REGISTRATION_OPEN' | 'ONGOING' | 'COMPLETED' | 'CANCELLED'
+  status: 'UPCOMING' | 'REGISTRATION_OPEN' | 'ONGOING' | 'SELECTED' | 'COMPLETED' | 'CANCELLED'
   createdAt: string
   updatedAt: string
   company?: Company

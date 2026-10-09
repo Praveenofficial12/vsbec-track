@@ -283,3 +283,21 @@ model UserActivityLog {
   @@index([action])
   @@index([timestamp])
 }
+
+// Active login sessions — one row per logged-in browser tab/window.
+// The client sends a heartbeat every ~10 seconds; each heartbeat updates
+// `lastSeen`. When a login attempt arrives, any existing session for the
+// same userKey with a fresh heartbeat (< 30s ago) blocks the new login
+// with HTTP 409 "already logged in elsewhere". Stale sessions (no heartbeat
+// for > 30s) are treated as expired and the new login is allowed.
+model SessionTracker {
+  id         String   @id @default(cuid())
+  userKey    String   // STUDENT:<registerNumber> | ADMIN:<email>
+  userType   String   // STUDENT | ADMIN
+  token      String   @unique // per-tab session token (UUID)
+  createdAt  DateTime @default(now())
+  lastSeen   DateTime @default(now())
+
+  @@index([userKey])
+  @@index([lastSeen])
+}

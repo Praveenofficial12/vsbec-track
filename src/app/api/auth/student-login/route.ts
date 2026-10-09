@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { randomUUID } from 'crypto'
 import { db } from '@/lib/db'
 import { validateDepartmentPassword } from '@/lib/department-auth'
 import { logUserActivity, getClientIp, getUserAgent } from '@/lib/activity'
+
+// How long a session is considered "active" without a heartbeat.
+// The client heartbeats every ~10s, so 30s gives us plenty of margin
+// (a tab that crashed or was closed will have its session auto-expire
+// after 30s and the same user can log in elsewhere).
+const SESSION_TTL_MS = 30 * 1000
 
 // POST: Student login
 export async function POST(req: NextRequest) {
@@ -66,6 +73,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid password' }, { status: 401 })
     }
 
+    // Single-session enforcement: if there's already a live session for this
+    // student (a heartbeat within the last 30s), block this login. The user
+    // must logout from the other window first.
+    const userKey = `STUDENT:${student.registerNumber}`
+    const now = Date.now()
+    const existing = await db.sessionTracker.findMany({
+      where: { userKey, lastSeen: { gt: new Date(now - SESSION_TTL_MS) } },
+      select: { token: true },
+    })
+    if (existing.length > 0) {
+      await logUserActivity({
+        userId: student.registerNumber,
+        userType: 'STUDENT',
+        action: 'LOGIN_FAILED',
+        detail: 'Already logged in on another window',
+        ipAddress: getClientIp(req),
+        userAgent: getUserAgent(req),
+      })
+      return NextResponse.json(
+        { error: 'This user is logged in on another window. Please log out there and then try again.' },
+        { status: 409 }
+      )
+    }
+
+    // Create a fresh session token for this tab.
+    const token = randomUUID()
+    await db.sessionTracker.create({
+      data: { userKey, userType: 'STUDENT', token },
+    })
+
     await logUserActivity({
       userId: student.registerNumber,
       userType: 'STUDENT',
@@ -85,6 +122,7 @@ export async function POST(req: NextRequest) {
         role: 'STUDENT',
         department: student.department,
       },
+      sessionToken: token,
     })
   } catch (error) {
     console.error('Student login error:', error)

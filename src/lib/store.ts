@@ -6,7 +6,12 @@ import type { SessionUser, ViewKey } from './types'
 interface AppState {
   // Session
   user: SessionUser | null
-  setUser: (user: SessionUser | null) => void
+  // Per-tab session token used for single-session enforcement. A fresh
+  // UUID is issued by the login endpoint and the client heartbeats it to
+  // /api/auth/session every ~10s. If another tab logs in with the same
+  // userKey, this token becomes invalid and the client is forced out.
+  sessionToken: string | null
+  setUser: (user: SessionUser | null, sessionToken?: string | null) => void
   logout: () => void
 
   // View navigation
@@ -28,8 +33,12 @@ export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
       user: null,
-      setUser: (user) => set({ user }),
-      logout: () => set({ user: null, view: 'landing', selectedStudentId: null, selectedCompanyId: null, selectedDriveId: null }),
+      sessionToken: null,
+      setUser: (user, sessionToken) => set({
+        user,
+        sessionToken: sessionToken !== undefined ? sessionToken : get().sessionToken,
+      }),
+      logout: () => set({ user: null, sessionToken: null, view: 'landing', selectedStudentId: null, selectedCompanyId: null, selectedDriveId: null }),
 
       view: 'landing',
       setView: (view) => {
@@ -57,7 +66,8 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'vsbec-placement-store',
-      partialize: (state) => ({ user: state.user, view: state.view, theme: state.theme }),
+      partialize: (state) => ({ user: state.user, sessionToken: state.sessionToken, view: state.view, theme: state.theme }),
     }
   )
 )
+

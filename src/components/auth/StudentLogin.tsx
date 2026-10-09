@@ -28,12 +28,17 @@ export function StudentLogin() {
     try {
       const res = await apiPost('/api/auth/student-login', { registerNumber, password })
       if (res.success) {
-        setUser(res.user)
+        // Persist the per-tab session token alongside the user so the
+        // heartbeat hook can keep the session alive.
+        setUser(res.user, res.sessionToken)
         toast.success(`Welcome, ${res.user.name}!`)
         setView('student-dashboard')
       }
     } catch (err: any) {
-      toast.error(err.message || 'Login failed')
+      // 409 = single-session block: this student is already logged in on
+      // another window. The backend returns a clear message we surface
+      // verbatim in the toast/popup.
+      toast.error(err.message || 'Login failed', { duration: 8000 })
     } finally {
       setLoading(false)
     }

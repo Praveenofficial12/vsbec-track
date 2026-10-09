@@ -2,6 +2,7 @@
 import { useEffect, useRef } from 'react'
 import { useAppStore } from '@/lib/store'
 import { apiPost } from '@/lib/api'
+import { useSessionHeartbeat } from '@/hooks/use-session-heartbeat'
 import { LandingPage } from '@/components/landing/LandingPage'
 import { AdminLogin } from '@/components/auth/AdminLogin'
 import { StudentLogin } from '@/components/auth/StudentLogin'
@@ -46,6 +47,12 @@ export default function Home() {
   const user = useAppStore((s) => s.user)
   const setView = useAppStore((s) => s.setView)
   const lastLoggedView = useRef<string | null>(null)
+
+  // Single-session enforcement: while the user is logged in, this hook sends
+  // a heartbeat every 10s. If another tab logs in with the same userKey,
+  // this tab is force-logged-out with the popup "This user is logged in on
+  // another window. Please log out there and then try again."
+  useSessionHeartbeat()
 
   // Apply theme on mount
   useEffect(() => {

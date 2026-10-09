@@ -28,12 +28,14 @@ export function AdminLogin() {
     try {
       const res = await apiPost('/api/auth/admin-login', { email, password })
       if (res.success) {
-        setUser(res.user)
+        setUser(res.user, res.sessionToken)
         toast.success(`Welcome back, ${res.user.name}!`)
         setView('admin-dashboard')
       }
     } catch (err: any) {
-      toast.error(err.message || 'Login failed')
+      // 409 = single-session block: this admin is already logged in on
+      // another window.
+      toast.error(err.message || 'Login failed', { duration: 8000 })
     } finally {
       setLoading(false)
     }

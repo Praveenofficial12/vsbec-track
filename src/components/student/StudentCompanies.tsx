@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { EmptyState, CardSkeleton } from '@/components/common/States'
 import {
   Building2, Search, Calendar, Briefcase, MapPin, ExternalLink, CheckCircle2, X,
-  Trophy, Clock, RefreshCw, AlertCircle, ListChecks, Bell, XCircle,
+  Trophy, Clock, RefreshCw, AlertCircle, ListChecks, Bell, XCircle, Lock,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Company, Drive, DriveParticipation, Round, RoundResult, Student } from '@/lib/types'
@@ -351,8 +351,12 @@ export function StudentCompanies() {
               const eligible = isEligible(drive)
               const participation = student?.participations?.find(p => p.driveId === drive.id)
               const alreadyParticipated = !!participation
-              // Block drive if student marked NOT_ATTENDING, REJECTED, or WITHDRAWN
-              const driveBlocked = participation && ['NOT_ATTENDING', 'REJECTED', 'WITHDRAWN', 'SELECTED'].includes(participation.attendance)
+              // Block drive ONLY if the student explicitly opted out or was
+              // rejected/withdrawn. A SELECTED student can still open the
+              // drive (their final result is locked, but the drive card is
+              // NOT marked "Closed" and the "closed" popup is NOT shown).
+              const driveBlocked = participation && ['NOT_ATTENDING', 'REJECTED', 'WITHDRAWN'].includes(participation.attendance)
+              const isSelectedStudent = participation?.finalResult === 'SELECTED'
               const canOpen = eligible && !driveBlocked
               return (
                 <Card
@@ -429,7 +433,12 @@ export function StudentCompanies() {
                           <XCircle className="mr-1 h-3 w-3" /> Closed
                         </Badge>
                       )}
-                      {alreadyParticipated && !driveBlocked && (
+                      {isSelectedStudent && (
+                        <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                          <CheckCircle2 className="mr-1 h-3 w-3" /> Selected
+                        </Badge>
+                      )}
+                      {alreadyParticipated && !driveBlocked && !isSelectedStudent && (
                         <Badge variant="secondary">Applied</Badge>
                       )}
                     </div>
@@ -662,20 +671,40 @@ export function StudentCompanies() {
                       </div>
                     )}
 
-                    {/* Final Result section — locked until ALL rounds are marked */}
+                    {/* Final Result section — locked until ALL rounds are marked.
+                        If the student is already SELECTED, the final result is
+                        locked (it can only be unlocked by admin). */}
                     {myParticipation?.finalResult !== 'REJECTED' && (() => {
                       const allRoundsMarked = rounds.length > 0 && rounds.every((r) => {
                         const status = getRoundStatus(r.id)
                         return status && status !== 'PENDING'
                       })
+                      const finalLocked = myParticipation?.finalResult === 'SELECTED'
                       return (
-                    <div className={`rounded-xl border p-4 ${allRoundsMarked ? 'border-border bg-muted/30' : 'border-muted bg-muted/20 opacity-60'}`}>
+                    <div className={`rounded-xl border p-4 ${
+                      finalLocked ? 'border-emerald-300 bg-emerald-50/50 dark:border-emerald-700 dark:bg-emerald-900/10' :
+                      allRoundsMarked ? 'border-border bg-muted/30' : 'border-muted bg-muted/20 opacity-60'
+                    }`}>
                       <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
                         <Trophy className="h-4 w-4 text-amber-500" />
                         Final Result
-                        {!allRoundsMarked && <span className="ml-2 text-xs font-normal text-muted-foreground">(Locked — mark all rounds first)</span>}
+                        {finalLocked && <Badge variant="outline" className="ml-2 border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"><Lock className="mr-1 h-3 w-3" />Locked</Badge>}
+                        {!finalLocked && !allRoundsMarked && <span className="ml-2 text-xs font-normal text-muted-foreground">(Locked — mark all rounds first)</span>}
                       </p>
-                      {allRoundsMarked ? (
+                      {finalLocked ? (
+                        <div className="space-y-2">
+                          <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                            You have been marked as <strong>SELECTED</strong> for this drive. Your final result is locked — contact the placement office if you need it changed.
+                          </p>
+                          {myParticipation.ctc && (
+                            <div className="flex flex-wrap gap-3 text-xs">
+                              <span><strong className="text-foreground">Job Role:</strong> {myParticipation.jobRole || selectedDrive?.jobRole || '—'}</span>
+                              <span><strong className="text-foreground">CTC:</strong> {myParticipation.ctc}</span>
+                              <span><strong className="text-foreground">Joining:</strong> {myParticipation.joiningLocation || selectedDrive?.location || '—'}</span>
+                            </div>
+                          )}
+                        </div>
+                      ) : allRoundsMarked ? (
                         <>
                           <p className="mb-3 text-xs text-muted-foreground">
                             All rounds completed. Self-report your final outcome below.

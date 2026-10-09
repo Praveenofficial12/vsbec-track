@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useAppStore } from '@/lib/store'
+import { apiDelete } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -29,9 +30,14 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const view = useAppStore((s) => s.view)
   const setView = useAppStore((s) => s.setView)
   const logout = useAppStore((s) => s.logout)
+  const sessionToken = useAppStore((s) => s.sessionToken)
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Drop this tab's session row so the same admin can log in elsewhere.
+    if (sessionToken) {
+      apiDelete(`/api/auth/session?token=${encodeURIComponent(sessionToken)}`).catch(() => {})
+    }
     logout()
     setView('landing')
   }
