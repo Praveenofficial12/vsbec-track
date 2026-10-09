@@ -200,3 +200,52 @@ Stage Summary:
   3. Full website: lint clean, no console errors, all core flows browser-verified end-to-end.
   4. Student removal protection: no Delete button anywhere in the UI; DELETE /api/students/[id] returns HTTP 403; staff must remove students directly from the database. The bulk "Erase all data" academic-year tool is preserved.
 - Files touched: src/lib/college.ts, src/components/landing/LandingPage.tsx, src/components/admin/AdminDriveDetail.tsx, src/components/admin/AdminStudents.tsx, src/app/api/students/[id]/route.ts.
+
+---
+Task ID: 12
+Agent: Main (Orchestrator)
+Task: When a student is marked SELECTED in the final result, close/lock the Final Results area AND mark the drive itself as "SELECTED" (a new drive status). The drive must NOT be closed (not COMPLETED) — only the dedicated "Mark as Completed" action can close it. Also reaffirm that registered students cannot be removed from the website.
+
+Work Log:
+- Added a new drive status value `SELECTED` to the Prisma schema comment (status is a free-form String so no migration was needed — `bun run db:push` confirmed the database is already in sync). Documented the semantics: "SELECTED" = at least one student has been marked SELECTED in the final result; the drive is NOT closed.
+- Updated `src/lib/api.ts` STATUS_COLORS: the shared `SELECTED` key now uses an emerald palette with a slightly stronger border so it reads as a positive "selected" state in both drive-status and participation-attendance contexts.
+- Updated `src/app/api/participations/route.ts` PUT endpoint:
+  * When `finalResult === 'SELECTED'`, the parent Drive's status is now promoted to `'SELECTED'` (only if it isn't already COMPLETED/CANCELLED — we never downgrade a closed drive).
+  * Added the inverse path: when a previously-selected student's result is changed away from SELECTED (e.g. via "Unlock & Remove" → REJECTED), the API counts how many other students in the drive are still SELECTED. If zero remain, the drive status is demoted from `SELECTED` back to `ONGOING` so the Final Results area re-opens for editing.
+- Updated `src/components/admin/AdminDriveDetail.tsx`:
+  * Added an `isSelected` flag (`drive.status === 'SELECTED'`).
+  * Added a new emerald banner under the header (visible only when `isSelected`): "N student(s) selected — final results are locked. The drive remains open for the remaining students. Use Mark as Completed to formally close it." with a trophy icon.
+  * Added a "Final Results area is locked" lock-banner at the top of the Final Results tab when `isSelected`, explaining the result is locked and the drive is marked SELECTED, and pointing to the Unlock & Remove button / Mark as Completed button.
+  * The Final Results dropdowns are now disabled when `isSelected` (whole area locked) OR when the individual student is already SELECTED (per-row lock). A "Locked" badge appears next to already-selected students.
+  * Updated the confirmation popup copy, celebration popup copy, and toast messages to reflect that the drive is marked SELECTED (not just the participation).
+  * Updated `handleRemoveSelected` toast: "removed from selected list — final results area re-opened".
+- Updated `src/components/admin/AdminDrives.tsx`: added a "Selected" tab to the status filter TabsList so admins can filter drives that are in the SELECTED state.
+- Updated `src/components/student/StudentDashboard.tsx`: the active-drives filter now includes `'SELECTED'` so students still see drives where someone has been selected (the drive is not closed).
+- Updated `src/components/student/StudentCompanies.tsx`:
+  * Added "Selected" as a filter option in the status dropdown.
+  * Updated the student self-mark confirmation messages: SELECTED no longer says "This will close the drive" — it now says "The drive will be marked as SELECTED (final results locked) but stays open for other students."
+  * Updated the post-action toast to distinguish SELECTED ("drive is marked as SELECTED — your result is locked") from REJECTED ("your participation is closed").
+- Reaffirmed the registered-student protection from Task 11: no delete button anywhere in the UI; `DELETE /api/students/[id]` still returns HTTP 403. No changes were needed here — just verified it still holds.
+- Lint passes clean (0 errors, 0 warnings). `bun run db:push` confirms schema is in sync.
+- End-to-end browser verification with agent-browser:
+  * API smoke test: PUT /api/participations with finalResult=SELECTED → drive.status changed from UPCOMING to SELECTED (NOT COMPLETED). Verified via /api/drives/<id>.
+  * API smoke test: PUT /api/participations with finalResult=REJECTED (unlock & remove) → drive.status demoted from SELECTED back to ONGOING (since no selected students remained). Verified via /api/drives/<id>.
+  * Admin Drives list: new "Selected" tab filter appears between Ongoing and Completed; the TCS drive shows a green "SELECTED" badge with "1 participants".
+  * Drive Detail header: green "SELECTED" badge + emerald banner "1 student selected — final results are locked. The drive remains open for the remaining students. Use Mark as Completed to formally close it." + "Mark as Completed" button still visible (drive NOT closed). VLM-verified via screenshot.
+  * Final Results tab: green "Final Results area is locked" lock-banner present; the student's dropdown is disabled showing "Selected"; a "Locked" badge appears next to it. VLM-verified via screenshot.
+  * Selected Students tab: shows the 1 selected student with Job Role, CTC, Joining Date, Export CSV button, summary cards (Selected: 1, CTC per student: 7 LPA, Total CTC value: ₹7.0 LPA).
+  * Clicked "Mark as Completed" → drive.status changed to COMPLETED, button changed to "Reopen Drive", completed banner with party popper appeared ("This drive is completed — 1 student selected, 0 not selected."). Verified via API + VLM screenshot.
+  * Clicked "Reopen Drive" → drive.status changed back to ONGOING, button changed back to "Mark as Completed". Verified via API.
+  * Landing page: all 6 campus images load (Main Building 3840x2530, Main Gate 1156x867, Campus Block 1728x972, Campus Life 2000x1500, Academic Block 1000x1000, Campus View 1498x1000) + CTA background (1920x800). No console errors.
+  * Student records remain protected: DELETE /api/students/<id> still returns HTTP 403.
+- Cleaned up the temporary test participation created during verification (and reset the drive status back to UPCOMING and the test student's placementStatus back to UNPLACED) so the database returns to its original clean state.
+
+Stage Summary:
+- New drive status `SELECTED` is now fully wired end-to-end:
+  * Backend: `PUT /api/participations` promotes drive status to SELECTED on finalResult=SELECTED; demotes back to ONGOING when the last selected student is unlocked/removed (and the drive isn't already COMPLETED).
+  * Admin UI: AdminDriveDetail shows a SELECTED badge, an emerald "N students selected — final results locked" header banner, a "Final Results area is locked" lock-banner on the Final Results tab, and disables all Final Results dropdowns. The "Mark as Completed" button remains available to formally close the drive. AdminDrives list has a new "Selected" tab filter.
+  * Student UI: StudentDashboard still surfaces SELECTED drives as active; StudentCompanies adds "Selected" to the status filter and updates the self-mark confirmation/toast messages to reflect that the drive is marked SELECTED (not closed).
+- The drive is NEVER auto-closed when a student is marked SELECTED. Only the explicit "Mark as Completed" action sets the status to COMPLETED.
+- Registered students still cannot be removed from the website UI (DELETE returns 403; no delete button anywhere).
+- Files touched: prisma/schema.prisma (comment only), src/lib/api.ts, src/app/api/participations/route.ts, src/components/admin/AdminDriveDetail.tsx, src/components/admin/AdminDrives.tsx, src/components/student/StudentDashboard.tsx, src/components/student/StudentCompanies.tsx.
+- Lint clean; no runtime errors; all API calls return 200.

@@ -32,9 +32,11 @@ export function StudentDashboard() {
       apiGet<{ drives: Drive[] }>('/api/drives'),
     ]).then(([sRes, dRes]) => {
       setStudent(sRes.student)
-      // Show drives that are upcoming, registration open, or ongoing (not completed/cancelled)
+      // Show drives that are upcoming, registration open, ongoing, or selected
+      // (a "SELECTED" drive has at least one student selected but is NOT closed —
+      // other students can still participate). Exclude COMPLETED/CANCELLED.
       const activeDrives = dRes.drives.filter(d =>
-        ['UPCOMING', 'REGISTRATION_OPEN', 'ONGOING'].includes(d.status)
+        ['UPCOMING', 'REGISTRATION_OPEN', 'ONGOING', 'SELECTED'].includes(d.status)
       ).slice(0, 4)
       setUpcomingDrives(activeDrives)
     }).catch((e) => console.error(e)).finally(() => setLoading(false))

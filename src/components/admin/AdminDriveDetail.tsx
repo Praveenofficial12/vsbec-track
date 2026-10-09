@@ -75,8 +75,9 @@ export function AdminDriveDetail() {
   // update immediately. Instead we open a confirmation popup so the admin can
   // review the offer details (job role, CTC, joining location, joining date)
   // before the result is locked in. Only after confirmation do we call the
-  // API — and the drive itself stays ONGOING (we never auto-close the drive
-  // when a single student is marked selected).
+  // API — which also marks the DRIVE status as SELECTED (not COMPLETED), so
+  // the final results area locks for new selections but the drive itself
+  // stays open for the remaining students.
   const handleConfirmSelect = async () => {
     if (!selectTarget || !drive) return
     setSelecting(true)
@@ -92,7 +93,7 @@ export function AdminDriveDetail() {
       await refreshDrive()
       // Show the celebration popup and trigger the confetti toast.
       setCelebration(selectTarget)
-      toast.success(`${selectTarget.student?.fullName} marked as SELECTED — final result locked`, {
+      toast.success(`${selectTarget.student?.fullName} marked as SELECTED — drive marked as SELECTED (final results locked, drive stays open)`, {
         icon: <PartyPopper className="h-4 w-4" />,
       })
       setSelectTarget(null)
@@ -138,13 +139,15 @@ export function AdminDriveDetail() {
       // The cleanest way to "remove" a selected student from a drive is to
       // null-out their finalResult via the participations PUT endpoint.
       // This keeps the audit trail intact (we don't delete the participation)
-      // but un-marks them as selected.
+      // but un-marks them as selected. The API also checks if any other
+      // selected students remain; if not, the drive status is demoted from
+      // SELECTED back to ONGOING so the final results area re-opens.
       await apiPut('/api/participations', {
         participationId: removeTarget.id,
         finalResult: 'REJECTED',
         attendance: 'REJECTED',
       })
-      toast.success(`${removeTarget.student?.fullName} removed from selected list`)
+      toast.success(`${removeTarget.student?.fullName} removed from selected list — final results area re-opened`)
       await refreshDrive()
       setRemoveTarget(null)
     } catch (e: any) {
@@ -195,6 +198,11 @@ export function AdminDriveDetail() {
   const rejected = participants.filter(p => p.finalResult === 'REJECTED')
   const inProgress = participants.filter(p => p.attendance === 'IN_PROGRESS')
   const isCompleted = drive.status === 'COMPLETED'
+  // "SELECTED" drive status = at least one student has been marked SELECTED
+  // in the final result. The drive is NOT closed — the Final Results area is
+  // locked (no new selections) but the "Mark as Completed" button is still
+  // available to formally close the drive.
+  const isSelected = drive.status === 'SELECTED'
 
   // Total CTC of selected students (parse the drive CTC for numeric value)
   const ctcNumeric = parseFloat((drive.ctc || '').replace(/[^0-9.]/g, '')) || 0
@@ -259,6 +267,14 @@ export function AdminDriveDetail() {
             <div className="animate-bounce-in flex items-center gap-2 border-t border-emerald-200 bg-emerald-50 px-6 py-3 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
               <PartyPopper className="h-4 w-4" />
               <p className="text-sm font-medium">This drive is completed — {selected.length} student{selected.length === 1 ? '' : 's'} selected, {rejected.length} not selected.</p>
+            </div>
+          )}
+          {isSelected && (
+            <div className="animate-bounce-in flex items-center gap-2 border-t border-emerald-300 bg-emerald-50 px-6 py-3 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300">
+              <Trophy className="h-4 w-4 text-amber-500" />
+              <p className="text-sm font-medium">
+                {selected.length} student{selected.length === 1 ? '' : 's'} selected — final results are locked. The drive remains open for the remaining students. Use <strong>Mark as Completed</strong> to formally close it.
+              </p>
             </div>
           )}
         </Card>
@@ -550,6 +566,25 @@ export function AdminDriveDetail() {
               <StatCard title="On Hold" value={participants.filter(p => p.finalResult === 'ON_HOLD').length} icon={<Clock className="h-5 w-5" />} accent="amber" />
             </div>
 
+            {/* When the drive is in SELECTED state (at least one student
+                selected), the Final Results area is closed for new selections.
+                The drive itself is NOT closed — use "Mark as Completed" to
+                formally close it. */}
+            {isSelected && (
+              <div className="flex items-center gap-3 rounded-lg border border-emerald-300 bg-emerald-50 p-4 dark:border-emerald-700 dark:bg-emerald-900/20">
+                <Lock className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+                    Final Results area is locked
+                  </p>
+                  <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                    A student has been marked as Selected — the final result is locked and the drive is marked as <strong>SELECTED</strong>.
+                    The drive remains open for other students. To unlock and edit a selected student's result, use the <strong>Unlock &amp; Remove</strong> button on the Selected Students tab.
+                  </p>
+                </div>
+              </div>
+            )}
+
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Final Results</CardTitle>
@@ -560,7 +595,9 @@ export function AdminDriveDetail() {
                   <EmptyState icon={<ListChecks className="h-6 w-6" />} title="No results to update" description="Results will appear once students attend the drive." />
                 ) : (
                   <div className="space-y-3">
-                    {attended.map(p => (
+                    {attended.map(p => {
+                      const pSelected = p.finalResult === 'SELECTED'
+                      return (
                       <div key={p.id} className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
                         <Avatar className="h-9 w-9">
                           <AvatarFallback className={`${avatarColor(p.student?.fullName || '')} text-xs font-semibold text-white`}>
@@ -578,7 +615,7 @@ export function AdminDriveDetail() {
                           onValueChange={(v) => {
                             // SELECTED is gated behind a confirmation popup
                             // and locks the result once applied. The drive
-                            // itself stays ONGOING — selection does not close
+                            // itself stays open — selection does not close
                             // the drive for the remaining students.
                             if (v === 'SELECTED') {
                               setSelectTarget(p)
@@ -586,9 +623,12 @@ export function AdminDriveDetail() {
                             }
                             updateParticipation(p, { finalResult: v })
                           }}
-                          disabled={updating === p.id || p.finalResult === 'SELECTED'}
+                          // Disable the dropdown for already-selected students
+                          // (locked result) OR when the whole drive is in the
+                          // SELECTED state (final results area closed).
+                          disabled={updating === p.id || pSelected || isSelected}
                         >
-                          <SelectTrigger className={`h-8 w-36 text-xs ${p.finalResult === 'SELECTED' ? 'border-emerald-400 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : ''}`}>
+                          <SelectTrigger className={`h-8 w-36 text-xs ${pSelected ? 'border-emerald-400 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : isSelected ? 'opacity-60' : ''}`}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -598,13 +638,14 @@ export function AdminDriveDetail() {
                             <SelectItem value="WITHDRAWN">Withdrawn</SelectItem>
                           </SelectContent>
                         </Select>
-                        {p.finalResult === 'SELECTED' && (
+                        {pSelected && (
                           <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
                             <Lock className="mr-1 h-3 w-3" /> Locked
                           </Badge>
                         )}
                       </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </CardContent>
@@ -768,9 +809,9 @@ export function AdminDriveDetail() {
                   </ul>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Once confirmed, this final result will be <strong>locked</strong>. The drive itself will remain open
-                  (ONGOING) so other students can continue through their rounds. To undo this later, use the
-                  dedicated <em>Unlock &amp; Remove</em> button on the Selected Students tab.
+                  Once confirmed, this final result will be <strong>locked</strong> and the drive will be marked as <strong>SELECTED</strong> (the final results area closes for new selections).
+                  The drive itself stays open — other students can continue through their rounds. To undo this later, use the
+                  dedicated <em>Unlock &amp; Remove</em> button on the Selected Students tab, or use <em>Mark as Completed</em> to formally close the drive.
                 </p>
               </div>
             </AlertDialogDescription>
@@ -815,7 +856,7 @@ export function AdminDriveDetail() {
             </div>
             <div className="flex w-full items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
               <Lock className="h-3.5 w-3.5 shrink-0" />
-              <span>Final result is now locked. The drive stays open for the remaining students.</span>
+              <span>Final result is locked and the drive is marked as <strong>SELECTED</strong>. The drive stays open for the remaining students — use <strong>Mark as Completed</strong> to formally close it.</span>
             </div>
             <AlertDialogAction className="w-full bg-emerald-600 hover:bg-emerald-700" onClick={() => setCelebration(null)}>
               Continue

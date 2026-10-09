@@ -114,7 +114,11 @@ model Drive {
   preferredSkills  String? // CSV
   selectionProcess String?
   announcement     String? // Admin can post messages/announcements visible to students
-  status           String   @default("UPCOMING") // UPCOMING | REGISTRATION_OPEN | ONGOING | COMPLETED | CANCELLED
+  status           String   @default("UPCOMING") // UPCOMING | REGISTRATION_OPEN | ONGOING | SELECTED | COMPLETED | CANCELLED
+                        // "SELECTED" = at least one student has been marked SELECTED in the
+                        // final result. The drive is NOT closed — it stays open so other
+                        // students can continue through their rounds. Only the dedicated
+                        // "Mark as Completed" action sets the status to COMPLETED.
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

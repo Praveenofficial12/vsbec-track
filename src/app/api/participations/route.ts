@@ -188,13 +188,30 @@ export async function PUT(req: NextRequest) {
       },
     })
 
-    // If selected, update student placement status
+    // If selected, update student placement status AND mark the drive itself
+    // as "SELECTED". The drive is NOT closed — it stays open (status SELECTED,
+    // not COMPLETED) so other students can continue through their rounds.
+    // Only the dedicated "Mark as Completed" action on the drive header can
+    // set the status to COMPLETED.
     if (finalResult === 'SELECTED') {
       const student = await db.student.findUnique({ where: { id: participation.studentId } })
       if (student && student.placementStatus !== 'PLACED') {
         await db.student.update({
           where: { id: participation.studentId },
           data: { placementStatus: 'PLACED' },
+        })
+      }
+
+      // Promote the drive status to SELECTED (only if it isn't already
+      // COMPLETED/CANCELLED — we never downgrade a closed drive).
+      const drive = await db.drive.findUnique({
+        where: { id: participation.driveId },
+        select: { id: true, status: true },
+      })
+      if (drive && !['COMPLETED', 'CANCELLED'].includes(drive.status)) {
+        await db.drive.update({
+          where: { id: drive.id },
+          data: { status: 'SELECTED' },
         })
       }
 
@@ -206,6 +223,31 @@ export async function PUT(req: NextRequest) {
           type: 'SELECTION',
         },
       })
+    } else if (finalResult && finalResult !== 'SELECTED') {
+      // When a previously-selected student's result is changed away from
+      // SELECTED (e.g. via "Unlock & Remove" → REJECTED), check if any other
+      // student in this drive is still SELECTED. If none are, demote the
+      // drive status from SELECTED back to ONGOING so the final results
+      // area re-opens for editing.
+      const drive = await db.drive.findUnique({
+        where: { id: participation.driveId },
+        select: { id: true, status: true },
+      })
+      if (drive && drive.status === 'SELECTED') {
+        const remainingSelected = await db.driveParticipation.count({
+          where: {
+            driveId: drive.id,
+            finalResult: 'SELECTED',
+            id: { not: participationId }, // exclude the one we just changed
+          },
+        })
+        if (remainingSelected === 0) {
+          await db.drive.update({
+            where: { id: drive.id },
+            data: { status: 'ONGOING' },
+          })
+        }
+      }
     }
 
     await db.auditLog.create({

@@ -179,6 +179,7 @@ export function AdminDrives() {
             <TabsTrigger value="UPCOMING">Upcoming</TabsTrigger>
             <TabsTrigger value="REGISTRATION_OPEN">Open</TabsTrigger>
             <TabsTrigger value="ONGOING">Ongoing</TabsTrigger>
+            <TabsTrigger value="SELECTED">Selected</TabsTrigger>
             <TabsTrigger value="COMPLETED">Completed</TabsTrigger>
           </TabsList>
 

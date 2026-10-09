@@ -236,8 +236,8 @@ export function StudentCompanies() {
 
     // Show confirmation popup
     const messages: Record<string, string> = {
-      'SELECTED': `You are marking yourself as "Selected" for ${selectedDrive.company?.name}.\n\nThis will close the drive. You will be redirected to My Drives.\n\nDo you want to proceed?`,
-      'REJECTED': `You are marking yourself as "Not Selected" for ${selectedDrive.company?.name}.\n\nThis will close the drive. You will be redirected to My Drives.\n\nDo you want to proceed?`,
+      'SELECTED': `You are marking yourself as "Selected" for ${selectedDrive.company?.name}.\n\nThe drive will be marked as SELECTED (final results locked) but stays open for other students. You will be redirected to My Drives.\n\nDo you want to proceed?`,
+      'REJECTED': `You are marking yourself as "Not Selected" for ${selectedDrive.company?.name}.\n\nYour participation will be closed. You will be redirected to My Drives.\n\nDo you want to proceed?`,
       'ON_HOLD': `You are marking your result as "On Hold" for ${selectedDrive.company?.name}.\n\nThe drive will remain open and you can re-enter details later.\n\nDo you want to proceed?`,
     }
     if (!confirm(messages[finalResult] || 'Confirm final result?')) return
@@ -264,8 +264,14 @@ export function StudentCompanies() {
         setMyParticipation(p)
         setRoundResults(p?.roundResults || [])
       } else {
-        // SELECTED or REJECTED — close the drive and redirect
-        toast.success(`Final result: ${finalResult.replace(/_/g, ' ')}. The drive is now closed for you.`)
+        // SELECTED or REJECTED — the student's participation is finalized.
+        // The drive itself is NOT closed for everyone; for SELECTED, the
+        // drive is marked as SELECTED (final results locked) but stays open
+        // for other students. Redirect the student to My Drives.
+        const driveMsg = finalResult === 'SELECTED'
+          ? `Final result: Selected. The drive is marked as SELECTED — your result is locked.`
+          : `Final result: Not Selected. Your participation is closed.`
+        toast.success(driveMsg)
         setSelectedDrive(null)
         setTimeout(() => {
           useAppStore.getState().setView('student-drives')
@@ -326,6 +332,7 @@ export function StudentCompanies() {
               <SelectItem value="UPCOMING">Upcoming</SelectItem>
               <SelectItem value="REGISTRATION_OPEN">Registration Open</SelectItem>
               <SelectItem value="ONGOING">Ongoing</SelectItem>
+              <SelectItem value="SELECTED">Selected</SelectItem>
               <SelectItem value="COMPLETED">Completed</SelectItem>
             </SelectContent>
           </Select>
