@@ -1,0 +1,693 @@
+     1→'use client'
+     2→import { useEffect, useState } from 'react'
+     3→import { useAppStore } from '@/lib/store'
+     4→import { apiGet, apiPut, apiDelete, csvToArray, formatDate, STATUS_COLORS, avatarColor, initials } from '@/lib/api'
+     5→import { AdminLayout } from './AdminLayout'
+     6→import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+     7→import { Button } from '@/components/ui/button'
+     8→import { Input } from '@/components/ui/input'
+     9→import { Label } from '@/components/ui/label'
+    10→import { Badge } from '@/components/ui/badge'
+    11→import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+    12→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+    13→import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+    14→import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+    15→import {
+    16→  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+    17→  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+    18→} from '@/components/ui/alert-dialog'
+    19→import { EmptyState, CardSkeleton } from '@/components/common/States'
+    20→import { StatCard } from '@/components/common/StatCard'
+    21→import { toast } from 'sonner'
+    22→import {
+    23→  ArrowLeft, Calendar, Briefcase, MapPin, Users, Building2, Target,
+    24→  CheckCircle2, XCircle, Clock, Award, Activity, AlertCircle, ListChecks,
+    25→  Trophy, Loader2, Download, IndianRupee, Trash2, RotateCcw, PartyPopper, Bell, Save,
+    26→} from 'lucide-react'
+    27→import type { Drive, DriveParticipation, Student } from '@/lib/types'
+    28→
+    29→export function AdminDriveDetail() {
+    30→  const driveId = useAppStore((s) => s.selectedDriveId)
+    31→  const setView = useAppStore((s) => s.setView)
+    32→  const [drive, setDrive] = useState<Drive | null>(null)
+    33→  const [loading, setLoading] = useState(true)
+    34→  const [updating, setUpdating] = useState<string | null>(null)
+    35→  const arkingComplete, setMarkingComplete] = useState(false)
+    36→  const [removeTarget, setRemoveTarget] = useState<DriveParticipation | null>(null)
+    37→  const [removing, setRemoving] = useState(false)
+    38→  const [editEligibility, setEditEligibility] = useState(false)
+    39→  const [eligForm, setEligForm] = useState({})
+    40→
+    41→  const refreshDrive = async () => {
+    42→    if (!driveId) return
+    43→    const r = await apiGet<{ drive: Drive }>(`/api/drives/${driveId}`)
+    44→    setDrive(r.drive)
+    45→  }
+    46→
+    47→  useEffect(() => {
+    48→    if (!driveId) return
+    49→    apiGet<{ drive: Drive }>(`/api/drives/${driveId}`).then(r => setDrive(r.drive)).finally(() => setLoading(false))
+    50→  }, [driveId])
+    51→
+    52→  const updateParticipation = async (participation: DriveParticipation, updates: any) => {
+    53→    setUpdating(participation.id)
+    54→    try {
+    55→      await apiPut('/api/participations', { participationId: participation.id, ...updates })
+    56→      toast.success('Updated successfully')
+    57→      await refreshDrive()
+    58→    } catch (e: any) {
+    59→      toast.error(e.message)
+    60→    } finally {
+    61→      setUpdating(null)
+    62→    }
+    63→  }
+    64→
+    65→  const handleMarkComplete = async () => {
+    66→    if (!drive) return
+    67→    setMarkingComplete(true)
+    68→    try {
+    69→      await apiPut(`/api/drives/${drive.id}`, { status: 'COMPLETED' })
+    70→      toast.success('Drive marked as completed')
+    71→      await refreshDrive()
+    72→    } catch (e: any) {
+    73→      toast.error(e.message || 'Failed to mark drive as completed')
+    74→    } finally {
+    75→      setMarkingComplete(false)
+    76→    }
+    77→  }
+    78→
+    79→  const handleReopenDrive = async () => {
+    80→    if (!drive) return
+    81→    setMarkingComplete(true)
+    82→    try {
+    83→      await apiPut(`/api/drives/${drive.id}`, { status: 'ONGOING' })
+    84→      toast.success('Drive reopened — status set to Ongoing')
+    85→      await refreshDrive()
+    86→    } catch (e: any) {
+    87→      toast.error(e.message || 'Failed to reopen drive')
+    88→    } finally {
+    89→      setMarkingComplete(false)
+    90→    }
+    91→  }
+    92→
+    93→  const handleRemoveSelected = async () => {
+    94→    if (!removeTarget || !driveId) return
+    95→    setRemoving(true)
+    96→    try {
+    97→      // The cleanest way to "remove" a selected student from a drive is to
+    98→      // null-out their finalResult via the participations PUT endpoint.
+    99→      // This keeps the audit trail intact (we don't delete the participation)
+   100→      // but un-marks them as selected.
+   101→      await apiPut('/api/participations', {
+   102→        participationId: removeTarget.id,
+   103→        finalResult: 'REJECTED',
+   104→        attendance: 'REJECTED',
+   105→      })
+   106→      toast.success(`${removeTarget.student?.fullName} removed from selected list`)
+   107→      await refreshDrive()
+   108→      setRemoveTarget(null)
+   109→    } catch (e: any) {
+   110→      toast.error(e.message || 'Failed to remove student')
+   111→    } finally {
+   112→      setRemoving(false)
+   113→    }
+   114→  }
+   115→
+   116→  const handleExportSelected = () => {
+   117→    if (!drive) return
+   118→    const selected = (drive.participants || []).filter((p) => p.finalResult === 'SELECTED')
+   119→    if (selected.length === 0) {
+   120→      toast.error('No selected students to export')
+   121→      return
+   122→    }
+   123→    const headers = ['Register Number', 'Name', 'Email', 'Department', 'Year', 'Section', 'Job Role', 'CTC', 'Joining Location', 'Joining Date']
+   124→    const rows = selected.map(p => [
+   125→      p.student?.registerNumber || '',
+   126→      p.student?.fullName || '',
+   127→      p.student?.collegeEmail || '',
+   128→      p.student?.department || '',
+   129→      p.student?.year || '',
+   130→      p.student?.section || '',
+   131→      p.jobRole || drive.jobRole || '',
+   132→      p.ctc || drive.ctc || '',
+   133→      p.joiningLocation || drive.location || '',
+   134→      p.joiningDate || '',
+   135→    ])
+   136→    const csv = eaders.join(','), ...rows.map(r => r.map(c => `"${c || ''}"`).join(','))].join('\n')
+   137→    const blob = new Blob([csv], { type: 'text/csv' })
+   138→    const url = URL.createObjectURL(blob)
+   139→    const a = document.createElement('a')
+   140→    a.href = url
+   141→    a.download = `${drive.company?.name || 'drive'}_selected_students_${Date.now()}.csv`
+   142→    a.click()
+   143→    URL.revokeObjectURL(url)
+   144→    toast.success(`Exported ${selected.length} selected students to CSV`)
+   145→  }
+   146→
+   147→  if (loading) return <AdminLayout><div className="p-6 space-y-4"><CardSkeleton className="h-32" /><div className="grid gap-4 sm:grid-cols-4">{Array.from({length:4}).map((_,i)=><CardSkeleton key={i} className="h-24" />)}</div><CardSkeleton className="h-96" /></div></AdminLayout>
+   148→  if (!drive) return <AdminLayout><div className="p-6"><EmptyState icon={<AlertCircle className="h-6 w-6" />} title="Drive not found" /></div></AdminLayout>
+   149→
+   150→  const participants = drive.participants || []
+   151→  const rounds = drive.rounds || []
+   152→  const attended = participants.filter(p => ['ATTENDING', 'IN_PROGRESS', 'SELECTED', 'REJECTED', 'ON_HOLD'].includes(p.attendance))
+   153→  const selected = participants.filter(p => p.finalResult === 'SELECTED')
+   154→  const rejected = participants.filter(p => p.finalResult === 'REJECTED')
+   155→  const inProgress = participants.filter(p => p.attendance === 'IN_PROGRESS')
+   156→  const isCompleted = drive.status === 'COMPLETED'
+   157→
+   158→  // Total CTC of selected students (parse the drive CTC for numeric value)
+   159→  const ctcNumeric = parseFloat((drive.ctc || '').replace(/[^0-9.]/g, '')) || 0
+   160→  const totalCtcValue = selected.length * ctcNumeric
+   161→
+   162→  return (
+   163→    <AdminLayout>
+   164→      <div className="space-y-6 p-4 sm:p-6">
+   165→        <button onClick={() => setView('admin-drives')} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+   166→          <ArrowLeft className="h-4 w-4" /> Back to Drives
+   167→        </button>
+   168→
+   169→        {/* Header with Mark as Completed / Reopen Drive button */}
+   170→        <Card className="overflow-hidden">
+   171→          <div className="bg-gradient-to-r from-violet-600 to-purple-700 p-6 text-white">
+   172→            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+   173→              <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl bg-white/15 ring-2 ring-white/30">
+   174→                {drive.company?.logoUrl ? (
+   175→                  <img src={drive.company.logoUrl} alt="" className="h-full w-full object-cover" />
+   176→                ) : (
+   177→                  <Building2 className="h-8 w-8" />
+   178→                )}
+   179→              </div>
+   180→              <div className="flex-1">
+   181→                <h1 className="text-2xl font-bold">{drive.company?.name}</h1>
+   182→                <p className="text-white/80">{drive.driveName}</p>
+   183→                <div className="mt-2 flex flex-wrap gap-2 text-xs">
+   184→                  <span className="rounded-full bg-white/15 px-2 py-0.5">{drive.jobRole}</span>
+   185→                  <span className="rounded-full bg-white/15 px-2 py-0.5">{drive.ctc}</span>
+   186→                  <span className="rounded-full bg-white/15 px-2 py-0.5">{formatDate(drive.driveDate)}</span>
+   187→                </div>
+   188→              </div>
+   189→              <div className="flex flex-wrap items-center gap-2">
+   190→                <Badge variant="outline" className={`self-start ${STATUS_COLORS[drive.status]}`}>{drive.status.replace(/_/g, ' ')}</Badge>
+   191→                {isCompleted ? (
+   192→                  <Button
+   193→                    onClick={handleReopenDrive}
+   194→                    disabled={markingComplete}
+   195→                    variant="secondary"
+   196→                    size="sm"
+   197→                    className="bg-white text-violet-700 hover:bg-violet-50"
+   198→                  >
+   199→                    {markingComplete ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
+   200→                    Reopen Drive
+   201→                  </Button>
+   202→                ) : (
+   203→                  <Button
+   204→                    onClick={handleMarkComplete}
+   205→                    disabled={markingComplete}
+   206→                    variant="secondary"
+   207→                    size="sm"
+   208→                    className="bg-white text-violet-700 hover:bg-violet-50"
+   209→                  >
+   210→                    {markingComplete ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+   211→                    Mark as Completed
+   212→                  </Button>
+   213→                )}
+   214→              </div>
+   215→            </div>
+   216→          </div>
+   217→          {isCompleted && (
+   218→            <div className="animate-bounce-in flex items-center gap-2 border-t border-emerald-200 bg-emerald-50 px-6 py-3 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
+   219→              <PartyPopper className="h-4 w-4" />
+   220→              <p className="text-sm font-medium">This drive is completed — {selected.length} student{selected.length === 1 ? '' : 's'} selected, {rejected.length} not selected.</p>
+   221→            </div>
+   222→          )}
+   223→        </Card>
+   224→
+   225→        {/* Stats */}
+   226→        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+   227→          <StatCard title="Total Participants" value={participants.length} icon={<Users className="h-5 w-5" />} accent="violet" />
+   228→          <StatCard title="Attended" value={attended.length} icon={<CheckCircle2 className="h-5 w-5" />} accent="emerald" />
+   229→          <StatCard title="Selected" value={selected.length} icon={<Award className="h-5 w-5" />} accent="amber" />
+   230→          <StatCard title="In Progress" value={inProgress.length} icon={<Activity className="h-5 w-5" />} accent="sky" />
+   231→        </div>
+   232→
+   233→        <Tabs defaultValue="overview">
+   234→          <TabsList className="w-full justify-start overflow-x-auto scrollbar-thin">
+   235→            <TabsTrigger value="overview">Overview</TabsTrigger>
+   236→            <TabsTrigger value="participants">Participants</TabsTrigger>
+   237→            <TabsTrigger value="rounds">Rounds</TabsTrigger>
+   238→            <TabsTrigger value="results">Final Results</TabsTrigger>
+   239→            <TabsTrigger value="selected">
+   240→              <Trophy className="mr-1.5 h-3.5 w-3.5" />
+   241→              Selected Students
+   242→              {selected.length > 0 && (
+   243→                <Badge variant="secondary" className="ml-1.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+   244→                  {selected.length}
+   245→                </Badge>
+   246→              )}
+   247→            </TabsTrigger>
+   248→          </TabsList>
+   249→
+   250→          {/* Overview */}
+   251→          <TabsContent value="overview" className="space-y-4 animate-fade-in-up">
+   252→            <div className="grid gap-4 lg:grid-cols-2">
+   253→              <Card>
+   254→                <CardHeader><CardTitle className="text-base">Drive Details</CardTitle></CardHeader>
+   255→                <CardContent className="space-y-2 text-sm">
+   256→                  <div className="flex justify-between"><span className="text-muted-foreground">Job Role</span><span className="font-medium">{drive.jobRole}</span></div>
+   257→                  <div className="flex justify-between"><span className="text-muted-foreground">CTC</span><span className="font-medium">{drive.ctc}</span></div>
+   258→                  <div className="flex justify-between"><span className="text-muted-foreground">Location</span><span className="font-medium">{drive.location}</span></div>
+   259→                  <div className="flex justify-between"><span className="text-muted-foreground">Drive Date</span><span className="font-medium">{formatDate(drive.driveDate)}</span></div>
+   260→                  <div className="flex justify-between"><span className="text-muted-foreground">Application Deadline</span><span className="font-medium">{formatDate(drive.applicationDeadline)}</span></div>
+   261→                </CardContent>
+   262→              </Card>
+   263→
+   264→              <Card>
+   265→                <CardHeader>
+   266→                  <div className="flex items-center justify-between">
+   267→                    <CardTitle className="text-base">Eligibility Criteria</CardTitle>
+   268→                    <Button variant="outline" size="sm" onClick={() => {
+   269→                      setEditEligibility(!editEligibility)
+   270→                      if (!editEligibility) {
+   271→                        setEligForm({
+   272→                          minCgpa: drive.minCgpa?.toString() || '',
+   273→                          maxBacklogs: drive.maxBacklogs?.toString() || '',
+   274→                          minTenthPercentage: drive.minTenthPercentage?.toString() || '',
+   275→                          minTwelfthPercentage: drive.minTwelfthPercentage?.toString() || '',
+   276→                          eligibleYears: drive.eligibleYears || '',
+   277→                        })
+   278→                      }
+   279→                    }}>
+   280→                      {editEligibility ? 'Cancel' : 'Edit Criteria'}
+   281→                    </Button>
+   282→                  </div>
+   283→                </CardHeader>
+   284→                <CardContent className="space-y-3 text-sm">
+   285→                  {editEligibility ? (
+   286→                    <div className="space-y-3">
+   287→                      <div>
+   288→                        <Label className="mb-1.5 block text-xs text-muted-foreground">Eligible Years (comma-separated)</Label>
+   289→                        <Input value={eligForm.eligibleYears} onChange={(e) => setEligForm((f: any) => ({ ...f, eligibleYears: e.target.value }))} placeholder="3rd Year,4th Year" />
+   290→                      </div>
+   291→                      <div className="grid grid-cols-2 gap-3">
+   292→                        <div>
+   293→                          <Label className="mb-1.5 block text-xs text-muted-foreground">Min CGPA</Label>
+   294→                          <Input type="number" step="0.01" value={eligForm.minCgpa} onChange={(e) => setEligForm((f: any) => ({ ...f, minCgpa: e.target.value }))} />
+   295→                        </div>
+   296→                        <div>
+   297→                          <Label className="mb-1.5 block text-xs text-muted-foreground">Max Backlogs</Label>
+   298→                          <Input type="number" value={eligForm.maxBacklogs} onChange={(e) => setEligForm((f: any) => ({ ...f, maxBacklogs: e.target.value }))} />
+   299→                        </div>
+   300→                        <div>
+   301→                          <Label className="mb-1.5 block text-xs text-muted-foreground">Min 10th Percentage</Label>
+   302→                          <Input type="number" step="0.01" value={eligForm.minTenthPercentage} onChange={(e) => setEligForm((f: any) => ({ ...f, minTenthPercentage: e.target.value }))} />
+   303→                        </div>
+   304→                        <div>
+   305→                          <Label className="mb-1.5 block text-xs text-muted-foreground">Min 12th Percentage</Label>
+   306→                          <Input type="number" step="0.01" value={eligForm.minTwelfthPercentage} onChange={(e) => setEligForm((f: any) => ({ ...f, minTwelfthPercentage: e.target.value }))} />
+   307→                        </div>
+   308→                      </div>
+   309→                      <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={async () => {
+   310→                        try {
+   311→                          await apiPut(`/api/drives/${driveId}`, {
+   312→                            eligibleYears: eligForm.eligibleYears,
+   313→                            minCgpa: eligForm.minCgpa || undefined,
+   314→                            maxBacklogs: eligForm.maxBacklogs !== '' ? eligForm.maxBacklogs : undefined,
+   315→                            minTenthPercentage: eligForm.minTenthPercentage || undefined,
+   316→                            minTwelfthPercentage: eligForm.minTwelfthPercentage || undefined,
+   317→                          })
+   318→                          toast.success('Eligibility criteria updated!')
+   319→                          setEditEligibility(false)
+   320→                          await refreshDrive()
+   321→                        } catch (e: any) { toast.error(e.message) }
+   322→                      }}>
+   323→                        <Save className="mr-2 h-3.5 w-3.5" /> Save Criteria
+   324→                      </Button>
+   325→                    </div>
+   326→                  ) : (
+   327→                    <>
+   328→                      <div>
+   329→                        <p className="mb-1 text-xs text-muted-foreground">Eligible Years</p>
+   330→                        <div className="flex flex-wrap gap-1">
+   331→                          {csvToArray(drive.eligibleYears).map(y => <Badge key={y} variant="outline">{y}</Badge>)}
+   332→                        </div>
+   333→                      </div>
+   334→                      <div className="grid grid-cols-2 gap-3">
+   335→                        <div className="rounded-lg bg-muted/50 p-2 text-center">
+   336→                          <p className="text-xs text-muted-foreground">Min CGPA</p>
+   337→                          <p className="font-semibold">{drive.minCgpa || '—'}</p>
+   338→                        </div>
+   339→                        <div className="rounded-lg bg-muted/50 p-2 text-center">
+   340→                          <p className="text-xs text-muted-foreground">Max Backlogs</p>
+   341→                          <p className="font-semibold">{drive.maxBacklogs ?? '—'}</p>
+   342→                        </div>
+   343→                        <div className="rounded-lg bg-muted/50 p-2 text-center">
+   344→                          <p className="text-xs text-muted-foreground">Min 10th %</p>
+   345→                          <p className="font-semibold">{drive.minTenthPercentage || '—'}</p>
+   346→                        </div>
+   347→                        <div className="rounded-lg bg-muted/50 p-2 text-center">
+   348→                          <p className="text-xs text-muted-foreground">Min 12th %</p>
+   349→                          <p className="font-semibold">{drive.minTwelfthPercentage || '—'}</p>
+   350→                        </div>
+   351→                      </div>
+   352→                    </>
+   353→                  )}
+   354→                  <div>
+   355→                    <p className="mb-1 text-xs text-muted-foreground">Selection Process</p>
+   356→                    <p className="text-xs">{drive.selectionProcess}</p>
+   357→                  </div>
+   358→                </CardContent>
+   359→              </Card>
+   360→
+   361→              {/* Admin Announcement — post messages visible to students */}
+   362→              <Card className="border-amber-200 dark:border-amber-800">
+   363→                <CardHeader>
+   364→                  <CardTitle className="text-base flex items-center gap-2">
+   365→                    <Bell className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+   366→                    Drive Announcement
+   367→                  </CardTitle>
+   368→                  <CardDescription>Post a message or update visible to all students viewing this drive</CardDescription>
+   369→                </CardHeader>
+   370→                <CardContent>
+   371→                  <textarea
+   372→                    className="w-full rounded-lg border border-border bg-background p-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 min-h-[80px]"
+   373→                    placeholder="Type an announcement for students (e.g., Round 1 starts at 9 AM tomorrow. Bring your laptop.)"
+   374→                    defaultValue={drive.announcement || ''}
+   375→                    onBlur={async (e) => {
+   376→                      try {
+   377→                        await apiPut(`/api/drives/${driveId}`, { announcement: e.target.value })
+   378→                        toast.success('Announcement updated')
+   379→                      } catch {
+   380→                        toast.error('Failed to update announcement')
+   381→                      }
+   382→                    }}
+   383→                  />
+   384→                  <p className="mt-2 text-xs text-muted-foreground">Click outside the text area to save. Students will see this message in the drive details.</p>
+   385→                </CardContent>
+   386→              </Card>
+   387→            </div>
+   388→          </TabsContent>
+   389→
+   390→          {/* Participants */}
+   391→          <TabsContent value="participants" className="space-y-4 animate-fade-in-up">
+   392→            <Card>
+   393→              <CardHeader>
+   394→                <CardTitle className="text-base">All Participants ({participants.length})</CardTitle>
+   395→                <CardDescription>Update attendance status for each student</CardDescription>
+   396→              </CardHeader>
+   397→              <CardContent>
+   398→                {participants.length === 0 ? (
+   399→                  <EmptyState icon={<Users className="h-6 w-6" />} title="No participants yet" description="Students will appear here once they register for the drive." />
+   400→                ) : (
+   401→                  <div className="overflow-x-auto scrollbar-thin">
+   402→                    <Table>
+   403→                      <TableHeader>
+   404→                        <TableRow>
+   405→                          <TableHead>Student</TableHead>
+   406→                          <TableHead className="hidden md:table-cell">Department</TableHead>
+   407→                          <TableHead>CGPA</TableHead>
+   408→                          <TableHead className="hidden lg:table-cell">Current Round</TableHead>
+   409→                          <TableHead>Attendance</TableHead>
+   410→                          <TableHead>Action</TableHead>
+   411→                        </TableRow>
+   412→                      </TableHeader>
+   413→                      <TableBody>
+   414→                        {participants.map(p => (
+   415→                          <TableRow key={p.id} className="group">
+   416→                            <TableCell>
+   417→                              <div className="flex items-center gap-2">
+   418→                                <Avatar className="h-8 w-8">
+   419→                                  <AvatarFallback className={`${avatarColor(p.student?.fullName || '')} text-xs font-semibold text-white`}>
+   420→                                    {initials(p.student?.fullName || '')}
+   421→                                  </AvatarFallback>
+   422→                                </Avatar>
+   423→                                <div>
+   424→                                  <p className="text-sm font-medium">{p.student?.fullName}</p>
+   425→                                  <p className="text-xs text-muted-foreground">{p.student?.registerNumber}</p>
+   426→                                </div>
+   427→                              </div>
+   428→                            </TableCell>
+   429→                            <TableCell className="hidden md:table-cell"><Badge variant="outline">{p.student?.department}</Badge></TableCell>
+   430→                            <TableCell><span className="font-semibold text-emerald-600 dark:text-emerald-400">{p.student?.cgpa?.toFixed(2)}</span></TableCell>
+   431→                            <TableCell className="hidden lg:table-cell text-muted-foreground">Round {p.currentRound}/{rounds.length}</TableCell>
+   432→                            <TableCell>
+   433→                              <Badge variant="outline" className={STATUS_COLORS[p.attendance] || STATUS_COLORS.PENDING}>{p.attendance.replace(/_/g, ' ')}</Badge>
+   434→                            </TableCell>
+   435→                            <TableCell>
+   436→                              <Select
+   437→                                value={p.attendance}
+   438→                                onValueChange={(v) => updateParticipation(p, { attendance: v })}
+   439→                                disabled={updating === p.id}
+   440→                              >
+   441→                                <SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger>
+   442→                                <SelectContent>
+   443→                                  <SelectItem value="REGISTERED">Registered</SelectItem>
+   444→                                  <SelectItem value="ATTENDING">Attending</SelectItem>
+   445→                                  <SelectItem value="NOT_ATTENDING">Not Attending</SelectItem>
+   446→                                  <SelectItem value="ABSENT">Absent</SelectItem>
+   447→                                  <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+   448→                                  <SelectItem value="SELECTED">Selected</SelectItem>
+   449→                                  <SelectItem value="REJECTED">Rejected</SelectItem>
+   450→                                  <SelectItem value="ON_HOLD">On Hold</SelectItem>
+   451→                                  <SelectItem value="WITHDRAWN">Withdrawn</SelectItem>
+   452→                                </SelectContent>
+   453→                              </Select>
+   454→                            </TableCell>
+   455→                          </TableRow>
+   456→                        ))}
+   457→                      </TableBody>
+   458→                    </Table>
+   459→                  </div>
+   460→                )}
+   461→              </CardContent>
+   462→            </Card>
+   463→          </TabsContent>
+   464→
+   465→          {/* Rounds */}
+   466→          <TabsContent value="rounds" className="space-y-4 animate-fade-in-up">
+   467→            <Card>
+   468→              <CardHeader>
+   469→                <CardTitle className="text-base">Recruitment Rounds ({rounds.length})</CardTitle>
+   470→                <CardDescription>Round-by-round configuration</CardDescription>
+   471→              </CardHeader>
+   472→              <CardContent>
+   473→                <div className="space-y-3">
+   474→                  {rounds.map((round, idx) => (
+   475→                    <div key={round.id} className="rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent/30">
+   476→                      <div className="flex items-start gap-3">
+   477→                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+   478→                          round.status === 'COMPLETED' ? 'bg-emerald-600 text-white' :
+   479→                          round.status === 'ONGOING' ? 'bg-amber-500 text-white' : 'bg-muted text-muted-foreground'
+   480→                        }`}>
+   481→                          {idx + 1}
+   482→                        </div>
+   483→                        <div className="flex-1">
+   484→                          <div className="flex items-start justify-between">
+   485→                            <div>
+   486→                              <p className="font-semibold">{round.roundName}</p>
+   487→                              <p className="text-xs text-muted-foreground">{round.description}</p>
+   488→                            </div>
+   489→                            <Badge variant="outline" className={STATUS_COLORS[round.status]}>{round.status}</Badge>
+   490→                          </div>
+   491→                          <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+   492→                            <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {formatDate(round.date)}</span>
+   493→                            <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {round.startTime} - {round.endTime}</span>
+   494→                          </div>
+   495→                        </div>
+   496→                      </div>
+   497→                    </div>
+   498→                  ))}
+   499→                </div>
+   500→              </CardContent>
+   501→            </Card>
+   502→          </TabsContent>
+   503→
+   504→          {/* Final Results */}
+   505→          <TabsContent value="results" className="space-y-4 animate-fade-in-up">
+   506→            <div className="grid gap-4 sm:grid-cols-3">
+   507→              <StatCard title="Selected" value={selected.length} icon={<CheckCircle2 className="h-5 w-5" />} accent="emerald" />
+   508→              <StatCard title="Rejected" value={rejected.length} icon={<XCircle className="h-5 w-5" />} accent="rose" />
+   509→              <StatCard title="On Hold" value={participants.filter(p => p.finalResult === 'ON_HOLD').length} icon={<Clock className="h-5 w-5" />} accent="amber" />
+   510→            </div>
+   511→
+   512→            <Card>
+   513→              <CardHeader>
+   514→                <CardTitle className="text-base">Final Results</CardTitle>
+   515→                <CardDescription>Update final selection status</CardDescription>
+   516→              </CardHeader>
+   517→              <CardContent>
+   518→                {attended.length === 0 ? (
+   519→                  <EmptyState icon={<ListChecks className="h-6 w-6" />} title="No results to update" description="Results will appear once students attend the drive." />
+   520→                ) : (
+   521→                  <div className="space-y-3">
+   522→                    {attended.map(p => (
+   523→                      <div key={p.id} className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
+   524→                        <Avatar className="h-9 w-9">
+   525→                          <AvatarFallback className={`${avatarColor(p.student?.fullName || '')} text-xs font-semibold text-white`}>
+   526→                            {initials(p.student?.fullName || '')}
+   527→                          </AvatarFallback>
+   528→                        </Avatar>
+   529→                        <div className="min-w-0 flex-1">
+   530→                          <p className="truncate text-sm font-medium">{p.student?.fullName}</p>
+   531→                          <p className="truncate text-xs text-muted-foreground">
+   532→                            {p.student?.registerNumber} · Round {p.currentRound}/{rounds.length} cleared
+   533→                          </p>
+   534→                        </div>
+   535→                        <Select
+   536→                          value={p.finalResult || 'IN_PROGRESS'}
+   537→                          onValueChange={(v) => updateParticipation(p, {
+   538→                            finalResult: v,
+   539→                            jobRole: drive.jobRole,
+   540→                            ctc: drive.ctc,
+   541→                            joiningLocation: drive.location,
+   542→                            joiningDate: '2026-07-01',
+   543→                          })}
+   544→                          disabled={updating === p.id}
+   545→                        >
+   546→                          <SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger>
+   547→                          <SelectContent>
+   548→                            <SelectItem value="SELECTED">Selected</SelectItem>
+   549→                            <SelectItem value="REJECTED">Rejected</SelectItem>
+   550→                            <SelectItem value="ON_HOLD">On Hold</SelectItem>
+   551→                            <SelectItem value="WITHDRAWN">Withdrawn</SelectItem>
+   552→                          </SelectContent>
+   553→                        </Select>
+   554→                      </div>
+   555→                    ))}
+   556→                  </div>
+   557→                )}
+   558→              </CardContent>
+   559→            </Card>
+   560→          </TabsContent>
+   561→
+   562→          {/* Selected Students tab */}
+   563→          <TabsContent value="selected" className="space-y-4 animate-fade-in-up">
+   564→            <Card>
+   565→              <CardHeader>
+   566→                <div className="flex flex-wrap items-center justify-between gap-2">
+   567→                  <div>
+   568→                    <CardTitle className="flex items-center gap-2 text-base">
+   569→                      <Trophy className="h-4 w-4 text-amber-500" />
+   570→                      Selected Students
+   571→                    </CardTitle>
+   572→                    <CardDescription>
+   573→                      {selected.length} student{selected.length === 1 ? '' : 's'} selected for {drive.company?.name} · {drive.jobRole}
+   574→                    </CardDescription>
+   575→                  </div>
+   576→                  <Button onClick={handleExportSelected} size="sm" variant="outline" disabled={selected.length === 0}>
+   577→                    <Download className="mr-2 h-3.5 w-3.5" />
+   578→                    Export CSV
+   579→                  </Button>
+   580→                </div>
+   581→              </CardHeader>
+   582→              <CardContent>
+   583→                {selected.length === 0 ? (
+   584→                  <EmptyState
+   585→                    icon={<Trophy className="h-6 w-6" />}
+   586→                    title="No selected students yet"
+   587→                    description="Mark students as SELECTED in the Final Results tab — they'll appear here."
+   588→                  />
+   589→                ) : (
+   590→                  <>
+   591→                    {/* Summary stats */}
+   592→                    <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+   593→                      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20">
+   594→                        <p className="flex items-center gap-1 text-xs text-amber-700 dark:text-amber-300"><Users className="h-3 w-3" /> Selected</p>
+   595→                        <p className="mt-1 text-xl font-bold text-amber-700 dark:text-amber-300">{selected.length}</p>
+   596→                      </div>
+   597→                      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-800 dark:bg-emerald-900/20">
+   598→                        <p className="flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-300"><IndianRupee className="h-3 w-3" /> CTC per student</p>
+   599→                        <p className="mt-1 text-xl font-bold text-emerald-700 dark:text-emerald-300">{drive.ctc || '—'}</p>
+   600→                      </div>
+   601→                      <div className="rounded-lg border border-violet-200 bg-violet-50 p-3 dark:border-violet-800 dark:bg-violet-900/20">
+   602→                        <p className="flex items-center gap-1 text-xs text-violet-700 dark:text-violet-300"><Award className="h-3 w-3" /> Total CTC value</p>
+   603→                        <p className="mt-1 text-xl font-bold text-violet-700 dark:text-violet-300">
+   604→                          {totalCtcValue > 0 ? `₹${totalCtcValue.toFixed(1)} LPA` : '—'}
+   605→                        </p>
+   606→                      </div>
+   607→                    </div>
+   608→
+   609→                    <div className="overflow-x-auto scrollbar-thin">
+   610→                      <Table>
+   611→                        <TableHeader>
+   612→                          <TableRow>
+   613→                            <TableHead>Student</TableHead>
+   614→                            <TableHead className="hidden md:table-cell">Department</TableHead>
+   615→                            <TableHead className="hidden lg:table-cell">Job Role</TableHead>
+   616→                            <TableHead>CTC</TableHead>
+   617→                            <TableHead className="hidden lg:table-cell">Joining Date</TableHead>
+   618→                            <TableHead className="text-right">Actions</TableHead>
+   619→                          </TableRow>
+   620→                        </TableHeader>
+   621→                        <TableBody>
+   622→                          {selected.map(p => (
+   623→                            <TableRow key={p.id} className="group">
+   624→                              <TableCell>
+   625→                                <div className="flex items-center gap-2">
+   626→                                  <Avatar className="h-8 w-8">
+   627→                                    <AvatarFallback className={`${avatarColor(p.student?.fullName || '')} text-xs font-semibold text-white`}>
+   628→                                      {initials(p.student?.fullName || '')}
+   629→                                    </AvatarFallback>
+   630→                                  </Avatar>
+   631→                                  <div>
+   632→                                    <p className="text-sm font-medium">{p.student?.fullName}</p>
+   633→                                    <p className="text-xs text-muted-foreground">{p.student?.registerNumber}</p>
+   634→                                  </div>
+   635→                                </div>
+   636→                              </TableCell>
+   637→                              <TableCell className="hidden md:table-cell"><Badge variant="outline">{p.student?.department}</Badge></TableCell>
+   638→                              <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{p.jobRole || drive.jobRole}</TableCell>
+   639→                              <TableCell>
+   640→                                <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+   641→                                  {p.ctc || drive.ctc}
+   642→                                </Badge>
+   643→                              </TableCell>
+   644→                              <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{formatDate(p.joiningDate)}</TableCell>
+   645→                              <TableCell className="text-right">
+   646→                                <Button
+   647→                                  variant="ghost"
+   648→                                  size="icon"
+   649→                                  className="h-7 w-7 text-rose-600 opacity-0 transition-opacity hover:bg-rose-50 hover:text-rose-700 group-hover:opacity-100 dark:hover:bg-rose-900/20"
+   650→                                  onClick={() => setRemoveTarget(p)}
+   651→                                >
+   652→                                  <Trash2 className="h-3.5 w-3.5" />
+   653→                                </Button>
+   654→                              </TableCell>
+   655→                            </TableRow>
+   656→                          ))}
+   657→                        </TableBody>
+   658→                      </Table>
+   659→                    </div>
+   660→                  </>
+   661→                )}
+   662→              </CardContent>
+   663→            </Card>
+   664→          </TabsContent>
+   665→        </Tabs>
+   666→      </div>
+   667→
+   668→      {/* Remove selected student confirmation */}
+   669→      <AlertDialog open={!!removeTarget} onOpenChange={(open) => !open && setRemoveTarget(null)}>
+   670→        <AlertDialogContent>
+   671→          <AlertDialogHeader>
+   672→            <AlertDialogTitle>Remove Selected Student</AlertDialogTitle>
+   673→            <AlertDialogDescription>
+   674→              Are you sure you want to remove <strong>{removeTarget?.student?.fullName}</strong> ({removeTarget?.student?.registerNumber}) from the selected list?
+   675→              Their participation record stays intact but final result will be set to <strong>Rejected</strong>.
+   676→            </AlertDialogDescription>
+   677→          </AlertDialogHeader>
+   678→          <AlertDialogFooter>
+   679→            <AlertDialogCancel disabled={removing}>Cancel</AlertDialogCancel>
+   680→            <AlertDialogAction
+   681→              onClick={handleRemoveSelected}
+   682→              disabled={removing}
+   683→              className="bg-rose-600 hover:bg-rose-700"
+   684→            >
+   685→              {removing ? 'Removing…' : 'Remove from Selected'}
+   686→            </AlertDialogAction>
+   687→          </AlertDialogFooter>
+   688→        </AlertDialogContent>
+   689→      </AlertDialog>
+   690→    </AdminLayout>
+   691→  )
+   692→}
+   693→

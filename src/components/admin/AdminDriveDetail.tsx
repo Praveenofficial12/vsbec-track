@@ -22,7 +22,7 @@ import { toast } from 'sonner'
 import {
   ArrowLeft, Calendar, Briefcase, MapPin, Users, Building2, Target,
   CheckCircle2, XCircle, Clock, Award, Activity, AlertCircle, ListChecks,
-  Trophy, Loader2, Download, IndianRupee, Trash2, RotateCcw, PartyPopper, Bell, Save,
+  Trophy, Loader2, Download, IndianRupee, Trash2, RotateCcw, PartyPopper, Bell, Save, Lock,
 } from 'lucide-react'
 import type { Drive, DriveParticipation, Student } from '@/lib/types'
 
@@ -37,6 +37,15 @@ export function AdminDriveDetail() {
   const [removing, setRemoving] = useState(false)
   const [editEligibility, setEditEligibility] = useState(false)
   const [eligForm, setEligForm] = useState({})
+  // Confirmation popup state for marking a student as SELECTED. Once
+  // confirmed, the final result is locked (the Select in the Final Results
+  // tab becomes disabled) and the drive itself stays ONGOING — only the
+  // dedicated "Remove from Selected" button on the Selected Students tab
+  // can unlock it.
+  const [selectTarget, setSelectTarget] = useState<DriveParticipation | null>(null)
+  const [selecting, setSelecting] = useState(false)
+  // Celebration popup shown after a student is successfully marked SELECTED.
+  const [celebration, setCelebration] = useState<DriveParticipation | null>(null)
 
   const refreshDrive = async () => {
     if (!driveId) return
@@ -59,6 +68,38 @@ export function AdminDriveDetail() {
       toast.error(e.message)
     } finally {
       setUpdating(null)
+    }
+  }
+
+  // When the admin picks "SELECTED" in the Final Results dropdown we do NOT
+  // update immediately. Instead we open a confirmation popup so the admin can
+  // review the offer details (job role, CTC, joining location, joining date)
+  // before the result is locked in. Only after confirmation do we call the
+  // API — and the drive itself stays ONGOING (we never auto-close the drive
+  // when a single student is marked selected).
+  const handleConfirmSelect = async () => {
+    if (!selectTarget || !drive) return
+    setSelecting(true)
+    try {
+      await apiPut('/api/participations', {
+        participationId: selectTarget.id,
+        finalResult: 'SELECTED',
+        jobRole: drive.jobRole,
+        ctc: drive.ctc,
+        joiningLocation: drive.location,
+        joiningDate: '2026-07-01',
+      })
+      await refreshDrive()
+      // Show the celebration popup and trigger the confetti toast.
+      setCelebration(selectTarget)
+      toast.success(`${selectTarget.student?.fullName} marked as SELECTED — final result locked`, {
+        icon: <PartyPopper className="h-4 w-4" />,
+      })
+      setSelectTarget(null)
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to mark as selected')
+    } finally {
+      setSelecting(false)
     }
   }
 
@@ -534,16 +575,22 @@ export function AdminDriveDetail() {
                         </div>
                         <Select
                           value={p.finalResult || 'IN_PROGRESS'}
-                          onValueChange={(v) => updateParticipation(p, {
-                            finalResult: v,
-                            jobRole: drive.jobRole,
-                            ctc: drive.ctc,
-                            joiningLocation: drive.location,
-                            joiningDate: '2026-07-01',
-                          })}
-                          disabled={updating === p.id}
+                          onValueChange={(v) => {
+                            // SELECTED is gated behind a confirmation popup
+                            // and locks the result once applied. The drive
+                            // itself stays ONGOING — selection does not close
+                            // the drive for the remaining students.
+                            if (v === 'SELECTED') {
+                              setSelectTarget(p)
+                              return
+                            }
+                            updateParticipation(p, { finalResult: v })
+                          }}
+                          disabled={updating === p.id || p.finalResult === 'SELECTED'}
                         >
-                          <SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className={`h-8 w-36 text-xs ${p.finalResult === 'SELECTED' ? 'border-emerald-400 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : ''}`}>
+                            <SelectValue />
+                          </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="SELECTED">Selected</SelectItem>
                             <SelectItem value="REJECTED">Rejected</SelectItem>
@@ -551,6 +598,11 @@ export function AdminDriveDetail() {
                             <SelectItem value="WITHDRAWN">Withdrawn</SelectItem>
                           </SelectContent>
                         </Select>
+                        {p.finalResult === 'SELECTED' && (
+                          <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                            <Lock className="mr-1 h-3 w-3" /> Locked
+                          </Badge>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -669,10 +721,10 @@ export function AdminDriveDetail() {
       <AlertDialog open={!!removeTarget} onOpenChange={(open) => !open && setRemoveTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove Selected Student</AlertDialogTitle>
+            <AlertDialogTitle>Unlock & Remove Selected Student</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove <strong>{removeTarget?.student?.fullName}</strong> ({removeTarget?.student?.registerNumber}) from the selected list?
-              Their participation record stays intact but final result will be set to <strong>Rejected</strong>.
+              Are you sure you want to unlock and remove <strong>{removeTarget?.student?.fullName}</strong> ({removeTarget?.student?.registerNumber}) from the selected list?
+              Their participation record stays intact but the locked final result will be changed to <strong>Rejected</strong>, which re-opens the result for further editing.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -682,9 +734,93 @@ export function AdminDriveDetail() {
               disabled={removing}
               className="bg-rose-600 hover:bg-rose-700"
             >
-              {removing ? 'Removing…' : 'Remove from Selected'}
+              {removing ? 'Removing…' : 'Unlock & Remove'}
             </AlertDialogAction>
           </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirmation popup shown BEFORE a student is marked SELECTED.
+          Once confirmed, the result is locked — it can only be unlocked via
+          the dedicated "Unlock & Remove" button on the Selected Students tab.
+          The drive itself stays ONGOING; we never auto-close a drive just
+          because one student was selected. */}
+      <AlertDialog open={!!selectTarget} onOpenChange={(open) => !open && setSelectTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-amber-500" />
+              Confirm Final Selection
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <p>
+                  You are about to mark <strong>{selectTarget?.student?.fullName}</strong>{' '}
+                  ({selectTarget?.student?.registerNumber}) as <strong className="text-emerald-600 dark:text-emerald-400">SELECTED</strong>.
+                </p>
+                <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs">
+                  <p className="mb-2 font-medium text-foreground">Offer details that will be recorded:</p>
+                  <ul className="space-y-1 text-muted-foreground">
+                    <li><span className="font-medium text-foreground">Job Role:</span> {drive?.jobRole || '—'}</li>
+                    <li><span className="font-medium text-foreground">CTC:</span> {drive?.ctc || '—'}</li>
+                    <li><span className="font-medium text-foreground">Joining Location:</span> {drive?.location || '—'}</li>
+                    <li><span className="font-medium text-foreground">Joining Date:</span> 2026-07-01</li>
+                  </ul>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Once confirmed, this final result will be <strong>locked</strong>. The drive itself will remain open
+                  (ONGOING) so other students can continue through their rounds. To undo this later, use the
+                  dedicated <em>Unlock &amp; Remove</em> button on the Selected Students tab.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={selecting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmSelect}
+              disabled={selecting}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              {selecting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Locking…</> : <><Lock className="mr-2 h-4 w-4" /> Confirm &amp; Lock Selection</>}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Celebration popup shown AFTER a student is successfully marked SELECTED. */}
+      <AlertDialog open={!!celebration} onOpenChange={(open) => !open && setCelebration(null)}>
+        <AlertDialogContent className="border-emerald-200 dark:border-emerald-800">
+          <div className="flex flex-col items-center gap-4 py-4 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-soft-lg">
+              <PartyPopper className="h-8 w-8" />
+            </div>
+            <div>
+              <AlertDialogTitle className="text-center text-xl">Congratulations!</AlertDialogTitle>
+              <AlertDialogDescription className="mt-2 text-center">
+                <strong className="text-foreground">{celebration?.student?.fullName}</strong>{' '}
+                ({celebration?.student?.registerNumber}) has been marked as <strong className="text-emerald-600 dark:text-emerald-400">SELECTED</strong>{' '}
+                for <strong className="text-foreground">{drive?.company?.name}</strong>.
+              </AlertDialogDescription>
+            </div>
+            <div className="grid w-full grid-cols-2 gap-3 text-sm">
+              <div className="rounded-lg border border-border bg-muted/40 p-3">
+                <p className="text-xs text-muted-foreground">Job Role</p>
+                <p className="font-medium">{drive?.jobRole || '—'}</p>
+              </div>
+              <div className="rounded-lg border border-border bg-muted/40 p-3">
+                <p className="text-xs text-muted-foreground">CTC</p>
+                <p className="font-medium text-emerald-600 dark:text-emerald-400">{drive?.ctc || '—'}</p>
+              </div>
+            </div>
+            <div className="flex w-full items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
+              <Lock className="h-3.5 w-3.5 shrink-0" />
+              <span>Final result is now locked. The drive stays open for the remaining students.</span>
+            </div>
+            <AlertDialogAction className="w-full bg-emerald-600 hover:bg-emerald-700" onClick={() => setCelebration(null)}>
+              Continue
+            </AlertDialogAction>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
     </AdminLayout>

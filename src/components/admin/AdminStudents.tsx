@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
 import { useAppStore } from '@/lib/store'
-import { apiGet, apiDelete, csvToArray, STATUS_COLORS, formatDate, avatarColor, initials } from '@/lib/api'
+import { apiGet, csvToArray, STATUS_COLORS, formatDate, avatarColor, initials } from '@/lib/api'
 import { AdminLayout } from './AdminLayout'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -12,16 +12,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
-  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { EmptyState, CardSkeleton } from '@/components/common/States'
 import {
-  Users, Search, Download, Filter, Eye, Award, X, RefreshCw, UserCheck, Trash2, AlertTriangle,
+  Users, Search, Download, Filter, Eye, Award, X, RefreshCw, UserCheck, ShieldCheck,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Student } from '@/lib/types'
+
+// Per requirement: registered students can NOT be removed from the website UI.
+// They can only be removed by staff directly from the database. There is no
+// Delete button / dialog anywhere on this page, and the DELETE /api/students/[id]
+// endpoint returns 403.
 
 // 13 official V.S.B. Engineering College departments (matches DEPARTMENT_PASSWORDS)
 const DEPARTMENTS = [
@@ -53,8 +54,9 @@ export function AdminStudents() {
     roundNotCleared: '',
   })
   const [selected, setSelectedStudents] = useState<string[]>([])
-  const [deleteTarget, setDeleteTarget] = useState<Student | null>(null)
-  const [deleting, setDeleting] = useState(false)
+  // No deleteTarget / deleting state here: students registered on the website
+  // can NOT be deleted from the UI. Staff must remove them directly from the
+  // database. The DELETE /api/students/[id] endpoint also returns 403.
   const [totalCount, setTotalCount] = useState(0)
   const [currentPage, setCurrentPage] = useState(0)
   const pageSize = 100
@@ -93,21 +95,6 @@ export function AdminStudents() {
   const handleView = (id: string) => {
     setSelected('studentId', id)
     setView('admin-student-detail')
-  }
-
-  const handleDelete = async () => {
-    if (!deleteTarget) return
-    setDeleting(true)
-    try {
-      await apiDelete(`/api/students/${deleteTarget.id}`)
-      toast.success(`Deleted ${deleteTarget.fullName}'s record`)
-      setStudents(prev => prev.filter(s => s.id !== deleteTarget.id))
-      setDeleteTarget(null)
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to delete student')
-    } finally {
-      setDeleting(false)
-    }
   }
 
   const handleExport = () => {
@@ -321,13 +308,13 @@ export function AdminStudents() {
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100 text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-900/20"
-                                      onClick={(e) => { e.stopPropagation(); setDeleteTarget(s) }}
+                                      className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
+                                      onClick={(e) => { e.stopPropagation(); handleView(s.id) }}
                                     >
-                                      <Trash2 className="h-3.5 w-3.5" />
+                                      <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                                     </Button>
                                   </TooltipTrigger>
-                                  <TooltipContent>Delete student</TooltipContent>
+                                  <TooltipContent>Protected record — edit profile instead (deletion requires database access)</TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
                             </div>
@@ -372,33 +359,17 @@ export function AdminStudents() {
         {totalCount > 0 && totalCount <= pageSize && (
           <p className="text-sm text-muted-foreground">Showing all {totalCount} student{totalCount !== 1 ? 's' : ''}</p>
         )}
-      </div>
 
-      {/* Delete confirmation dialog */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-rose-600" />
-              Delete Student Record
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to permanently delete <strong>{deleteTarget?.fullName}</strong> ({deleteTarget?.registerNumber})?
-              This will also remove all of their certifications, projects, drive participations, and round results. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={deleting}
-              className="bg-rose-600 hover:bg-rose-700"
-            >
-              {deleting ? 'Deleting...' : 'Delete Permanently'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        {/* Info banner: registered students are protected from UI deletion. */}
+        <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
+          <ShieldCheck className="h-4 w-4 shrink-0" />
+          <p>
+            <strong>Student records are protected.</strong> Once a student registers on the website, their
+            account cannot be removed from this panel. To permanently delete a student, staff must remove
+            the record directly from the database.
+          </p>
+        </div>
+      </div>
     </AdminLayout>
   )
 }

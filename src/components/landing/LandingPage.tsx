@@ -40,6 +40,7 @@ const CAMPUS_IMAGES = [
   { src: COLLEGE_IMAGES.mainBuilding, label: 'Main Building', caption: 'Administrative block & central wing' },
   { src: COLLEGE_IMAGES.entranceGate, label: 'Main Gate', caption: 'The gateway to engineering excellence' },
   { src: COLLEGE_IMAGES.campusSignage, label: 'Campus Block', caption: 'College building with official signage' },
+  { src: COLLEGE_IMAGES.campusLife, label: 'Campus Life', caption: 'Students in front of the main block' },
   { src: COLLEGE_IMAGES.campusBuilding, label: 'Academic Block', caption: 'Academic block surrounded by greenery' },
   { src: COLLEGE_IMAGES.campusAerial, label: 'Campus View', caption: 'Lush green campus environment' },
 ]

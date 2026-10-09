@@ -161,3 +161,42 @@ Stage Summary:
 - Prisma schema extended with `UserActivityLog` model + 3 new Student columns; DB synced.
 - Lint clean (0 errors, 0 warnings). All new endpoints return 200 in end-to-end smoke tests.
 - Note: existing seeded students have `password = 'student@123'` (not the dept password), so they will not pass the new login validation until their password is cascaded to the official dept password (this can be done by PUT'ing each department's password via /api/admin/department-passwords, which will cascade-update every student in that dept in one shot). New students who self-register will automatically use the official dept password as their login password.
+
+---
+Task ID: 11
+Agent: Main (Orchestrator)
+Task: Final-round fixes — (1) Lock final result on SELECTED with confirmation popup but keep drive open; (2) verify and fix VSBEC Karur campus images on the landing page; (3) finish the full website without errors; (4) prevent students from being removed from the website UI — only staff with DB access can delete them.
+
+Work Log:
+- Re-analyzed every image used on the landing page with the VLM (vision) skill. Five of the six previously cached campus images were re-confirmed as authentic V.S.B. Engineering College, Karur — the sixth (the wide CTA background, d0d2cb45628c.png) was flagged by the VLM as NOT VSBEC (it showed a building with arched windows and red tiled roofing that does not match the campus).
+- Re-ran the image-search skill against the query "V.S.B. Engineering College Karur Tamil Nadu India campus building wide view" and VLM-verified two new candidates: an aerial view of the campus pond (1920x800, perfect for the CTA background) and a 2000x1500 photo of students walking in front of the VSB ENGG. COLLEGE main block. Both were verified by VLM as authentic VSBEC, Karur — the second image even shows the visible signboard "VSB ENGINEERING COLLEGE, No.67, Coimbatore Road, Karur - 639 111".
+- Updated src/lib/college.ts: replaced the questionable campusWide URL with the verified aerial view, added a new campusLife image (students in front of main block), and annotated every entry with the VLM verification result so future maintainers can see exactly why each URL was chosen.
+- Updated src/components/landing/LandingPage.tsx: the CAMPUS_IMAGES grid now shows 6 verified VSBEC photos (Main Building, Main Gate, Campus Block, Campus Life, Academic Block, Campus View), and the CTA section background uses the new verified campusWide aerial view.
+- Reworked the SELECTED flow in src/components/admin/AdminDriveDetail.tsx:
+  * Added a dedicated AlertDialog confirmation popup that opens BEFORE a student is marked SELECTED. The popup shows the offer details (Job Role, CTC, Joining Location, Joining Date) pulled from the drive, plus a clear message that the result will be locked and that the drive itself will stay ONGOING.
+  * On confirm, the participations PUT endpoint is called with finalResult=SELECTED. The drive status is NOT touched — it stays at whatever it was (UPCOMING / ONGOING). Only the dedicated "Mark as Completed" button on the drive header can close a drive.
+  * After confirmation, a celebration popup ("Congratulations!") is shown with the student name, company name, job role, CTC, and a "Final result is now locked. The drive stays open for the remaining students." info banner.
+  * The Final Results dropdown is now disabled (and styled emerald) once a student is SELECTED. A "Locked" badge with a lock icon appears next to it.
+  * The Selected Students tab's existing per-row action button now opens an "Unlock & Remove Selected Student" AlertDialog (renamed from "Remove Selected Student") that explains the result will be re-opened for editing.
+- Removed student deletion from the website UI per the requirement "once the student is register to the website and that user should not remove from the website until the staff remove from the database":
+  * src/components/admin/AdminStudents.tsx: removed the Trash2 / AlertTriangle imports, the deleteTarget / deleting state, the handleDelete function, the per-row delete button, and the entire delete-confirmation AlertDialog. Replaced the per-row Trash2 button with a ShieldCheck "Protected record — edit profile instead (deletion requires database access)" tooltip button. Added an emerald info banner at the bottom of the page that explains: registered students cannot be removed from this panel; staff must remove them directly from the database.
+  * src/app/api/students/[id]/route.ts: the DELETE handler now returns HTTP 403 with a clear error message and a hint that staff should use Prisma Studio (bunx prisma studio) or the sqlite3 CLI, including the cascade delete order (RoundResult → DriveParticipation → Certification → Project → Notification → Student). The original cascade-delete logic is preserved as a commented reference for staff.
+- The bulk "Erase all data" admin action (POST /api/admin/reset-database) is intentionally left untouched — that is an academic-year transition tool, not an individual student deletion flow.
+- Lint passes clean (0 errors, 0 warnings).
+- End-to-end browser verification with agent-browser:
+  * Landing page renders cleanly — all 6 campus images load (verified via VLM screenshot analysis: "no broken images, misaligned text, or overlapping elements"), VSBEC logo visible in nav + footer, campusWide CTA background loads as 1920x800.
+  * Admin login (Vsbec@2027 / admin@123) works; dashboard renders with stats.
+  * Students page: no delete button anywhere; only View + Protected buttons; emerald "Student records are protected" info banner visible.
+  * DELETE /api/students/<any-id> → HTTP 403 with the protection message (verified via curl).
+  * Drive detail > Final Results tab: picking "Selected" opens the confirmation popup (verified via VLM screenshot — popup shows offer details and "Confirm & Lock Selection" button). On confirm, the celebration popup appears and the dropdown becomes disabled with a "Locked" badge. Drive status stays at its original value (verified via API: status remained "UPCOMING" — the system never auto-closes a drive when a single student is selected).
+  * Selected Students tab: shows the selected student with all offer details (Job Role, CTC, Joining Date) and the "Unlock & Remove" button opens the renamed confirmation popup.
+  * Student Login and Student Registration pages still render correctly (registration 4-step wizard visible with all fields).
+- Cleaned up the temporary test participation created during verification (and reset the test student's placementStatus back to UNPLACED) so the database returns to its original clean state.
+
+Stage Summary:
+- All 4 requested fixes delivered:
+  1. SELECTED final result now shows a confirmation popup (with offer details) and locks the result; the drive itself stays open (never auto-closed).
+  2. Landing page VSBEC images: 6 photos, all individually VLM-verified as authentic V.S.B. Engineering College, Karur — the questionable CTA background was replaced with a verified 1920x800 aerial view of the campus pond, and a new "Campus Life" photo (students in front of VSB ENGG. COLLEGE signboard) was added.
+  3. Full website: lint clean, no console errors, all core flows browser-verified end-to-end.
+  4. Student removal protection: no Delete button anywhere in the UI; DELETE /api/students/[id] returns HTTP 403; staff must remove students directly from the database. The bulk "Erase all data" academic-year tool is preserved.
+- Files touched: src/lib/college.ts, src/components/landing/LandingPage.tsx, src/components/admin/AdminDriveDetail.tsx, src/components/admin/AdminStudents.tsx, src/app/api/students/[id]/route.ts.
