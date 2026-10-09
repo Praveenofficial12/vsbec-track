@@ -37,12 +37,12 @@ const WORKFLOW_STEPS = [
 ]
 
 const CAMPUS_IMAGES = [
-  { src: COLLEGE_IMAGES.mainBuilding, label: 'Main Building', caption: 'Administrative block & central wing' },
+  { src: COLLEGE_IMAGES.mainBuilding, label: 'Main Building', caption: 'Administrative block with national flag' },
+  { src: COLLEGE_IMAGES.aerialView, label: 'Campus Aerial', caption: 'Aerial view with sports field' },
+  { src: COLLEGE_IMAGES.courtyard, label: 'Courtyard', caption: 'Colorful student gathering area' },
   { src: COLLEGE_IMAGES.entranceGate, label: 'Main Gate', caption: 'The gateway to engineering excellence' },
-  { src: COLLEGE_IMAGES.campusSignage, label: 'Campus Block', caption: 'College building with official signage' },
-  { src: COLLEGE_IMAGES.campusLife, label: 'Campus Life', caption: 'Students in front of the main block' },
-  { src: COLLEGE_IMAGES.campusBuilding, label: 'Academic Block', caption: 'Academic block surrounded by greenery' },
-  { src: COLLEGE_IMAGES.campusAerial, label: 'Campus View', caption: 'Lush green campus environment' },
+  { src: COLLEGE_IMAGES.academicBlock, label: 'Academic Block', caption: 'Academic block with vibrant trim' },
+  { src: COLLEGE_IMAGES.studentsWalking, label: 'Campus Life', caption: 'Students in front of the main block' },
 ]
 
 export function LandingPage() {
@@ -384,7 +384,7 @@ export function LandingPage() {
       {/* CTA Section with campus banner background */}
       <section className="relative overflow-hidden border-t border-border text-white">
         <img
-          src={COLLEGE_IMAGES.campusWide}
+          src={COLLEGE_IMAGES.aerialView}
           alt="V.S.B. Engineering College, Karur campus"
           className="absolute inset-0 h-full w-full object-cover"
           loading="lazy"

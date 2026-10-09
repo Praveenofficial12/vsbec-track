@@ -615,12 +615,16 @@ export function StudentCompanies() {
                           const previousRoundsCleared = idx === 0 || rounds.slice(0, idx).every((prevRound) => {
                             return getRoundStatus(prevRound.id) === 'CLEARED'
                           })
-                          // If drive is already rejected, lock everything
+                          // If drive is already rejected, lock everything.
+                          // ALSO lock all rounds when the final result is SELECTED —
+                          // once selected, the student cannot change any round status.
                           const driveClosed = myParticipation?.finalResult === 'REJECTED' || previousRoundFailed
+                          const finalLocked = myParticipation?.finalResult === 'SELECTED'
 
                           return (
                             <div key={round.id} className={`flex flex-wrap items-center gap-3 rounded-lg border p-3 ${
                               driveClosed ? 'border-rose-200 bg-rose-50/50 dark:border-rose-800 dark:bg-rose-900/10' :
+                              finalLocked ? 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-700 dark:bg-emerald-900/10' :
                               previousRoundsCleared ? 'border-border bg-card' : 'border-border bg-muted/30 opacity-70'
                             }`}>
                               <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
@@ -639,11 +643,14 @@ export function StudentCompanies() {
                                 {driveClosed && status === 'NOT_CLEARED' && (
                                   <p className="text-[10px] font-medium text-rose-600 dark:text-rose-400">Drive closed — not cleared</p>
                                 )}
-                                {!previousRoundsCleared && !driveClosed && (
+                                {finalLocked && (
+                                  <p className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">Locked — final result is SELECTED</p>
+                                )}
+                                {!previousRoundsCleared && !driveClosed && !finalLocked && (
                                   <p className="text-[10px] text-muted-foreground">Locked — clear previous rounds first</p>
                                 )}
                               </div>
-                              {driveClosed ? (
+                              {driveClosed || finalLocked ? (
                                 <Badge variant="outline" className={`${STATUS_COLORS[status] || STATUS_COLORS.PENDING} text-xs`}>
                                   {status ? status.replace(/_/g, ' ') : 'Locked'}
                                 </Badge>

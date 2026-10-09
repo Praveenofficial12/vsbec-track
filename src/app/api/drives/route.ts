@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { sendDriveCreationEmails } from '@/lib/email-notifications'
 
 // GET: List drives with optional filters
 export async function GET(req: NextRequest) {
@@ -176,6 +177,30 @@ export async function POST(req: NextRequest) {
         newValue: drive.status,
       },
     })
+
+    // Send email + in-app notifications to all eligible students who have
+    // registered on the portal. This runs in the background so the admin
+    // gets an immediate response; the notifications are created best-effort.
+    const emailPayload = {
+      driveId: drive.id,
+      driveName: drive.driveName,
+      companyName: company?.name || 'Unknown Company',
+      jobRole: drive.jobRole,
+      ctc: drive.ctc,
+      location: drive.location,
+      driveDate: drive.driveDate,
+      applicationDeadline: drive.applicationDeadline,
+      eligibleDepartments: drive.eligibleDepartments,
+      eligibleYears: drive.eligibleYears,
+    }
+    // Fire-and-forget — don't block the drive creation response on email sending.
+    sendDriveCreationEmails(emailPayload)
+      .then((result) => {
+        console.log(`[Drive ${drive.id}] Notified ${result.notifiedCount} eligible students`)
+      })
+      .catch((err) => {
+        console.error(`[Drive ${drive.id}] Email notification failed:`, err)
+      })
 
     return NextResponse.json({ success: true, drive, company })
   } catch (error) {

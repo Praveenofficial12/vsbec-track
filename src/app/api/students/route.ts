@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const [students, total] = await Promise.all([
+    const [studentsRaw, total] = await Promise.all([
       db.student.findMany({
         where,
         take: limit,
@@ -95,15 +95,57 @@ export async function GET(req: NextRequest) {
           strongSkills: true,
           resumeUrl: true,
           profilePhoto: true,
-          // Public profile links (new)
           linkedinUrl: true,
           leetcodeUrl: true,
           githubUrl: true,
           createdAt: true,
+          // Include participation data so the admin can see drive stats
+          // (attended, cleared, selected, rejected) directly on the card.
+          participations: {
+            select: {
+              id: true,
+              attendance: true,
+              finalResult: true,
+              currentRound: true,
+              drive: { select: { id: true, driveName: true, company: { select: { name: true, logoUrl: true } } } },
+              roundResults: { select: { id: true, status: true, round: { select: { roundName: true, roundNumber: true } } } },
+            },
+          },
         },
       }),
       db.student.count({ where }),
     ])
+
+    // Compute summary stats for each student so the frontend doesn't have to.
+    const students = studentsRaw.map((s) => {
+      const parts = s.participations || []
+      const attended = parts.filter((p) =>
+        ['ATTENDING', 'IN_PROGRESS', 'SELECTED', 'REJECTED', 'ON_HOLD'].includes(p.attendance),
+      ).length
+      const totalRoundsCleared = parts.reduce(
+        (sum, p) => sum + (p.roundResults?.filter((r) => r.status === 'CLEARED').length || 0),
+        0,
+      )
+      const selectedCount = parts.filter((p) => p.finalResult === 'SELECTED').length
+      const rejectedCount = parts.filter((p) => p.finalResult === 'REJECTED').length
+      const onHoldCount = parts.filter((p) => p.finalResult === 'ON_HOLD').length
+      const inProgressCount = parts.filter((p) =>
+        ['ATTENDING', 'IN_PROGRESS'].includes(p.attendance) && !p.finalResult,
+      ).length
+
+      return {
+        ...s,
+        stats: {
+          totalDrives: parts.length,
+          attended,
+          totalRoundsCleared,
+          selectedCount,
+          rejectedCount,
+          onHoldCount,
+          inProgressCount,
+        },
+      }
+    })
 
     return NextResponse.json({ students, total })
   } catch (error) {

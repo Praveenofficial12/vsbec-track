@@ -9,31 +9,22 @@ export const COLLEGE_TAGLINE = 'Empowering Engineers · Building Careers · Shap
 // Official V.S.B. Engineering College logo (local file)
 export const COLLEGE_LOGO = '/vsbec-logo.png'
 
-// High-resolution V.S.B. Engineering College campus images
-// All individually verified by a vision model as authentic VSBEC, Karur — no
-// watermarks, no off-campus buildings, no other institutions.
+// V.S.B. Engineering College campus images — local files in /public/campus/.
+// All 6 images were provided by the user and individually verified by a vision
+// model (VLM) as authentic VSBEC, Karur photos. Each shows the "VSB ENGG.
+// COLLEGE" rooftop signage, the colorful entrance arch, or recognizable campus
+// architecture. No external URLs are used — everything is served locally.
 export const COLLEGE_IMAGES = {
-  // Main building — 3840x2530 HD resolution. Verified: rooftop sign reads
-  // "VSB ENGG. COLLEGE" in orange/yellow letters. White multi-story building.
-  mainBuilding: 'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/8b4b3c7fe8dd.webp',
-  // Entrance gate — colorful arch with black metal gates. Verified: large
-  // blue text on the arch reads "V.S.B. ENGINEERING COLLEGE".
-  entranceGate: 'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/898d0dc546d3.webp',
-  // Building with Tamil signage — 1728x972. Verified: rooftop Tamil text
-  // reads "வி.எஸ்.பி. பொறியியல் கல்லூரி" (V.S.B. Engineering College).
-  campusSignage: 'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/d68c218a4168.jpg',
-  // Academic block surrounded by greenery — 1000x1000. Verified: white
-  // building with green vertical stripes matches VSBEC's architectural style.
-  campusBuilding: 'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/f4d91603124e.jpg',
-  // Campus aerial view — 1498x1000. Verified: white building with teal
-  // window frames and circular oculus matches VSBEC's central block.
-  campusAerial: 'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/58c5198933ec.jpg',
-  // Campus life — 2000x1500. Verified: students walking in front of the
-  // VSB Engineering College main building; signboard reads "VSB ENGINEERING
-  // COLLEGE, No.67, Coimbatore Road, Karur - 639 111".
-  campusLife: 'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/01f51e2bfb9e.jpg',
-  // Wide panoramic campus view — 1920x800. Verified: aerial view of the
-  // large rectangular rainwater harvesting pond surrounded by palm trees,
-  // lawns, and VSBEC campus buildings. Perfect for hero/CTA background.
-  campusWide: 'https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/c9f5f8064a44.jpg',
+  // Main building with Indian flag — rooftop sign reads "VSB ENGG. COLLEGE".
+  mainBuilding: '/campus/1-main-building.png',
+  // Aerial view of the campus with sports field in front.
+  aerialView: '/campus/2-aerial-view.png',
+  // Courtyard with colorful curved benches and academic block.
+  courtyard: '/campus/3-courtyard.png',
+  // Entrance gate — arch reads "V.S.B. ENGINEERING COLLEGE" in blue letters.
+  entranceGate: '/campus/4-entrance-gate.png',
+  // Academic block — orange/yellow trim, covered entrance portico.
+  academicBlock: '/campus/5-academic-block.png',
+  // Students walking in front of the main building with "VSB ENGG. COLLEGE" sign.
+  studentsWalking: '/campus/6-students-walking.png',
 }

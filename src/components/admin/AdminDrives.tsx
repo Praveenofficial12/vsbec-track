@@ -216,7 +216,13 @@ export function AdminDrives() {
                             <p className="truncate text-xs text-muted-foreground">{drive.jobRole}</p>
                           </div>
                         </div>
-                        <Badge variant="outline" className={`shrink-0 ${STATUS_COLORS[drive.status]}`}>{drive.status.replace(/_/g, ' ')}</Badge>
+                        <Badge variant="outline" className={`shrink-0 ${STATUS_COLORS[drive.status]}`}>
+                          {/* Don't show "SELECTED" on the card — the admin
+                              doesn't need to see the drive-level SELECTED
+                              status on the list card. Show "Ongoing" instead
+                              since a SELECTED drive is still open (not closed). */}
+                          {drive.status === 'SELECTED' ? 'Ongoing' : drive.status.replace(/_/g, ' ')}
+                        </Badge>
                       </div>
 
                       <p className="mb-3 line-clamp-1 text-sm font-medium">{drive.driveName}</p>
