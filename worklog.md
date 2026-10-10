@@ -600,3 +600,48 @@ Stage Summary:
 - Browser refresh no longer logs the user out: the `beforeunload` listener was removed, the heartbeat grace period was increased to 2 minutes, and the initial validation has a retry mechanism.
 - Files open online in a new window with download/screenshot/right-click disabled.
 - Lint clean; session + file APIs verified end-to-end; dev server running with auto-restart loop.
+
+---
+Task ID: 20
+Agent: Main (Orchestrator)
+Task: Fix file viewing 404 error, add Add/Delete round buttons in admin, extend session to 6 hours.
+
+Work Log:
+- Fixed file viewing 404 error (src/lib/file-viewer.ts):
+  * Root cause: the viewer window opens as about:blank, and all file references used relative paths (e.g. /uploads/drives/...) which resolved against about:blank — resulting in 404.
+  * Fix: ALL file references now use ABSOLUTE URLs (window.location.origin + filePath) so they resolve correctly regardless of the viewer window's origin.
+  * PDFs: changed from <embed> to <iframe> for better cross-browser compatibility (browsers have built-in PDF viewers that work in iframes).
+  * Office files (.xlsx, .docx, .pptx): use Google Docs Viewer (https://docs.google.com/viewer?url=<absoluteUrl>&embedded=true) in an <iframe> — renders all Office formats inline without any plugins.
+  * Text files: fetched via JavaScript fetch() and displayed in a <pre> block (avoids iframe sandbox issues with about:blank).
+  * Other types: fallback <iframe> with a "cannot preview" message.
+
+- Added Add/Delete round functionality:
+  * Created src/app/api/drives/[id]/rounds/route.ts:
+    - POST: adds a new round with auto-incremented roundNumber (max + 1)
+    - GET: lists all rounds for a drive
+  * The existing src/app/api/drives/[id]/rounds/[roundId]/route.ts already has PUT (edit) and DELETE handlers.
+  * Updated AdminDriveDetail.tsx:
+    - Added "Add Round" button in the Rounds tab header — toggles an inline form with Round Name + Description fields
+    - handleAddRound() calls POST /api/drives/<id>/rounds and refreshes the drive
+    - Added "Delete" button (rose-colored) on each round card — calls DELETE /api/drives/<id>/rounds/<roundId> with a confirmation dialog
+    - handleDeleteRound() deletes the round and all its round results, then refreshes
+  * Changes to rounds are immediately visible in the student portal because the student's drive detail modal fetches the drive data (including rounds) from the same /api/drives/<id> endpoint.
+
+- Extended login session to 6 hours (src/app/api/auth/session/route.ts):
+  * Changed SESSION_MAX_AGE_MS from 1 hour to 6 hours (6 * 60 * 60 * 1000)
+  * Updated the expired message in use-session-heartbeat.ts to say "6 hour limit"
+  * Verified: session validation returns remainingMs: 21562301 (≈5.99 hours)
+
+Verification:
+- Lint passes clean (0 errors, 0 warnings).
+- Session: login → validate (valid:true, remainingMs:21562301 ≈ 6 hours).
+- Add round: POST /api/drives/<id>/rounds → 200, new round created with roundNumber=6.
+- Delete round: DELETE /api/drives/<id>/rounds/<roundId> → 200, round deleted.
+- Verified rounds list returns to original 5 after test round was deleted.
+- Cleaned up all test data.
+
+Stage Summary:
+- File viewing fixed: all file URLs are now absolute, so no more 404 errors. PDFs render in iframe, Office files via Google Docs Viewer, images inline, text files fetched and displayed.
+- Admin can add new rounds (with name + description) and delete existing rounds — changes immediately reflect in the student portal.
+- Session expires after 6 hours (was 1 hour).
+- Lint clean; all APIs verified end-to-end; dev server running with auto-restart loop.

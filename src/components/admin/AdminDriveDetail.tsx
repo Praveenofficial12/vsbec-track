@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useAppStore } from '@/lib/store'
-import { apiGet, apiPut, apiDelete, csvToArray, formatDate, STATUS_COLORS, avatarColor, initials } from '@/lib/api'
+import { apiGet, apiPost, apiPut, apiDelete, csvToArray, formatDate, STATUS_COLORS, avatarColor, initials } from '@/lib/api'
 import { AdminLayout } from './AdminLayout'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -85,6 +85,13 @@ export function AdminDriveDetail() {
   const [editingRound, setEditingRound] = useState<string | null>(null)
   const [roundForm, setRoundForm] = useState<{ roundName: string; description: string; date: string; startTime: string; endTime: string; status: string }>({ roundName: '', description: '', date: '', startTime: '', endTime: '', status: 'UPCOMING' })
   const [savingRound, setSavingRound] = useState(false)
+  // Add-round state
+  const [showAddRound, setShowAddRound] = useState(false)
+  const [newRoundName, setNewRoundName] = useState('')
+  const [newRoundDesc, setNewRoundDesc] = useState('')
+  const [addingRound, setAddingRound] = useState(false)
+  // Delete-round state
+  const [deletingRoundId, setDeletingRoundId] = useState<string | null>(null)
 
   const refreshDrive = async () => {
     if (!driveId) return
@@ -239,6 +246,46 @@ export function AdminDriveDetail() {
     if (!driveId) return
     // Trigger the CSV download via a direct browser navigation
     window.open(`/api/drives/${driveId}/rounds/${roundId}/cleared-students`, '_blank')
+  }
+
+  // Add a new round to the drive via POST /api/drives/<id>/rounds
+  const handleAddRound = async () => {
+    if (!driveId) return
+    if (!newRoundName.trim()) {
+      toast.error('Round name is required')
+      return
+    }
+    setAddingRound(true)
+    try {
+      await apiPost(`/api/drives/${driveId}/rounds`, {
+        roundName: newRoundName.trim(),
+        description: newRoundDesc.trim() || undefined,
+      })
+      toast.success(`Round "${newRoundName}" added successfully`)
+      setNewRoundName('')
+      setNewRoundDesc('')
+      setShowAddRound(false)
+      await refreshDrive()
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to add round')
+    } finally {
+      setAddingRound(false)
+    }
+  }
+
+  // Delete a round from the drive via DELETE /api/drives/<id>/rounds/<roundId>
+  const handleDeleteRound = async (roundId: string, roundName: string) => {
+    if (!driveId) return
+    setDeletingRoundId(roundId)
+    try {
+      await apiDelete(`/api/drives/${driveId}/rounds/${roundId}`)
+      toast.success(`Round "${roundName}" deleted`)
+      await refreshDrive()
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to delete round')
+    } finally {
+      setDeletingRoundId(null)
+    }
   }
 
   const handleExportSelected = () => {
@@ -758,10 +805,41 @@ export function AdminDriveDetail() {
           <TabsContent value="rounds" className="space-y-4 animate-fade-in-up">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Recruitment Rounds ({rounds.length})</CardTitle>
-                <CardDescription>Round-by-round configuration — click Edit to modify round details or download the list of students who cleared each round.</CardDescription>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <CardTitle className="text-base">Recruitment Rounds ({rounds.length})</CardTitle>
+                    <CardDescription>Add, edit, or delete rounds. Changes are immediately visible to students.</CardDescription>
+                  </div>
+                  <Button size="sm" onClick={() => setShowAddRound(!showAddRound)} className="bg-emerald-600 hover:bg-emerald-700">
+                    + Add Round
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
+                {/* Add Round Form */}
+                {showAddRound && (
+                  <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-700 dark:bg-emerald-900/10">
+                    <p className="mb-3 text-sm font-semibold text-foreground">Add New Round</p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <Label className="text-xs">Round Name *</Label>
+                        <Input value={newRoundName} onChange={(e) => setNewRoundName(e.target.value)} placeholder="e.g. Technical Interview" className="mt-1" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Description (optional)</Label>
+                        <Input value={newRoundDesc} onChange={(e) => setNewRoundDesc(e.target.value)} placeholder="e.g. Core subjects technical interview" className="mt-1" />
+                      </div>
+                    </div>
+                    <div className="mt-3 flex gap-2">
+                      <Button size="sm" onClick={handleAddRound} disabled={addingRound} className="bg-emerald-600 hover:bg-emerald-700">
+                        {addingRound ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : null}
+                        {addingRound ? 'Adding...' : 'Add Round'}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => { setShowAddRound(false); setNewRoundName(''); setNewRoundDesc('') }}>Cancel</Button>
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-3">
                   {rounds.map((round, idx) => (
                     <div key={round.id} className="rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent/30">
@@ -832,7 +910,7 @@ export function AdminDriveDetail() {
                               <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {formatDate(round.date)}</span>
                               <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {round.startTime || '—'} - {round.endTime || '—'}</span>
                             </div>
-                            {/* Action buttons: Edit + Download cleared students */}
+                            {/* Action buttons: Edit + Download cleared students + Delete */}
                             <div className="mt-3 flex flex-wrap gap-2">
                               <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => startEditRound(round)}>
                                 <Save className="h-3 w-3" /> Edit
@@ -844,6 +922,20 @@ export function AdminDriveDetail() {
                                 onClick={() => handleDownloadClearedStudents(round.id, round.roundName)}
                               >
                                 <Download className="h-3 w-3" /> Download Cleared Students
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 gap-1 text-xs border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-400 dark:hover:bg-rose-900/20"
+                                onClick={() => {
+                                  if (confirm(`Delete round "${round.roundName}"? This will also delete all round results for this round. This cannot be undone.`)) {
+                                    handleDeleteRound(round.id, round.roundName)
+                                  }
+                                }}
+                                disabled={deletingRoundId === round.id}
+                              >
+                                {deletingRoundId === round.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                                Delete
                               </Button>
                             </div>
                           </div>

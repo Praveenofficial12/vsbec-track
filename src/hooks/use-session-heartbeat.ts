@@ -52,7 +52,7 @@ export function useSessionHeartbeat() {
         { duration: 8000 },
       )
     } else if (reason === 'expired') {
-      toast.error('Your session has expired (1 hour limit). Please log in again.', { duration: 6000 })
+      toast.error('Your session has expired (6 hour limit). Please log in again.', { duration: 6000 })
     } else {
       toast.error('Your session is no longer valid. Please log in again.', { duration: 6000 })
     }

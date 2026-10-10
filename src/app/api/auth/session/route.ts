@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-// Session lifetime: a session is valid for at most 1 hour from its creation,
+// Session lifetime: a session is valid for at most 6 hours from its creation,
 // regardless of how recently the heartbeat was received. This enforces a
-// hard expiry so users are forced to re-login after 1 hour.
-const SESSION_MAX_AGE_MS = 60 * 60 * 1000 // 1 hour
+// hard expiry so users are forced to re-login after 6 hours.
+const SESSION_MAX_AGE_MS = 6 * 60 * 60 * 1000 // 6 hours
 // Heartbeat grace period: if no heartbeat arrives within 2 minutes, the
 // session is considered stale (tab closed / crashed) and expires early.
 // We use 2 minutes (not 30s) so that browser refreshes — which briefly
