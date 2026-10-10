@@ -754,8 +754,10 @@ export function StudentCompanies() {
 
                     {/* Shared Files — shown ONLY after the student marks
                         "Will Attend". Files open in an in-browser viewer
-                        (new tab) — no download, no right-click, no screenshot. */}
-                    {driveFiles.length > 0 && (
+                        (new tab) — no download, no right-click, no screenshot.
+                        DISABLED when the student is marked SELECTED — selected
+                        students can no longer access the shared files. */}
+                    {driveFiles.length > 0 && myParticipation?.finalResult !== 'SELECTED' && (
                       <div className="rounded-lg border border-border bg-card p-4">
                         <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
                           <Paperclip className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
@@ -795,6 +797,17 @@ export function StudentCompanies() {
                             </a>
                           ))}
                         </div>
+                      </div>
+                    )}
+                    {driveFiles.length > 0 && myParticipation?.finalResult === 'SELECTED' && (
+                      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-700 dark:bg-emerald-900/10">
+                        <p className="flex items-center gap-2 text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                          <Lock className="h-4 w-4" />
+                          File access is locked
+                        </p>
+                        <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
+                          You have been marked as Selected for this drive. Shared file access is now disabled.
+                        </p>
                       </div>
                     )}
                   </div>

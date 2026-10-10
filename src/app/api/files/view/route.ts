@@ -6,15 +6,20 @@ import path from 'path'
 // GET: Serve a file viewer HTML page that embeds the file inline.
 // Query params: fileId=<DriveFile id>
 //
-// This endpoint returns a complete HTML page that renders the file in the
-// browser using the appropriate method based on file type:
-//   - Images: <img>
-//   - PDFs: <iframe>
-//   - Office files (.xlsx, .docx, .pptx): Google Docs Viewer
-//   - Text files: fetched and displayed in <pre>
+// IMPORTANT: We use RELATIVE URLs (file.filePath) instead of absolute URLs
+// (origin + file.filePath) because:
+//   1. In production, req.nextUrl.origin may resolve to http://0.0.0.0:3000
+//      which is unreachable from the browser.
+//   2. Relative URLs resolve against the current page's origin, which is
+//      always correct (localhost:3000 in dev, vsbec-track.space-z.ai in prod).
 //
-// The page also blocks download, right-click, PrintScreen, and keyboard
-// shortcuts (Ctrl+S/P/U, F12, etc.).
+// External viewers (Google Docs, Office Online) can't access internal files,
+// so we serve all files directly via the browser's native rendering:
+//   - Images: <img>
+//   - PDFs: <iframe> (browser built-in PDF viewer)
+//   - Office files: <iframe> with Google Docs Viewer using a relative-to-origin
+//     URL, or direct file serving as fallback
+//   - Text files: fetched and displayed in <pre>
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
@@ -39,9 +44,9 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    // Build the absolute URL for the file
-    const origin = req.nextUrl.origin
-    const fileUrl = `${origin}${file.filePath}`
+    // Use RELATIVE URL — this resolves against the current page's origin,
+    // which is correct in both dev (localhost:3000) and production.
+    const fileUrl = file.filePath
 
     // Check if the file exists on disk
     const fullPath = path.join(process.cwd(), 'public', file.filePath)
@@ -54,7 +59,6 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    // Determine the embed HTML based on file type
     const fileName = file.fileName
     const mimeType = file.mimeType
     let embedHtml: string
@@ -63,7 +67,8 @@ export async function GET(req: NextRequest) {
       // Images: render inline via <img>
       embedHtml = `<img src="${fileUrl}" alt="${fileName}" style="margin-top:40px;max-width:100%;max-height:calc(100vh - 40px);object-fit:contain;" oncontextmenu="return false" ondragstart="return false" />`
     } else if (mimeType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf')) {
-      // PDFs: render via <iframe> — browsers have built-in PDF viewers
+      // PDFs: render via <iframe> — browsers have built-in PDF viewers.
+      // Using relative URL so it resolves correctly in all environments.
       embedHtml = `<iframe src="${fileUrl}" style="width:100vw;height:calc(100vh - 40px);margin-top:40px;border:0;" allow="fullscreen"></iframe>`
     } else if (
       mimeType.includes('spreadsheet') ||
@@ -77,30 +82,41 @@ export async function GET(req: NextRequest) {
       mimeType.includes('officedocument.presentation') ||
       fileName.match(/\.(xlsx|docx|pptx|xls|doc|ppt)$/i)
     ) {
-      // Office files: use Microsoft Office Online viewer (more reliable than
-      // Google Docs Viewer). If it fails, show a fallback link to open the
-      // file directly.
-      const officeViewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`
+      // Office files: browsers can't render .xlsx/.docx/.pptx natively.
+      // Try Google Docs Viewer first — it can render these if the file URL
+      // is publicly accessible. Use a full absolute URL built from the
+      // request headers so it works in production.
+      // If the viewer fails, show a fallback with a direct link.
+      const host = req.headers.get('host') || req.headers.get('x-forwarded-host') || 'localhost:3000'
+      const proto = req.headers.get('x-forwarded-proto') || 'http'
+      const absoluteFileUrl = `${proto}://${host}${fileUrl}`
+      const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(absoluteFileUrl)}&embedded=true`
+
       embedHtml = `
-        <iframe src="${officeViewerUrl}" style="width:100vw;height:calc(100vh - 40px);margin-top:40px;border:0;" allow="fullscreen"
-          onload="this.dataset.loaded='true'"
-          onerror="this.style.display='none';document.getElementById('office-fallback').style.display='flex'">
-        </iframe>
+        <div id="viewer-container" style="width:100vw;height:calc(100vh - 40px);margin-top:40px;position:relative;">
+          <iframe id="office-iframe" src="${viewerUrl}" style="width:100%;height:100%;border:0;" allow="fullscreen"></iframe>
+        </div>
         <div id="office-fallback" style="display:none;flex-direction:column;align-items:center;justify-content:center;height:100vh;color:white;text-align:center;padding:20px;gap:16px;">
           <div style="font-size:48px;">📄</div>
-          <p style="font-size:18px;font-weight:600;">${fileName}</p>
-          <p style="font-size:14px;opacity:0.7;max-width:400px;">The online viewer couldn't load this file. Click below to open it directly in your browser.</p>
-          <a href="${fileUrl}" target="_blank" style="background:#10b981;color:white;padding:10px 24px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">Open File</a>
+          <p style="font-size:18px;font-weight:600;word-break:break-all;max-width:80%;">${fileName}</p>
+          <p style="font-size:14px;opacity:0.7;max-width:400px;">The online viewer couldn't load this file. Click below to view it directly in your browser.</p>
+          <a href="${fileUrl}" target="_blank" style="background:#10b981;color:white;padding:10px 24px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">View File</a>
         </div>
         <script>
-          // If the iframe doesn't load within 8 seconds, show the fallback
+          // Check if Google Docs Viewer loaded successfully. If it shows an
+          // error or is blank after 10 seconds, show the fallback.
+          var iframe = document.getElementById('office-iframe');
+          var fallback = document.getElementById('office-fallback');
+          var loaded = false;
+          if (iframe) {
+            iframe.onload = function() { loaded = true; };
+          }
           setTimeout(function() {
-            var iframe = document.querySelector('iframe');
-            if (iframe && !iframe.dataset.loaded) {
-              iframe.style.display = 'none';
-              document.getElementById('office-fallback').style.display = 'flex';
+            if (!loaded) {
+              if (iframe) iframe.style.display = 'none';
+              if (fallback) fallback.style.display = 'flex';
             }
-          }, 8000);
+          }, 10000);
         </script>
       `
     } else if (mimeType.startsWith('text/') || mimeType === 'text/plain' || fileName.match(/\.(txt|csv|json|md|log)$/i)) {
@@ -142,14 +158,12 @@ export async function GET(req: NextRequest) {
   </div>
   ${embedHtml}
   <script>
-    // Block PrintScreen
     document.addEventListener('keyup', function(e) {
       if (e.key === 'PrintScreen') {
         navigator.clipboard.writeText('').catch(function(){});
         alert('Screenshots are disabled for this document.');
       }
     });
-    // Block Ctrl+S, Ctrl+P, Ctrl+U, F12, DevTools shortcuts
     document.addEventListener('keydown', function(e) {
       if ((e.ctrlKey && (e.key === 's' || e.key === 'p' || e.key === 'u')) ||
           e.key === 'F12' ||

@@ -754,3 +754,37 @@ Stage Summary:
 - Logout confirmation popup added for both student and admin portals.
 - Year display changed to Roman numerals (I, II, III, IV) across the entire codebase.
 - Lint clean; dev server running.
+
+---
+Task ID: 24
+Agent: Main (Orchestrator)
+Task: Fix file preview error (404/error for PDFs and Office files), disable file actions for SELECTED students, verify logout popup and Roman numerals.
+
+Work Log:
+- Fixed file preview error (src/app/api/files/view/route.ts):
+  * Root cause 1 (PDFs): the viewer used `req.nextUrl.origin` to build the file URL, which resolved to `http://0.0.0.0:3000` in production — unreachable from the browser.
+  * Root cause 2 (Office files): Microsoft Office Online viewer showed "An error occurred" because it couldn't access the file URL (internal/non-public).
+  * Fix: Use RELATIVE URLs (just `file.filePath` like `/uploads/drives/...`) instead of absolute URLs. Relative URLs resolve against the current page's origin, which is always correct (localhost:3000 in dev, vsbec-track.space-z.ai in prod).
+  * For PDFs: `<iframe src="/uploads/drives/...">` — browser's built-in PDF viewer handles it natively.
+  * For Office files: try Google Docs Viewer first (using absolute URL built from request headers: `proto://host/path`). If it fails after 10 seconds, show a fallback with a "View File" button that opens the file directly.
+  * For images: `<img src="/uploads/drives/...">`.
+  * For text files: fetch the relative URL and display in `<pre>`.
+  * Tested: uploaded a PDF → viewer returns HTML with `<iframe src="/uploads/drives/...">` → file accessible at that URL (HTTP 200).
+
+- Disabled file actions for SELECTED students (src/components/student/StudentCompanies.tsx):
+  * Added condition `myParticipation?.finalResult !== 'SELECTED'` to the shared files section — files are hidden when the student is marked SELECTED.
+  * Added a "File access is locked" banner (emerald) shown when the student is SELECTED, explaining that shared file access is disabled.
+
+- Verified logout confirmation popup: both StudentLayout and AdminLayout have AlertDialog confirmation popups (added in Task 23) that show "Are you sure you want to log out?" with Cancel and Logout buttons.
+
+- Verified Roman numerals: searched all source files — no remaining "1st Year", "2nd Year", "3rd Year", "4th Year" references. All YEARS constants use `['I', 'II', 'III', 'IV']`.
+
+- Lint passes clean (0 errors, 0 warnings).
+- Dev server running with auto-restart loop.
+
+Stage Summary:
+- File preview fixed: uses relative URLs — PDFs render natively in the browser, Office files try Google Docs Viewer with a fallback.
+- File actions disabled for SELECTED students — shows a "File access is locked" banner instead.
+- Logout confirmation popup verified working for both student and admin portals.
+- Roman numerals verified across the entire codebase (I, II, III, IV).
+- Lint clean; dev server running.
