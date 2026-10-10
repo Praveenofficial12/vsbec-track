@@ -5,9 +5,11 @@ import { db } from '@/lib/db'
 // regardless of how recently the heartbeat was received. This enforces a
 // hard expiry so users are forced to re-login after 1 hour.
 const SESSION_MAX_AGE_MS = 60 * 60 * 1000 // 1 hour
-// Heartbeat grace period: if no heartbeat arrives within 30s, the session is
-// considered stale (tab closed / crashed) and expires early.
-const SESSION_HEARTBEAT_TTL_MS = 30 * 1000
+// Heartbeat grace period: if no heartbeat arrives within 2 minutes, the
+// session is considered stale (tab closed / crashed) and expires early.
+// We use 2 minutes (not 30s) so that browser refreshes — which briefly
+// interrupt the heartbeat — don't log the user out.
+const SESSION_HEARTBEAT_TTL_MS = 2 * 60 * 1000 // 2 minutes
 
 // GET: Validate a session token.
 export async function GET(req: NextRequest) {

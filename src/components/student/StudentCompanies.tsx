@@ -16,6 +16,7 @@ import {
   Paperclip, FileText,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { openFileViewer } from '@/lib/file-viewer'
 import type { Company, Drive, DriveParticipation, Round, RoundResult, Student } from '@/lib/types'
 
 const ROUND_STATUS_OPTIONS = [
@@ -771,56 +772,8 @@ export function StudentCompanies() {
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={(e) => {
-                                // Open a BLANK window and write our viewer
-                                // HTML to it — this avoids the 404 issue.
                                 e.preventDefault()
-                                const w = window.open('', '_blank', 'width=1024,height=768')
-                                if (w) {
-                                  w.document.write(`
-                                    <html>
-                                      <head>
-                                        <title>${f.fileName}</title>
-                                        <style>
-                                          body { margin: 0; display: flex; align-items: center; justify-content: center; background: #1a1a1a; min-height: 100vh; }
-                                          img, embed, object, iframe { max-width: 100%; max-height: 100vh; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-                                          .toolbar { position: fixed; top: 0; left: 0; right: 0; background: #2d2d2d; color: white; padding: 8px 16px; font-family: sans-serif; font-size: 13px; display: flex; align-items: center; justify-content: space-between; z-index: 9999; }
-                                          .filename { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-                                        </style>
-                                      </head>
-                                      <body oncontextmenu="return false" onkeydown="if(event.key==='PrintScreen'||event.key==='F12'||(event.ctrlKey&amp;&amp;event.shiftKey&amp;&amp;(event.key==='I'||event.key==='J'||event.key==='C'))||(event.ctrlKey&amp;&amp;event.key==='u')||(event.ctrlKey&amp;&amp;(event.key==='p'||event.key==='s'))) return false">
-                                        <div class="toolbar">
-                                          <span class="filename">${f.fileName}</span>
-                                          <span style="font-size:11px;opacity:0.7">View only — download disabled</span>
-                                        </div>
-                                        ${f.mimeType.startsWith('image/')
-                                          ? `<img src="${f.filePath}" alt="${f.fileName}" style="margin-top:40px" oncontextmenu="return false" ondragstart="return false" />`
-                                          : f.mimeType.includes('pdf')
-                                          ? `<embed src="${f.filePath}" type="application/pdf" style="width:100vw;height:100vh;margin-top:40px" />`
-                                          : `<object data="${f.filePath}" type="${f.mimeType}" style="width:100vw;height:100vh;margin-top:40px"><param name="toolbar" value="0" /></object>`
-                                        }
-                                        <script>
-                                          // Block print screen
-                                          document.addEventListener('keyup', function(e) {
-                                            if (e.key === 'PrintScreen') {
-                                              navigator.clipboard.writeText('');
-                                              alert('Screenshots are disabled for this document.');
-                                            }
-                                          });
-                                          // Block Ctrl+S, Ctrl+P, Ctrl+U, F12, etc.
-                                          document.addEventListener('keydown', function(e) {
-                                            if ((e.ctrlKey && (e.key === 's' || e.key === 'p' || e.key === 'u')) ||
-                                                e.key === 'F12' ||
-                                                (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C'))) {
-                                              e.preventDefault();
-                                              return false;
-                                            }
-                                          });
-                                        </script>
-                                      </body>
-                                    </html>
-                                  `)
-                                  w.document.close()
-                                }
+                                openFileViewer({ filePath: f.filePath, fileName: f.fileName, mimeType: f.mimeType })
                               }}
                               className="group flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-2.5 transition-colors hover:border-emerald-300 hover:bg-emerald-50/50 dark:hover:border-emerald-700 dark:hover:bg-emerald-900/10"
                             >
