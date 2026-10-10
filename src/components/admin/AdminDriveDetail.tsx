@@ -23,7 +23,7 @@ import {
   ArrowLeft, Calendar, Briefcase, MapPin, Users, Building2, Target,
   CheckCircle2, XCircle, Clock, Award, Activity, AlertCircle, ListChecks,
   Trophy, Loader2, Download, IndianRupee, Trash2, RotateCcw, PartyPopper, Bell, Save, Lock,
-  UploadCloud, FileText, File as FileIcon, Paperclip,
+  UploadCloud, FileText, File as FileIcon, Paperclip, ExternalLink,
 } from 'lucide-react'
 import type { Drive, DriveParticipation, Student } from '@/lib/types'
 
@@ -574,7 +574,38 @@ export function AdminDriveDetail() {
                             <div className="min-w-0 flex-1">
                               <a
                                 href={f.filePath}
-                                download={f.fileName}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => {
+                                  // Open in an in-browser viewer (new tab)
+                                  // instead of triggering a download.
+                                  e.preventDefault()
+                                  const w = window.open(f.filePath, '_blank', 'noopener,noreferrer,width=1024,height=768')
+                                  if (w) {
+                                    w.document?.write(`
+                                      <html><head><title>${f.fileName}</title>
+                                      <style>
+                                        body { margin:0; display:flex; align-items:center; justify-content:center; background:#1a1a1a; min-height:100vh; }
+                                        img, embed, object, iframe { max-width:100%; max-height:100vh; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
+                                        .toolbar { position:fixed; top:0; left:0; right:0; background:#2d2d2d; color:white; padding:8px 16px; font-family:sans-serif; font-size:13px; display:flex; align-items:center; justify-content:space-between; z-index:9999; }
+                                        .filename { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+                                      </style></head>
+                                      <body oncontextmenu="return false" onkeydown="if(event.key==='PrintScreen'||event.key==='F12'||(event.ctrlKey&amp;&amp;event.shiftKey&amp;&amp;(event.key==='I'||event.key==='J'||event.key==='C'))||(event.ctrlKey&amp;&amp;event.key==='u')||(event.ctrlKey&amp;&amp;(event.key==='p'||event.key==='s'))) return false">
+                                        <div class="toolbar"><span class="filename">${f.fileName}</span><span style="font-size:11px;opacity:0.7">View only — download disabled</span></div>
+                                        ${f.mimeType.startsWith('image/')
+                                          ? `<img src="${f.filePath}" alt="${f.fileName}" style="margin-top:40px" oncontextmenu="return false" ondragstart="return false" />`
+                                          : f.mimeType.includes('pdf')
+                                          ? `<embed src="${f.filePath}" type="application/pdf" style="width:100vw;height:100vh;margin-top:40px" />`
+                                          : `<object data="${f.filePath}" type="${f.mimeType}" style="width:100vw;height:100vh;margin-top:40px"><param name="toolbar" value="0" /></object>`}
+                                        <script>
+                                          document.addEventListener('keyup', function(e) { if (e.key === 'PrintScreen') { navigator.clipboard.writeText(''); alert('Screenshots are disabled for this document.'); } });
+                                          document.addEventListener('keydown', function(e) { if ((e.ctrlKey && (e.key==='s'||e.key==='p'||e.key==='u')) || e.key==='F12' || (e.ctrlKey && e.shiftKey && (e.key==='I'||e.key==='J'||e.key==='C'))) { e.preventDefault(); return false; } });
+                                        </script>
+                                      </body></html>
+                                    `)
+                                    w.document?.close()
+                                  }
+                                }}
                                 className="truncate text-sm font-medium text-foreground hover:text-emerald-600 hover:underline dark:hover:text-emerald-400"
                               >
                                 {f.fileName}
@@ -588,11 +619,41 @@ export function AdminDriveDetail() {
                             </div>
                             <a
                               href={f.filePath}
-                              download={f.fileName}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => {
+                                // Open in an in-browser viewer (new tab)
+                                e.preventDefault()
+                                const w = window.open(f.filePath, '_blank', 'noopener,noreferrer,width=1024,height=768')
+                                if (w) {
+                                  w.document?.write(`
+                                    <html><head><title>${f.fileName}</title>
+                                    <style>
+                                      body { margin:0; display:flex; align-items:center; justify-content:center; background:#1a1a1a; min-height:100vh; }
+                                      img, embed, object, iframe { max-width:100%; max-height:100vh; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
+                                      .toolbar { position:fixed; top:0; left:0; right:0; background:#2d2d2d; color:white; padding:8px 16px; font-family:sans-serif; font-size:13px; display:flex; align-items:center; justify-content:space-between; z-index:9999; }
+                                      .filename { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+                                    </style></head>
+                                    <body oncontextmenu="return false" onkeydown="if(event.key==='PrintScreen'||event.key==='F12'||(event.ctrlKey&amp;&amp;event.shiftKey&amp;&amp;(event.key==='I'||event.key==='J'||event.key==='C'))||(event.ctrlKey&amp;&amp;event.key==='u')||(event.ctrlKey&amp;&amp;(event.key==='p'||event.key==='s'))) return false">
+                                      <div class="toolbar"><span class="filename">${f.fileName}</span><span style="font-size:11px;opacity:0.7">View only — download disabled</span></div>
+                                      ${f.mimeType.startsWith('image/')
+                                        ? `<img src="${f.filePath}" alt="${f.fileName}" style="margin-top:40px" oncontextmenu="return false" ondragstart="return false" />`
+                                        : f.mimeType.includes('pdf')
+                                        ? `<embed src="${f.filePath}" type="application/pdf" style="width:100vw;height:100vh;margin-top:40px" />`
+                                        : `<object data="${f.filePath}" type="${f.mimeType}" style="width:100vw;height:100vh;margin-top:40px"><param name="toolbar" value="0" /></object>`}
+                                      <script>
+                                        document.addEventListener('keyup', function(e) { if (e.key === 'PrintScreen') { navigator.clipboard.writeText(''); alert('Screenshots are disabled for this document.'); } });
+                                        document.addEventListener('keydown', function(e) { if ((e.ctrlKey && (e.key==='s'||e.key==='p'||e.key==='u')) || e.key==='F12' || (e.ctrlKey && e.shiftKey && (e.key==='I'||e.key==='J'||e.key==='C'))) { e.preventDefault(); return false; } });
+                                      </script>
+                                    </body></html>
+                                  `)
+                                  w.document?.close()
+                                }
+                              }}
                               className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/20"
-                              title="Download"
+                              title="View online"
                             >
-                              <Download className="h-3.5 w-3.5" />
+                              <ExternalLink className="h-3.5 w-3.5" />
                             </a>
                             <button
                               onClick={async () => {

@@ -13,7 +13,7 @@ import { EmptyState, CardSkeleton } from '@/components/common/States'
 import {
   Building2, Search, Calendar, Briefcase, MapPin, ExternalLink, CheckCircle2, X,
   Trophy, Clock, RefreshCw, AlertCircle, ListChecks, Bell, XCircle, Lock,
-  Paperclip, FileText, Download,
+  Paperclip, FileText,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Company, Drive, DriveParticipation, Round, RoundResult, Student } from '@/lib/types'
@@ -459,7 +459,7 @@ export function StudentCompanies() {
 
         {/* Drive Detail Modal with interactive round status form */}
         <Dialog open={!!selectedDrive} onOpenChange={(open) => !open && setSelectedDrive(null)}>
-          <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto scrollbar-thin">
+          <DialogContent className="max-h-[92vh] max-w-4xl overflow-y-auto scrollbar-thin">
             <DialogHeader>
               <div className="flex items-start gap-4">
                 <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-lg bg-muted ring-1 ring-border">
@@ -571,42 +571,6 @@ export function StudentCompanies() {
                         <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">📢 Announcement from Placement Office</p>
                         <p className="mt-1 text-sm text-amber-800 dark:text-amber-300">{selectedDrive.announcement}</p>
                       </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Shared Files — files uploaded by admin in the announcement area */}
-                {driveFiles.length > 0 && (
-                  <div className="rounded-lg border border-border bg-card p-4">
-                    <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
-                      <Paperclip className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                      Shared Files ({driveFiles.length})
-                    </p>
-                    <div className="space-y-2">
-                      {driveFiles.map((f) => (
-                        <a
-                          key={f.id}
-                          href={f.filePath}
-                          download={f.fileName}
-                          className="group flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-2.5 transition-colors hover:border-emerald-300 hover:bg-emerald-50/50 dark:hover:border-emerald-700 dark:hover:bg-emerald-900/10"
-                        >
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
-                              {f.fileName}
-                            </p>
-                            {f.description && (
-                              <p className="truncate text-xs text-muted-foreground">{f.description}</p>
-                            )}
-                            <p className="text-[10px] text-muted-foreground">
-                              {f.mimeType} · {new Date(f.createdAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <Download className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400" />
-                        </a>
-                      ))}
                     </div>
                   </div>
                 )}
@@ -786,6 +750,100 @@ export function StudentCompanies() {
                     </div>
                     )
                     })()}
+
+                    {/* Shared Files — shown ONLY after the student marks
+                        "Will Attend". Files open in an in-browser viewer
+                        (new tab) — no download, no right-click, no screenshot. */}
+                    {driveFiles.length > 0 && (
+                      <div className="rounded-lg border border-border bg-card p-4">
+                        <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+                          <Paperclip className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                          Shared Files ({driveFiles.length})
+                        </p>
+                        <p className="mb-3 text-xs text-muted-foreground">
+                          Click a file to view it online. Download and screenshots are disabled.
+                        </p>
+                        <div className="space-y-2">
+                          {driveFiles.map((f) => (
+                            <a
+                              key={f.id}
+                              href={f.filePath}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => {
+                                // Open in a new window with restricted features
+                                // to discourage screenshot/download
+                                e.preventDefault()
+                                const w = window.open(f.filePath, '_blank', 'noopener,noreferrer,width=1024,height=768')
+                                if (w) {
+                                  w.document?.write(`
+                                    <html>
+                                      <head>
+                                        <title>${f.fileName}</title>
+                                        <style>
+                                          body { margin: 0; display: flex; align-items: center; justify-content: center; background: #1a1a1a; min-height: 100vh; }
+                                          img, embed, object, iframe { max-width: 100%; max-height: 100vh; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+                                          .toolbar { position: fixed; top: 0; left: 0; right: 0; background: #2d2d2d; color: white; padding: 8px 16px; font-family: sans-serif; font-size: 13px; display: flex; align-items: center; justify-content: space-between; z-index: 9999; }
+                                          .filename { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+                                        </style>
+                                      </head>
+                                      <body oncontextmenu="return false" onkeydown="if(event.key==='PrintScreen'||event.key==='F12'||(event.ctrlKey&amp;&amp;event.shiftKey&amp;&amp;(event.key==='I'||event.key==='J'||event.key==='C'))||(event.ctrlKey&amp;&amp;event.key==='u')||(event.ctrlKey&amp;&amp;(event.key==='p'||event.key==='s'))) return false">
+                                        <div class="toolbar">
+                                          <span class="filename">${f.fileName}</span>
+                                          <span style="font-size:11px;opacity:0.7">View only — download disabled</span>
+                                        </div>
+                                        ${f.mimeType.startsWith('image/')
+                                          ? `<img src="${f.filePath}" alt="${f.fileName}" style="margin-top:40px" oncontextmenu="return false" ondragstart="return false" />`
+                                          : f.mimeType.includes('pdf')
+                                          ? `<embed src="${f.filePath}" type="application/pdf" style="width:100vw;height:100vh;margin-top:40px" />`
+                                          : `<object data="${f.filePath}" type="${f.mimeType}" style="width:100vw;height:100vh;margin-top:40px"><param name="toolbar" value="0" /></object>`
+                                        }
+                                        <script>
+                                          // Block print screen
+                                          document.addEventListener('keyup', function(e) {
+                                            if (e.key === 'PrintScreen') {
+                                              navigator.clipboard.writeText('');
+                                              alert('Screenshots are disabled for this document.');
+                                            }
+                                          });
+                                          // Block Ctrl+S, Ctrl+P, Ctrl+U, F12, etc.
+                                          document.addEventListener('keydown', function(e) {
+                                            if ((e.ctrlKey && (e.key === 's' || e.key === 'p' || e.key === 'u')) ||
+                                                e.key === 'F12' ||
+                                                (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C'))) {
+                                              e.preventDefault();
+                                              return false;
+                                            }
+                                          });
+                                        </script>
+                                      </body>
+                                    </html>
+                                  `)
+                                  w.document?.close()
+                                }
+                              }}
+                              className="group flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-2.5 transition-colors hover:border-emerald-300 hover:bg-emerald-50/50 dark:hover:border-emerald-700 dark:hover:bg-emerald-900/10"
+                            >
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted">
+                                <FileText className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-medium text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
+                                  {f.fileName}
+                                </p>
+                                {f.description && (
+                                  <p className="truncate text-xs text-muted-foreground">{f.description}</p>
+                                )}
+                                <p className="text-[10px] text-muted-foreground">
+                                  {f.mimeType} · {new Date(f.createdAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400" />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

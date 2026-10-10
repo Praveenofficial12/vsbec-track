@@ -18,31 +18,29 @@ export async function POST(req: NextRequest) {
     }
 
     if (!validateDepartmentPassword(department, departmentPassword)) {
-      // Log failed registration attempt before returning.
-      await logUserActivity({
+      // Log failed registration attempt (fire-and-forget, don't block the response).
+      logUserActivity({
         userId: body.registerNumber?.toUpperCase() || null,
         userType: 'STUDENT',
         action: 'LOGIN_FAILED',
         detail: `Registration rejected: invalid department password for ${department}`,
         ipAddress: getClientIp(req),
         userAgent: getUserAgent(req),
-      })
+      }).catch(() => {})
       return NextResponse.json(
         { error: 'Invalid department password. Please contact your placement coordinator.' },
         { status: 401 }
       )
     }
 
-    const existing = await db.student.findFirst({
-      where: {
-        OR: [
-          { registerNumber: body.registerNumber?.toUpperCase() },
-          { collegeEmail: body.collegeEmail?.toLowerCase() },
-        ],
-      },
-    })
-
-    if (existing) {
+    // Quick duplicate check — use findUnique on indexed columns for speed.
+    const regNum = body.registerNumber?.toUpperCase()
+    const email = body.collegeEmail?.toLowerCase()
+    const [existingByReg, existingByEmail] = await Promise.all([
+      regNum ? db.student.findUnique({ where: { registerNumber: regNum }, select: { id: true } }) : null,
+      email ? db.student.findUnique({ where: { collegeEmail: email }, select: { id: true } }) : null,
+    ])
+    if (existingByReg || existingByEmail) {
       return NextResponse.json(
         { error: 'Student with this register number or email already exists' },
         { status: 409 }
@@ -54,9 +52,9 @@ export async function POST(req: NextRequest) {
 
     const student = await db.student.create({
       data: {
-        registerNumber: body.registerNumber?.toUpperCase(),
+        registerNumber: regNum,
         fullName: body.fullName,
-        collegeEmail: body.collegeEmail?.toLowerCase(),
+        collegeEmail: email,
         personalEmail: body.personalEmail,
         mobile: body.mobile,
         password: loginPassword,
@@ -87,17 +85,18 @@ export async function POST(req: NextRequest) {
         placementStatus: 'UNPLACED',
         placementEligible: true,
       },
+      select: { id: true, registerNumber: true, fullName: true, collegeEmail: true, department: true },
     })
 
-    // Log successful registration.
-    await logUserActivity({
+    // Log successful registration (fire-and-forget, don't block the response).
+    logUserActivity({
       userId: student.registerNumber,
       userType: 'STUDENT',
       action: 'REGISTER',
       detail: `Registered as ${department} student`,
       ipAddress: getClientIp(req),
       userAgent: getUserAgent(req),
-    })
+    }).catch(() => {})
 
     return NextResponse.json({ success: true, student })
   } catch (error) {
