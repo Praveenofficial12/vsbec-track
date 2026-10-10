@@ -1,20 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-// TTL must match the value used by the login endpoints. The client heartbeats
-// every ~10s; a session is considered expired if no heartbeat has arrived in
-// the last 30s.
-const SESSION_TTL_MS = 30 * 1000
+// Session lifetime: a session is valid for at most 1 hour from its creation,
+// regardless of how recently the heartbeat was received. This enforces a
+// hard expiry so users are forced to re-login after 1 hour.
+const SESSION_MAX_AGE_MS = 60 * 60 * 1000 // 1 hour
+// Heartbeat grace period: if no heartbeat arrives within 30s, the session is
+// considered stale (tab closed / crashed) and expires early.
+const SESSION_HEARTBEAT_TTL_MS = 30 * 1000
 
 // GET: Validate a session token.
-// Query params: token=<sessionToken>
-// Returns { valid: true } if the session exists AND has a fresh heartbeat.
-// Returns { valid: false, reason: 'expired' | 'invalid' | 'replaced' } otherwise.
-//   - 'expired'   → no heartbeat in the last 30s (treat as logged out)
-//   - 'invalid'   → token not found in the DB at all
-//   - 'replaced'  → another tab logged in with the same userKey, replacing
-//                   this session (we detect this by comparing this token
-//                   against the most-recently-seen token for the same userKey)
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
@@ -25,7 +20,7 @@ export async function GET(req: NextRequest) {
 
     const session = await db.sessionTracker.findUnique({
       where: { token },
-      select: { userKey: true, lastSeen: true, token: true },
+      select: { userKey: true, lastSeen: true, token: true, createdAt: true },
     })
 
     if (!session) {
@@ -33,29 +28,36 @@ export async function GET(req: NextRequest) {
     }
 
     const now = Date.now()
-    const age = now - session.lastSeen.getTime()
-    if (age > SESSION_TTL_MS) {
-      // Session expired — treat as logged out. Clean up the stale row too.
+
+    // Hard expiry: session is invalid if more than 1 hour has passed since creation.
+    const ageSinceCreation = now - session.createdAt.getTime()
+    if (ageSinceCreation > SESSION_MAX_AGE_MS) {
+      await db.sessionTracker.delete({ where: { token } }).catch(() => {})
+      return NextResponse.json({ valid: false, reason: 'expired' })
+    }
+
+    // Heartbeat expiry: session is invalid if no heartbeat in the last 30s.
+    const ageSinceHeartbeat = now - session.lastSeen.getTime()
+    if (ageSinceHeartbeat > SESSION_HEARTBEAT_TTL_MS) {
       await db.sessionTracker.delete({ where: { token } }).catch(() => {})
       return NextResponse.json({ valid: false, reason: 'expired' })
     }
 
     // Check whether this session is still the "active" one for this user.
-    // If another tab logged in with the same userKey more recently, this
-    // session has been replaced and should be forced out.
     const latest = await db.sessionTracker.findFirst({
       where: { userKey: session.userKey },
       orderBy: { lastSeen: 'desc' },
       select: { token: true, lastSeen: true },
     })
-    if (latest && latest.token !== session.token && (now - latest.lastSeen.getTime()) <= SESSION_TTL_MS) {
-      // Another live session for the same user exists → this one is replaced.
-      // Delete the replaced session row so it can't be re-validated.
+    if (latest && latest.token !== session.token && (now - latest.lastSeen.getTime()) <= SESSION_HEARTBEAT_TTL_MS) {
       await db.sessionTracker.delete({ where: { token } }).catch(() => {})
       return NextResponse.json({ valid: false, reason: 'replaced' })
     }
 
-    return NextResponse.json({ valid: true })
+    // Return the remaining session time so the client can show a countdown
+    // or warn the user before expiry.
+    const remainingMs = SESSION_MAX_AGE_MS - ageSinceCreation
+    return NextResponse.json({ valid: true, remainingMs })
   } catch (error) {
     console.error('Session validation error:', error)
     return NextResponse.json({ valid: false, reason: 'error' }, { status: 500 })
@@ -63,10 +65,6 @@ export async function GET(req: NextRequest) {
 }
 
 // POST: Heartbeat — refresh the lastSeen timestamp for a session token.
-// Body: { token: string }
-// Returns { ok: true } on success.
-// Returns { ok: false, reason: 'invalid' | 'replaced' } if the session is no
-//   longer the active one (in which case the client should log out).
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
@@ -77,22 +75,29 @@ export async function POST(req: NextRequest) {
 
     const session = await db.sessionTracker.findUnique({
       where: { token },
-      select: { userKey: true, token: true },
+      select: { userKey: true, token: true, createdAt: true },
     })
 
     if (!session) {
       return NextResponse.json({ ok: false, reason: 'invalid' })
     }
 
+    const now = Date.now()
+
+    // Hard expiry: 1 hour from creation.
+    if (now - session.createdAt.getTime() > SESSION_MAX_AGE_MS) {
+      await db.sessionTracker.delete({ where: { token } }).catch(() => {})
+      return NextResponse.json({ ok: false, reason: 'expired' })
+    }
+
     // If another tab logged in with the same userKey more recently, this
     // session has been replaced — tell the client to log out.
-    const now = Date.now()
     const latest = await db.sessionTracker.findFirst({
       where: { userKey: session.userKey },
       orderBy: { lastSeen: 'desc' },
       select: { token: true, lastSeen: true },
     })
-    if (latest && latest.token !== session.token && (now - latest.lastSeen.getTime()) <= SESSION_TTL_MS) {
+    if (latest && latest.token !== session.token && (now - latest.lastSeen.getTime()) <= SESSION_HEARTBEAT_TTL_MS) {
       await db.sessionTracker.delete({ where: { token } }).catch(() => {})
       return NextResponse.json({ ok: false, reason: 'replaced' })
     }
@@ -103,7 +108,8 @@ export async function POST(req: NextRequest) {
       data: { lastSeen: new Date() },
     })
 
-    return NextResponse.json({ ok: true })
+    const remainingMs = SESSION_MAX_AGE_MS - (now - session.createdAt.getTime())
+    return NextResponse.json({ ok: true, remainingMs })
   } catch (error) {
     console.error('Session heartbeat error:', error)
     return NextResponse.json({ ok: false, reason: 'error' }, { status: 500 })
@@ -111,7 +117,6 @@ export async function POST(req: NextRequest) {
 }
 
 // DELETE: Logout — remove the session row for the given token.
-// Query params: token=<sessionToken>
 export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)

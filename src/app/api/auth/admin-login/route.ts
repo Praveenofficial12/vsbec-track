@@ -48,27 +48,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }
 
-    // Single-session enforcement: block if there's already a live admin session.
+    // Single-session enforcement: delete any existing admin session and
+    // create a new one. The old window will be force-logged-out on its
+    // next heartbeat (reason: 'replaced').
     const userKey = `ADMIN:${admin.email}`
-    const now = Date.now()
-    const existing = await db.sessionTracker.findMany({
-      where: { userKey, lastSeen: { gt: new Date(now - SESSION_TTL_MS) } },
-      select: { token: true },
-    })
-    if (existing.length > 0) {
-      await logUserActivity({
-        userId: admin.email,
-        userType: 'ADMIN',
-        action: 'LOGIN_FAILED',
-        detail: 'Already logged in on another window',
-        ipAddress: getClientIp(req),
-        userAgent: getUserAgent(req),
-      })
-      return NextResponse.json(
-        { error: 'This user is logged in on another window. Please log out there and then try again.' },
-        { status: 409 }
-      )
-    }
+    await db.sessionTracker.deleteMany({ where: { userKey } }).catch(() => {})
 
     // Create a fresh session token for this tab.
     const token = randomUUID()

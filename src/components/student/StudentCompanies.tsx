@@ -771,12 +771,12 @@ export function StudentCompanies() {
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={(e) => {
-                                // Open in a new window with restricted features
-                                // to discourage screenshot/download
+                                // Open a BLANK window and write our viewer
+                                // HTML to it — this avoids the 404 issue.
                                 e.preventDefault()
-                                const w = window.open(f.filePath, '_blank', 'noopener,noreferrer,width=1024,height=768')
+                                const w = window.open('', '_blank', 'width=1024,height=768')
                                 if (w) {
-                                  w.document?.write(`
+                                  w.document.write(`
                                     <html>
                                       <head>
                                         <title>${f.fileName}</title>
@@ -819,7 +819,7 @@ export function StudentCompanies() {
                                       </body>
                                     </html>
                                   `)
-                                  w.document?.close()
+                                  w.document.close()
                                 }
                               }}
                               className="group flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-2.5 transition-colors hover:border-emerald-300 hover:bg-emerald-50/50 dark:hover:border-emerald-700 dark:hover:bg-emerald-900/10"

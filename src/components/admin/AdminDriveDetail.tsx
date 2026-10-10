@@ -80,6 +80,10 @@ export function AdminDriveDetail() {
   const [uploading, setUploading] = useState(false)
   const [fileDescription, setFileDescription] = useState('')
   const [deletingFile, setDeletingFile] = useState<string | null>(null)
+  // Round editing state
+  const [editingRound, setEditingRound] = useState<string | null>(null)
+  const [roundForm, setRoundForm] = useState<{ roundName: string; description: string; date: string; startTime: string; endTime: string; status: string }>({ roundName: '', description: '', date: '', startTime: '', endTime: '', status: 'UPCOMING' })
+  const [savingRound, setSavingRound] = useState(false)
 
   const refreshDrive = async () => {
     if (!driveId) return
@@ -198,6 +202,42 @@ export function AdminDriveDetail() {
     } finally {
       setRemoving(false)
     }
+  }
+
+  // Start editing a round — populate the form with the round's current values.
+  const startEditRound = (round: any) => {
+    setEditingRound(round.id)
+    setRoundForm({
+      roundName: round.roundName || '',
+      description: round.description || '',
+      date: round.date || '',
+      startTime: round.startTime || '',
+      endTime: round.endTime || '',
+      status: round.status || 'UPCOMING',
+    })
+  }
+
+  // Save the edited round via PUT /api/drives/<id>/rounds/<roundId>
+  const handleSaveRound = async (roundId: string) => {
+    if (!driveId) return
+    setSavingRound(true)
+    try {
+      await apiPut(`/api/drives/${driveId}/rounds/${roundId}`, roundForm)
+      toast.success('Round updated successfully')
+      setEditingRound(null)
+      await refreshDrive()
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to update round')
+    } finally {
+      setSavingRound(false)
+    }
+  }
+
+  // Download the list of students who cleared a specific round as CSV.
+  const handleDownloadClearedStudents = (roundId: string, roundName: string) => {
+    if (!driveId) return
+    // Trigger the CSV download via a direct browser navigation
+    window.open(`/api/drives/${driveId}/rounds/${roundId}/cleared-students`, '_blank')
   }
 
   const handleExportSelected = () => {
@@ -580,9 +620,9 @@ export function AdminDriveDetail() {
                                   // Open in an in-browser viewer (new tab)
                                   // instead of triggering a download.
                                   e.preventDefault()
-                                  const w = window.open(f.filePath, '_blank', 'noopener,noreferrer,width=1024,height=768')
+                                  const w = window.open('', '_blank', 'width=1024,height=768')
                                   if (w) {
-                                    w.document?.write(`
+                                  w.document.write(`
                                       <html><head><title>${f.fileName}</title>
                                       <style>
                                         body { margin:0; display:flex; align-items:center; justify-content:center; background:#1a1a1a; min-height:100vh; }
@@ -603,7 +643,7 @@ export function AdminDriveDetail() {
                                         </script>
                                       </body></html>
                                     `)
-                                    w.document?.close()
+                                  w.document.close()
                                   }
                                 }}
                                 className="truncate text-sm font-medium text-foreground hover:text-emerald-600 hover:underline dark:hover:text-emerald-400"
@@ -769,33 +809,96 @@ export function AdminDriveDetail() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Recruitment Rounds ({rounds.length})</CardTitle>
-                <CardDescription>Round-by-round configuration</CardDescription>
+                <CardDescription>Round-by-round configuration — click Edit to modify round details or download the list of students who cleared each round.</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   {rounds.map((round, idx) => (
                     <div key={round.id} className="rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent/30">
-                      <div className="flex items-start gap-3">
-                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
-                          round.status === 'COMPLETED' ? 'bg-emerald-600 text-white' :
-                          round.status === 'ONGOING' ? 'bg-amber-500 text-white' : 'bg-muted text-muted-foreground'
-                        }`}>
-                          {idx + 1}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between">
+                      {editingRound === round.id ? (
+                        /* Edit form */
+                        <div className="space-y-3">
+                          <div className="grid gap-3 sm:grid-cols-2">
                             <div>
-                              <p className="font-semibold">{round.roundName}</p>
-                              <p className="text-xs text-muted-foreground">{round.description}</p>
+                              <Label className="text-xs">Round Name</Label>
+                              <Input value={roundForm.roundName} onChange={(e) => setRoundForm(f => ({ ...f, roundName: e.target.value }))} className="mt-1" />
                             </div>
-                            <Badge variant="outline" className={STATUS_COLORS[round.status]}>{round.status}</Badge>
+                            <div>
+                              <Label className="text-xs">Status</Label>
+                              <Select value={roundForm.status} onValueChange={(v) => setRoundForm(f => ({ ...f, status: v }))}>
+                                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="UPCOMING">Upcoming</SelectItem>
+                                  <SelectItem value="ONGOING">Ongoing</SelectItem>
+                                  <SelectItem value="COMPLETED">Completed</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
                           </div>
-                          <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {formatDate(round.date)}</span>
-                            <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {round.startTime} - {round.endTime}</span>
+                          <div>
+                            <Label className="text-xs">Description</Label>
+                            <Input value={roundForm.description} onChange={(e) => setRoundForm(f => ({ ...f, description: e.target.value }))} className="mt-1" />
+                          </div>
+                          <div className="grid gap-3 sm:grid-cols-3">
+                            <div>
+                              <Label className="text-xs">Date</Label>
+                              <Input type="date" value={roundForm.date} onChange={(e) => setRoundForm(f => ({ ...f, date: e.target.value }))} className="mt-1" />
+                            </div>
+                            <div>
+                              <Label className="text-xs">Start Time</Label>
+                              <Input type="time" value={roundForm.startTime} onChange={(e) => setRoundForm(f => ({ ...f, startTime: e.target.value }))} className="mt-1" />
+                            </div>
+                            <div>
+                              <Label className="text-xs">End Time</Label>
+                              <Input type="time" value={roundForm.endTime} onChange={(e) => setRoundForm(f => ({ ...f, endTime: e.target.value }))} className="mt-1" />
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => handleSaveRound(round.id)} disabled={savingRound} className="bg-emerald-600 hover:bg-emerald-700">
+                              {savingRound ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Save className="mr-1 h-3.5 w-3.5" />}
+                              Save
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => setEditingRound(null)}>Cancel</Button>
                           </div>
                         </div>
-                      </div>
+                      ) : (
+                        /* Display mode */
+                        <div className="flex items-start gap-3">
+                          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                            round.status === 'COMPLETED' ? 'bg-emerald-600 text-white' :
+                            round.status === 'ONGOING' ? 'bg-amber-500 text-white' : 'bg-muted text-muted-foreground'
+                          }`}>
+                            {idx + 1}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="truncate font-semibold">{round.roundName}</p>
+                                <p className="truncate text-xs text-muted-foreground">{round.description}</p>
+                              </div>
+                              <Badge variant="outline" className={STATUS_COLORS[round.status]}>{round.status}</Badge>
+                            </div>
+                            <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {formatDate(round.date)}</span>
+                              <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {round.startTime || '—'} - {round.endTime || '—'}</span>
+                            </div>
+                            {/* Action buttons: Edit + Download cleared students */}
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => startEditRound(round)}>
+                                <Save className="h-3 w-3" /> Edit
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 gap-1 text-xs border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
+                                onClick={() => handleDownloadClearedStudents(round.id, round.roundName)}
+                              >
+                                <Download className="h-3 w-3" /> Download Cleared Students
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

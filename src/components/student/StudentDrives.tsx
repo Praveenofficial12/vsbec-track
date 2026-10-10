@@ -68,7 +68,13 @@ function DriveCard({ participation }: { participation: DriveParticipation }) {
   if (!drive) return null
   const totalRounds = drive.rounds?.length || 0
   const clearedRounds = participation.roundResults?.filter(r => r.status === 'CLEARED').length || 0
-  const progress = totalRounds > 0 ? (clearedRounds / totalRounds) * 100 : 0
+  // If the student has a final result (SELECTED/REJECTED/ON_HOLD), show 100%
+  // progress since they completed the entire process. Otherwise calculate
+  // based on the number of rounds cleared.
+  const isCompleted = !!participation.finalResult
+  const progress = isCompleted
+    ? 100
+    : totalRounds > 0 ? (clearedRounds / totalRounds) * 100 : 0
 
   return (
     <Card className="card-hover overflow-hidden">

@@ -269,7 +269,7 @@ export function StudentDashboard() {
                         size="sm"
                         variant="outline"
                         className="mt-4 w-full border-emerald-200 bg-emerald-50/50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300"
-                        onClick={() => setView('student-drives')}
+                        onClick={() => setView('student-companies')}
                       >
                         View Details
                       </Button>

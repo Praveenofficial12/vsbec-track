@@ -74,28 +74,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Single-session enforcement: if there's already a live session for this
-    // student (a heartbeat within the last 30s), block this login. The user
-    // must logout from the other window first.
+    // student, DELETE the old session and create a new one. This allows the
+    // same student to log in on a new window — the old window will be
+    // force-logged-out on its next heartbeat (reason: 'replaced').
     const userKey = `STUDENT:${student.registerNumber}`
-    const now = Date.now()
-    const existing = await db.sessionTracker.findMany({
-      where: { userKey, lastSeen: { gt: new Date(now - SESSION_TTL_MS) } },
-      select: { token: true },
-    })
-    if (existing.length > 0) {
-      await logUserActivity({
-        userId: student.registerNumber,
-        userType: 'STUDENT',
-        action: 'LOGIN_FAILED',
-        detail: 'Already logged in on another window',
-        ipAddress: getClientIp(req),
-        userAgent: getUserAgent(req),
-      })
-      return NextResponse.json(
-        { error: 'This user is logged in on another window. Please log out there and then try again.' },
-        { status: 409 }
-      )
-    }
+    await db.sessionTracker.deleteMany({ where: { userKey } }).catch(() => {})
 
     // Create a fresh session token for this tab.
     const token = randomUUID()

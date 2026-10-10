@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster as RadixToaster } from "@/components/ui/toaster";
@@ -34,6 +34,13 @@ export const metadata: Metadata = {
     icon: "/vsbec-logo.png",
     apple: "/vsbec-logo.png",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: "#047857",
 };
 
 export default function RootLayout({
