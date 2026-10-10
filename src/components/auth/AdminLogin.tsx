@@ -35,7 +35,7 @@ export function AdminLogin() {
     } catch (err: any) {
       // 409 = single-session block: this admin is already logged in on
       // another window.
-      toast.error(err.message || 'Login failed', { duration: 8000 })
+      toast.error(err.message || 'Login failed', { duration: 5000 })
     } finally {
       setLoading(false)
     }

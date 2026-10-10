@@ -49,12 +49,12 @@ export function useSessionHeartbeat() {
     if (reason === 'replaced') {
       toast.error(
         'This user is logged in on another window. Please log out there and then try again.',
-        { duration: 8000 },
+        { duration: 5000 },
       )
     } else if (reason === 'expired') {
-      toast.error('Your session has expired (6 hour limit). Please log in again.', { duration: 6000 })
+      toast.error('Your session has expired (6 hour limit). Please log in again.', { duration: 5000 })
     } else {
-      toast.error('Your session is no longer valid. Please log in again.', { duration: 6000 })
+      toast.error('Your session is no longer valid. Please log in again.', { duration: 5000 })
     }
     setShownWarning(true)
     setTimeout(() => { logoutInProgress.current = false }, 2000)

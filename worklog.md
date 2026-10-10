@@ -645,3 +645,44 @@ Stage Summary:
 - Admin can add new rounds (with name + description) and delete existing rounds — changes immediately reflect in the student portal.
 - Session expires after 6 hours (was 1 hour).
 - Lint clean; all APIs verified end-to-end; dev server running with auto-restart loop.
+
+---
+Task ID: 21
+Agent: Main (Orchestrator)
+Task: Fix file viewing 404 error (main priority), make all popups auto-dismiss in 5 seconds, test full website.
+
+Work Log:
+- Fixed file viewing 404 error — completely rewrote the file viewer approach:
+  * OLD approach: opened about:blank window → document.write() with HTML → iframes referenced relative URLs → 404 because about:blank doesn't resolve relative paths correctly
+  * NEW approach: created a dedicated server-side API route at /api/files/view that:
+    1. Takes a fileId parameter
+    2. Looks up the file in the DB (returns a nice 404 HTML page if not found)
+    3. Checks if the file exists on disk (returns a nice 404 HTML page if missing)
+    4. Returns a COMPLETE HTML page with the file embedded using the correct method:
+       - Images: <img> with right-click/drag disabled
+       - PDFs: <iframe> (browsers have built-in PDF viewers)
+       - Office files (.xlsx, .docx, .pptx): Google Docs Viewer in <iframe>
+       - Text files: fetched via JS and displayed in <pre>
+       - Other: fallback <iframe>
+    5. All viewers include anti-download/anti-screenshot protections
+  * Updated src/lib/file-viewer.ts: simplified to just call window.open('/api/files/view?fileId=...')
+  * Updated StudentCompanies.tsx and AdminDriveDetail.tsx: pass fileId to openFileViewer()
+  * Created src/app/api/files/view/route.ts: the server-side viewer endpoint
+  * Tested: upload → file accessible at public URL (200) → viewer route returns HTML page (200) → non-existent file returns 404 HTML page
+
+- Made all popups/toasts auto-dismiss after 5 seconds:
+  * Updated src/app/layout.tsx: added duration={5000} to the SonnerToaster component — this is the DEFAULT duration for ALL toasts
+  * Updated specific toasts that had longer durations (8000ms, 6000ms) to 5000ms:
+    - use-session-heartbeat.ts: session expired/replaced/invalid toasts → 5000ms
+    - StudentLogin.tsx: login failed toast → 5000ms
+    - AdminLogin.tsx: login failed toast → 5000ms
+    - StudentCompanies.tsx: eligibility error toast → 5000ms
+
+- Lint passes clean (0 errors, 0 warnings).
+- Browser tested: landing page renders correctly with all 6 campus images, no console errors, no page errors.
+- Dev server running with auto-restart loop for stability under the 4GB sandbox memory limit.
+
+Stage Summary:
+- File viewing is now FIXED: uses a proper server-side API route (/api/files/view) that returns a complete HTML page with the file embedded. No more about:blank + document.write() — the viewer is a real URL that works reliably.
+- All toasts/popups auto-dismiss after 5 seconds (including "session expired", "login failed", "eligibility error", etc.).
+- Lint clean; landing page verified; dev server running.

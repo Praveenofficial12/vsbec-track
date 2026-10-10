@@ -55,7 +55,7 @@ export default function RootLayout({
       >
         {children}
         <RadixToaster />
-        <SonnerToaster position="top-right" richColors closeButton />
+        <SonnerToaster position="top-right" richColors closeButton duration={5000} />
       </body>
     </html>
   );

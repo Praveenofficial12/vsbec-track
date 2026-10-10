@@ -666,7 +666,7 @@ export function AdminDriveDetail() {
                                 rel="noopener noreferrer"
                                 onClick={(e) => {
                                   e.preventDefault()
-                                  openFileViewer({ filePath: f.filePath, fileName: f.fileName, mimeType: f.mimeType })
+                                  openFileViewer({ fileId: f.id, filePath: f.filePath, fileName: f.fileName, mimeType: f.mimeType })
                                 }}
                                 className="truncate text-sm font-medium text-foreground hover:text-emerald-600 hover:underline dark:hover:text-emerald-400"
                               >

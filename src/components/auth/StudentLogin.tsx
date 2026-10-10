@@ -38,7 +38,7 @@ export function StudentLogin() {
       // 409 = single-session block: this student is already logged in on
       // another window. The backend returns a clear message we surface
       // verbatim in the toast/popup.
-      toast.error(err.message || 'Login failed', { duration: 8000 })
+      toast.error(err.message || 'Login failed', { duration: 5000 })
     } finally {
       setLoading(false)
     }

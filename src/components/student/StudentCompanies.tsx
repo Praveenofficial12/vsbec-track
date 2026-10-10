@@ -389,7 +389,7 @@ export function StudentCompanies() {
                       const msg = reasons.length > 0
                         ? `You are not eligible for this drive:\n\n• ${reasons.join('\n• ')}`
                         : 'You are not eligible for this drive.'
-                      toast.error(msg, { duration: 8000 })
+                      toast.error(msg, { duration: 5000 })
                       return
                     }
                     setSelectedDrive(drive)
@@ -773,7 +773,7 @@ export function StudentCompanies() {
                               rel="noopener noreferrer"
                               onClick={(e) => {
                                 e.preventDefault()
-                                openFileViewer({ filePath: f.filePath, fileName: f.fileName, mimeType: f.mimeType })
+                                openFileViewer({ fileId: f.id, filePath: f.filePath, fileName: f.fileName, mimeType: f.mimeType })
                               }}
                               className="group flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-2.5 transition-colors hover:border-emerald-300 hover:bg-emerald-50/50 dark:hover:border-emerald-700 dark:hover:bg-emerald-900/10"
                             >
