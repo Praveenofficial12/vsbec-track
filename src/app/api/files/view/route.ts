@@ -80,64 +80,16 @@ export async function GET(req: NextRequest) {
       // built-in PDF toolbar (download, print, zoom buttons) so the user
       // cannot download or print the PDF.
       embedHtml = `<iframe src="${serveUrl}#toolbar=0&navpanes=0&view=FitH" style="width:100vw;height:calc(100vh - 40px);margin-top:40px;border:0;" allow="fullscreen"></iframe>`
-    } else if (['xlsx', 'xls', 'docx', 'doc', 'pptx', 'ppt'].includes(ext) ||
+    } else if (['xlsx', 'xls', 'docx', 'doc', 'pptx', 'ppt', 'csv'].includes(ext) ||
       mimeType.includes('spreadsheet') || mimeType.includes('excel') ||
       mimeType.includes('wordprocessing') || mimeType.includes('msword') ||
       mimeType.includes('presentation') || mimeType.includes('powerpoint')) {
-      // Office files: use Microsoft Office Online viewer
-      // (https://view.officeapps.live.com/op/embed.aspx?src=<url>).
-      // Build the absolute URL from request headers so Office Online can
-      // fetch the file from the public-facing address.
-      const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || 'localhost:3000'
-      const proto = req.headers.get('x-forwarded-proto') || 'http'
-      const absoluteServeUrl = `${proto}://${host}${serveUrl}`
-      const officeViewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(absoluteServeUrl)}`
-
-      const fileExt = ext
-      const fileIcon = ['xlsx', 'xls'].includes(fileExt) ? '📊' :
-        ['docx', 'doc'].includes(fileExt) ? '📝' :
-        ['pptx', 'ppt'].includes(fileExt) ? '📽️' : '📄'
-      const fileTypeLabel = ['xlsx', 'xls'].includes(fileExt) ? 'Excel Spreadsheet' :
-        ['docx', 'doc'].includes(fileExt) ? 'Word Document' :
-        ['pptx', 'ppt'].includes(fileExt) ? 'PowerPoint Presentation' : 'Office Document'
-
-      embedHtml = `
-        <div id="office-loading" style="width:100vw;height:calc(100vh - 40px);margin-top:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#1a1a1a;color:white;text-align:center;padding:20px;gap:16px;">
-          <div style="font-size:48px;animation:spin 1s linear infinite;">⏳</div>
-          <p style="font-size:16px;opacity:0.8;">Loading ${fileTypeLabel} in Microsoft Office Online...</p>
-          <p style="font-size:12px;opacity:0.5;">${fileName}</p>
-        </div>
-        <iframe id="office-iframe" src="${officeViewerUrl}" style="width:100vw;height:calc(100vh - 40px);margin-top:40px;border:0;display:none;" allow="fullscreen"
-          onload="this.style.display='block';document.getElementById('office-loading').style.display='none'">
-        </iframe>
-        <div id="office-fallback" style="display:none;width:100vw;height:calc(100vh - 40px);margin-top:40px;flex-direction:column;align-items:center;justify-content:center;background:#1a1a1a;color:white;text-align:center;padding:20px;gap:24px;">
-          <div style="font-size:64px;">${fileIcon}</div>
-          <div>
-            <p style="font-size:20px;font-weight:600;word-break:break-all;max-width:600px;margin:0 auto 8px;">${fileName}</p>
-            <p style="font-size:14px;opacity:0.7;">${fileTypeLabel} · ${formatFileSize(file.fileSize || 0)}</p>
-          </div>
-          <div style="background:#2d2d2d;border-radius:12px;padding:24px 32px;max-width:500px;">
-            <p style="font-size:13px;opacity:0.8;margin-bottom:16px;">The online viewer couldn't load this file. Click below to open it directly.</p>
-            <a href="${serveUrl}" target="_blank" rel="noopener noreferrer"
-               style="display:inline-flex;align-items:center;gap:8px;background:#10b981;color:white;padding:12px 32px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:600;">
-              📂 Open &amp; View File
-            </a>
-          </div>
-        </div>
-        <script>
-          // Show fallback if Office Online doesn't load within 15 seconds
-          setTimeout(function() {
-            var iframe = document.getElementById('office-iframe');
-            var loading = document.getElementById('office-loading');
-            var fallback = document.getElementById('office-fallback');
-            if (iframe && iframe.style.display === 'none') {
-              if (loading) loading.style.display = 'none';
-              if (iframe) iframe.style.display = 'none';
-              if (fallback) fallback.style.display = 'flex';
-            }
-          }, 15000);
-        </script>
-      `
+      // Office files: use the server-side preview route that converts
+      // the file to HTML using mammoth (Word) and SheetJS (Excel).
+      // This avoids needing external viewers (Google Docs, Office Online)
+      // that can't access files behind the gateway.
+      const previewUrl = `/api/files/preview?fileId=${file.id}`
+      embedHtml = `<iframe src="${previewUrl}" style="width:100vw;height:calc(100vh - 40px);margin-top:40px;border:0;" allow="fullscreen"></iframe>`
     } else if (mimeType.startsWith('text/') || ['txt', 'csv', 'json', 'md', 'log'].includes(ext)) {
       // Text files: fetch and display
       embedHtml = `
