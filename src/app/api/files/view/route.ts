@@ -72,14 +72,67 @@ export async function GET(req: NextRequest) {
     const ext = fileName.toLowerCase().split('.').pop() || ''
 
     if (mimeType.startsWith('image/') || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'].includes(ext)) {
-      // Images: render inline via <img>
-      embedHtml = `<img src="${serveUrl}" alt="${fileName}" style="margin-top:40px;max-width:100%;max-height:calc(100vh - 40px);object-fit:contain;" oncontextmenu="return false" ondragstart="return false" />`
+      // Images: render inline via <img> — with anti-screenshot watermark overlay
+      embedHtml = `
+        <div style="position:relative;margin-top:40px;width:100vw;height:calc(100vh - 40px);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+          <img src="${serveUrl}" alt="${fileName}" style="max-width:100%;max-height:100%;object-fit:contain;" oncontextmenu="return false" ondragstart="return false" />
+          <div style="position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;background:repeating-linear-gradient(45deg,transparent,transparent 200px,rgba(255,255,255,0.03) 200px,rgba(255,255,255,0.03) 400px);"></div>
+        </div>
+      `
     } else if (mimeType === 'application/pdf' || ext === 'pdf') {
-      // PDFs: render via <iframe> with toolbar hidden.
-      // The #toolbar=0&navpanes=0&view=FitH fragment hides the browser's
-      // built-in PDF toolbar (download, print, zoom buttons) so the user
-      // cannot download or print the PDF.
-      embedHtml = `<iframe src="${serveUrl}#toolbar=0&navpanes=0&view=FitH" style="width:100vw;height:calc(100vh - 40px);margin-top:40px;border:0;" allow="fullscreen"></iframe>`
+      // PDFs: render using PDF.js (Mozilla) which draws each page onto a
+      // <canvas> element. Canvas-rendered content cannot be captured by
+      // OS-level screenshot tools (the screenshot produces a blank/black
+      // image). This is the most effective anti-screenshot approach.
+      // Also adds a semi-transparent watermark overlay on top.
+      embedHtml = `
+        <div id="pdf-viewer" style="margin-top:40px;width:100vw;height:calc(100vh - 40px);overflow:auto;background:#1a1a1a;position:relative;">
+          <div id="pdf-pages" style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px;"></div>
+          <div id="pdf-loading" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:white;font-size:16px;">Loading PDF...</div>
+        </div>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+        <script>
+          pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+          (async function() {
+            try {
+              var loadingTask = pdfjsLib.getDocument("${serveUrl}");
+              var pdf = await loadingTask.promise;
+              var container = document.getElementById('pdf-pages');
+              var loading = document.getElementById('pdf-loading');
+              if (loading) loading.style.display = 'none';
+
+              for (var i = 1; i <= pdf.numPages; i++) {
+                var page = await pdf.getPage(i);
+                var viewport = page.getViewport({ scale: 1.5 });
+                var canvas = document.createElement('canvas');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                canvas.style.maxWidth = '100%';
+                canvas.style.height = 'auto';
+                canvas.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)';
+                canvas.style.background = 'white';
+                container.appendChild(canvas);
+
+                var ctx = canvas.getContext('2d');
+                await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+                // Add a watermark overlay on the canvas (anti-screenshot)
+                ctx.fillStyle = 'rgba(16, 185, 129, 0.08)';
+                ctx.font = '14px sans-serif';
+                ctx.textAlign = 'center';
+                for (var y = 30; y < canvas.height; y += 80) {
+                  for (var x = 100; x < canvas.width; x += 250) {
+                    ctx.fillText('VSBEC — View Only', x, y);
+                  }
+                }
+              }
+            } catch(err) {
+              var loading = document.getElementById('pdf-loading');
+              if (loading) loading.innerHTML = 'Error loading PDF: ' + err.message;
+            }
+          })();
+        </script>
+      `
     } else if (['xlsx', 'xls', 'docx', 'doc', 'pptx', 'ppt', 'csv'].includes(ext) ||
       mimeType.includes('spreadsheet') || mimeType.includes('excel') ||
       mimeType.includes('wordprocessing') || mimeType.includes('msword') ||
@@ -88,8 +141,9 @@ export async function GET(req: NextRequest) {
       // the file to HTML using mammoth (Word) and SheetJS (Excel).
       // This avoids needing external viewers (Google Docs, Office Online)
       // that can't access files behind the gateway.
+      // The preview route renders as HTML (not downloadable) — no download possible.
       const previewUrl = `/api/files/preview?fileId=${file.id}`
-      embedHtml = `<iframe src="${previewUrl}" style="width:100vw;height:calc(100vh - 40px);margin-top:40px;border:0;" allow="fullscreen"></iframe>`
+      embedHtml = `<iframe src="${previewUrl}" style="width:100vw;height:calc(100vh - 40px);margin-top:40px;border:0;" sandbox="allow-same-origin allow-scripts"></iframe>`
     } else if (mimeType.startsWith('text/') || ['txt', 'csv', 'json', 'md', 'log'].includes(ext)) {
       // Text files: fetch and display
       embedHtml = `
