@@ -75,20 +75,24 @@ export async function GET(req: NextRequest) {
       // Images: render inline via <img>
       embedHtml = `<img src="${serveUrl}" alt="${fileName}" style="margin-top:40px;max-width:100%;max-height:calc(100vh - 40px);object-fit:contain;" oncontextmenu="return false" ondragstart="return false" />`
     } else if (mimeType === 'application/pdf' || ext === 'pdf') {
-      // PDFs: render via <iframe> — browsers have built-in PDF viewers
-      embedHtml = `<iframe src="${serveUrl}" style="width:100vw;height:calc(100vh - 40px);margin-top:40px;border:0;" allow="fullscreen"></iframe>`
+      // PDFs: render via <iframe> with toolbar hidden.
+      // The #toolbar=0&navpanes=0&view=FitH fragment hides the browser's
+      // built-in PDF toolbar (download, print, zoom buttons) so the user
+      // cannot download or print the PDF.
+      embedHtml = `<iframe src="${serveUrl}#toolbar=0&navpanes=0&view=FitH" style="width:100vw;height:calc(100vh - 40px);margin-top:40px;border:0;" allow="fullscreen"></iframe>`
     } else if (['xlsx', 'xls', 'docx', 'doc', 'pptx', 'ppt'].includes(ext) ||
       mimeType.includes('spreadsheet') || mimeType.includes('excel') ||
       mimeType.includes('wordprocessing') || mimeType.includes('msword') ||
       mimeType.includes('presentation') || mimeType.includes('powerpoint')) {
-      // Office files: browsers can't render .xlsx/.docx/.pptx natively,
-      // and external viewers (Google Docs, Office Online) can't access
-      // files behind the gateway.
-      // Solution: fetch the file as a Blob via the serve route, create an
-      // object URL, and try to display it in an <iframe>. If that fails
-      // (which it will for most Office files), show a preview card with
-      // a "View File" button that opens the file directly via the serve
-      // route — the browser will either render it or prompt to download.
+      // Office files: use Microsoft Office Online viewer
+      // (https://view.officeapps.live.com/op/embed.aspx?src=<url>).
+      // Build the absolute URL from request headers so Office Online can
+      // fetch the file from the public-facing address.
+      const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || 'localhost:3000'
+      const proto = req.headers.get('x-forwarded-proto') || 'http'
+      const absoluteServeUrl = `${proto}://${host}${serveUrl}`
+      const officeViewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(absoluteServeUrl)}`
+
       const fileExt = ext
       const fileIcon = ['xlsx', 'xls'].includes(fileExt) ? '📊' :
         ['docx', 'doc'].includes(fileExt) ? '📝' :
@@ -98,23 +102,41 @@ export async function GET(req: NextRequest) {
         ['pptx', 'ppt'].includes(fileExt) ? 'PowerPoint Presentation' : 'Office Document'
 
       embedHtml = `
-        <div id="office-container" style="width:100vw;height:calc(100vh - 40px);margin-top:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#1a1a1a;color:white;text-align:center;padding:20px;gap:24px;">
+        <div id="office-loading" style="width:100vw;height:calc(100vh - 40px);margin-top:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#1a1a1a;color:white;text-align:center;padding:20px;gap:16px;">
+          <div style="font-size:48px;animation:spin 1s linear infinite;">⏳</div>
+          <p style="font-size:16px;opacity:0.8;">Loading ${fileTypeLabel} in Microsoft Office Online...</p>
+          <p style="font-size:12px;opacity:0.5;">${fileName}</p>
+        </div>
+        <iframe id="office-iframe" src="${officeViewerUrl}" style="width:100vw;height:calc(100vh - 40px);margin-top:40px;border:0;display:none;" allow="fullscreen"
+          onload="this.style.display='block';document.getElementById('office-loading').style.display='none'">
+        </iframe>
+        <div id="office-fallback" style="display:none;width:100vw;height:calc(100vh - 40px);margin-top:40px;flex-direction:column;align-items:center;justify-content:center;background:#1a1a1a;color:white;text-align:center;padding:20px;gap:24px;">
           <div style="font-size:64px;">${fileIcon}</div>
           <div>
             <p style="font-size:20px;font-weight:600;word-break:break-all;max-width:600px;margin:0 auto 8px;">${fileName}</p>
             <p style="font-size:14px;opacity:0.7;">${fileTypeLabel} · ${formatFileSize(file.fileSize || 0)}</p>
           </div>
           <div style="background:#2d2d2d;border-radius:12px;padding:24px 32px;max-width:500px;">
-            <p style="font-size:13px;opacity:0.8;margin-bottom:16px;">This file type cannot be previewed inline in the browser. Click the button below to open and view it.</p>
+            <p style="font-size:13px;opacity:0.8;margin-bottom:16px;">The online viewer couldn't load this file. Click below to open it directly.</p>
             <a href="${serveUrl}" target="_blank" rel="noopener noreferrer"
-               style="display:inline-flex;align-items:center;gap:8px;background:#10b981;color:white;padding:12px 32px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:600;transition:background 0.2s;"
-               onmouseover="this.style.background='#059669'"
-               onmouseout="this.style.background='#10b981'">
+               style="display:inline-flex;align-items:center;gap:8px;background:#10b981;color:white;padding:12px 32px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:600;">
               📂 Open &amp; View File
             </a>
           </div>
-          <p style="font-size:12px;opacity:0.5;max-width:400px;">The file will open in a new tab. Download and screenshots are disabled on the viewer page.</p>
         </div>
+        <script>
+          // Show fallback if Office Online doesn't load within 15 seconds
+          setTimeout(function() {
+            var iframe = document.getElementById('office-iframe');
+            var loading = document.getElementById('office-loading');
+            var fallback = document.getElementById('office-fallback');
+            if (iframe && iframe.style.display === 'none') {
+              if (loading) loading.style.display = 'none';
+              if (iframe) iframe.style.display = 'none';
+              if (fallback) fallback.style.display = 'flex';
+            }
+          }, 15000);
+        </script>
       `
     } else if (mimeType.startsWith('text/') || ['txt', 'csv', 'json', 'md', 'log'].includes(ext)) {
       // Text files: fetch and display
