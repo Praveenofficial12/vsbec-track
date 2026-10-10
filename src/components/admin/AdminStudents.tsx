@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
 import { useAppStore } from '@/lib/store'
-import { apiGet, csvToArray, STATUS_COLORS, formatDate, avatarColor, initials } from '@/lib/api'
+import { apiGet, apiDelete, csvToArray, STATUS_COLORS, formatDate, avatarColor, initials } from '@/lib/api'
 import { AdminLayout } from './AdminLayout'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -11,19 +11,23 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { EmptyState, CardSkeleton } from '@/components/common/States'
 import {
-  Users, Search, Download, Filter, Eye, Award, X, RefreshCw, UserCheck, ShieldCheck,
+  Users, Search, Download, Filter, Eye, Award, X, RefreshCw, UserCheck,
   Target, CheckCircle2, XCircle, Clock, Briefcase, GraduationCap, MapPin, Mail,
-  Phone, Calendar, TrendingUp,
+  Phone, Trash2, AlertTriangle, TrendingUp,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Student } from '@/lib/types'
 
-// Per requirement: registered students can NOT be removed from the website UI.
-// They can only be removed by staff directly from the database. There is no
-// Delete button / dialog anywhere on this page, and the DELETE /api/students/[id]
-// endpoint returns 403.
+// Admins can now delete students directly from the admin panel. The DELETE
+// endpoint cascade-deletes all dependent records (round results → participations
+// → certifications → projects → notifications → session → student) and writes
+// an AuditLog entry.
 
 // 13 official V.S.B. Engineering College departments (matches DEPARTMENT_PASSWORDS)
 const DEPARTMENTS = [
@@ -66,6 +70,8 @@ export function AdminStudents() {
     roundNotCleared: '',
   })
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [deleteTarget, setDeleteTarget] = useState<Student | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const [totalCount, setTotalCount] = useState(0)
   const [currentPage, setCurrentPage] = useState(0)
   const pageSize = 60
@@ -104,6 +110,23 @@ export function AdminStudents() {
   const handleView = (id: string) => {
     setSelected('studentId', id)
     setView('admin-student-detail')
+  }
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      await apiDelete(`/api/students/${deleteTarget.id}`)
+      toast.success(`${deleteTarget.fullName} (${deleteTarget.registerNumber}) deleted successfully`)
+      setStudents(prev => prev.filter(s => s.id !== deleteTarget.id))
+      setDeleteTarget(null)
+      // Refresh the total count
+      fetchStudents()
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to delete student')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const handleExport = () => {
@@ -406,13 +429,13 @@ export function AdminStudents() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7"
-                                onClick={(e) => { e.stopPropagation(); handleView(s.id) }}
+                                className="h-7 w-7 text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-900/20"
+                                onClick={(e) => { e.stopPropagation(); setDeleteTarget(s) }}
                               >
-                                <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                                <Trash2 className="h-3.5 w-3.5" />
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent>Protected record — deletion requires DB access</TooltipContent>
+                            <TooltipContent>Delete student</TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
                       </div>
@@ -455,15 +478,33 @@ export function AdminStudents() {
           <p className="text-sm text-muted-foreground">Showing all {totalCount} student{totalCount !== 1 ? 's' : ''}</p>
         )}
 
-        {/* Info banner: registered students are protected from UI deletion. */}
-        <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
-          <ShieldCheck className="h-4 w-4 shrink-0" />
-          <p>
-            <strong>Student records are protected.</strong> Once a student registers on the website, their
-            account cannot be removed from this panel. To permanently delete a student, staff must remove
-            the record directly from the database.
-          </p>
-        </div>
+        {/* Delete confirmation dialog */}
+        <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-rose-600" />
+                Delete Student Record
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to permanently delete <strong>{deleteTarget?.fullName}</strong>{' '}
+                ({deleteTarget?.registerNumber})?
+                This will also remove all of their certifications, projects, drive participations, round results,
+                notifications, and login sessions. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDelete}
+                disabled={deleting}
+                className="bg-rose-600 hover:bg-rose-700"
+              >
+                {deleting ? 'Deleting...' : 'Delete Permanently'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AdminLayout>
   )

@@ -397,3 +397,54 @@ Stage Summary:
   5. Single-session login popup verified working
 - Files touched: src/lib/college.ts, src/components/landing/LandingPage.tsx, src/components/admin/AdminDrives.tsx, src/components/student/StudentCompanies.tsx, src/app/api/drives/route.ts, src/lib/email-notifications.ts (NEW), /public/campus/ (6 new image files).
 - Lint clean; browser-verified; dev server running with auto-restart loop.
+
+---
+Task ID: 16
+Agent: Main (Orchestrator)
+Task: Add delete option for student registry in admin panel (admin can now remove students via UI), add file upload to drive announcement area to share files with attending students, finish the full website.
+
+Work Log:
+- Re-enabled the DELETE endpoint for students (src/app/api/students/[id]/route.ts):
+  * Removed the HTTP 403 block that prevented deletion
+  * Restored the full cascade-delete logic in a single transaction: RoundResult → DriveParticipation → Certification → Project → Notification → SessionTracker → Student
+  * Writes an AuditLog entry (action: DELETE_STUDENT) for traceability
+  * Returns HTTP 200 with a success message on completion
+- Updated AdminStudents card UI (src/components/admin/AdminStudents.tsx):
+  * Removed the ShieldCheck "protected record" tooltip button and the "Student records are protected" info banner
+  * Added a Trash2 delete button (rose-colored) on each student card
+  * Added a delete confirmation AlertDialog with a warning that all certifications, projects, participations, round results, notifications, and sessions will be deleted
+  * The handleDelete function calls DELETE /api/students/[id], shows a toast, removes the card from the list, and refreshes the total count
+- Added file upload to drive announcement area:
+  * Added a new `DriveFile` model to prisma/schema.prisma (id, driveId, fileName, filePath, fileSize, mimeType, description, uploadedBy, createdAt). Added `files DriveFile[]` relation to the Drive model. Ran `bun run db:push` — DB synced, Prisma Client regenerated.
+  * Created /public/uploads/drives/ directory for file storage.
+  * Created src/app/api/drives/[id]/files/route.ts with:
+    - GET: list all files for a drive
+    - POST: upload a file (multipart/form-data), saves to /public/uploads/drives/<driveId>/<uuid>.<ext>, creates DriveFile record, sends notifications to all attending students
+    - DELETE: remove a file (deletes physical file + DB record)
+  * Updated AdminDriveDetail (src/components/admin/AdminDriveDetail.tsx):
+    - Added DriveFile interface, formatFileSize helper, getFileIcon helper
+    - Added driveFiles state + refreshFiles function (fetches on drive load)
+    - Added a "Share Files with Attending Students" section in the announcement card with:
+      * Hidden file input + "Choose File" button with optional description
+      * Upload progress (spinner + "Uploading...")
+      * Uploaded files list with file icon, name, description, size, date, download link, and delete button
+  * Updated StudentCompanies (src/components/student/StudentCompanies.tsx):
+    - Added driveFiles state, fetched when a student opens a drive detail modal
+    - Added a "Shared Files" section in the student's drive detail modal showing downloadable file links
+    - Added Paperclip, FileText, Download icon imports
+
+Verification:
+- Lint passes clean (0 errors, 0 warnings).
+- DELETE /api/students/<id> now returns HTTP 200 (was 403). Tested: registered a test student, deleted via API → 200 "Delete Test 2 (DELTEST2) deleted successfully". Verified the student is gone from the list.
+- File upload tested end-to-end:
+  * POST /api/drives/<id>/files with a test file → 200, file saved to /public/uploads/drives/<driveId>/<uuid>.txt, DriveFile record created
+  * GET /api/drives/<id>/files → returns the uploaded file with metadata
+  * File download (GET /uploads/drives/...) → serves the file content (200)
+  * DELETE /api/drives/<id>/files?fileId=... → 200, file deleted from disk + DB
+- Cleaned up all test data.
+
+Stage Summary:
+- Admins can now delete students directly from the admin panel (card has a delete button + confirmation dialog). The cascade delete removes all dependent records.
+- Drive announcement area now supports file upload — admins can upload PDFs, images, docs, etc. (max 25 MB) with an optional description. Files are shared with attending students (who get a notification), and students can download them from the drive detail modal.
+- Files touched: prisma/schema.prisma (DriveFile model), src/app/api/students/[id]/route.ts (DELETE re-enabled), src/components/admin/AdminStudents.tsx (delete button + dialog), src/app/api/drives/[id]/files/route.ts (NEW — upload/list/delete), src/components/admin/AdminDriveDetail.tsx (file upload UI), src/components/student/StudentCompanies.tsx (student file download UI).
+- Lint clean; API verified end-to-end; dev server running with auto-restart loop.

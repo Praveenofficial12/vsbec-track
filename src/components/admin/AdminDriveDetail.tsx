@@ -23,8 +23,37 @@ import {
   ArrowLeft, Calendar, Briefcase, MapPin, Users, Building2, Target,
   CheckCircle2, XCircle, Clock, Award, Activity, AlertCircle, ListChecks,
   Trophy, Loader2, Download, IndianRupee, Trash2, RotateCcw, PartyPopper, Bell, Save, Lock,
+  UploadCloud, FileText, File as FileIcon, Paperclip,
 } from 'lucide-react'
 import type { Drive, DriveParticipation, Student } from '@/lib/types'
+
+// Drive file metadata returned by the /api/drives/[id]/files endpoint.
+interface DriveFile {
+  id: string
+  driveId: string
+  fileName: string
+  filePath: string
+  fileSize: number
+  mimeType: string
+  description: string | null
+  uploadedBy: string
+  createdAt: string
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function getFileIcon(mimeType: string) {
+  if (mimeType.startsWith('image/')) return <FileIcon className="h-4 w-4 text-violet-500" />
+  if (mimeType.includes('pdf')) return <FileText className="h-4 w-4 text-rose-500" />
+  if (mimeType.includes('word') || mimeType.includes('document')) return <FileText className="h-4 w-4 text-blue-500" />
+  if (mimeType.includes('sheet') || mimeType.includes('excel')) return <FileText className="h-4 w-4 text-emerald-500" />
+  if (mimeType.includes('zip') || mimeType.includes('compressed')) return <FileText className="h-4 w-4 text-amber-500" />
+  return <Paperclip className="h-4 w-4 text-muted-foreground" />
+}
 
 export function AdminDriveDetail() {
   const driveId = useAppStore((s) => s.selectedDriveId)
@@ -46,6 +75,11 @@ export function AdminDriveDetail() {
   const [selecting, setSelecting] = useState(false)
   // Celebration popup shown after a student is successfully marked SELECTED.
   const [celebration, setCelebration] = useState<DriveParticipation | null>(null)
+  // Drive files (uploaded to the announcement area, shared with attending students)
+  const [driveFiles, setDriveFiles] = useState<DriveFile[]>([])
+  const [uploading, setUploading] = useState(false)
+  const [fileDescription, setFileDescription] = useState('')
+  const [deletingFile, setDeletingFile] = useState<string | null>(null)
 
   const refreshDrive = async () => {
     if (!driveId) return
@@ -53,9 +87,18 @@ export function AdminDriveDetail() {
     setDrive(r.drive)
   }
 
+  const refreshFiles = async () => {
+    if (!driveId) return
+    try {
+      const r = await apiGet<{ files: DriveFile[] }>(`/api/drives/${driveId}/files`)
+      setDriveFiles(r.files || [])
+    } catch { /* best-effort */ }
+  }
+
   useEffect(() => {
     if (!driveId) return
     apiGet<{ drive: Drive }>(`/api/drives/${driveId}`).then(r => setDrive(r.drive)).finally(() => setLoading(false))
+    refreshFiles()
   }, [driveId])
 
   const updateParticipation = async (participation: DriveParticipation, updates: any) => {
@@ -439,6 +482,147 @@ export function AdminDriveDetail() {
                     }}
                   />
                   <p className="mt-2 text-xs text-muted-foreground">Click outside the text area to save. Students will see this message in the drive details.</p>
+
+                  {/* File Upload Section — share files with attending students */}
+                  <div className="mt-4 border-t border-border pt-4">
+                    <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <UploadCloud className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                      Share Files with Attending Students
+                    </p>
+                    <p className="mb-3 text-xs text-muted-foreground">
+                      Upload documents (PDF, images, docs, etc.) that attending students can download from the drive. Max 25 MB per file.
+                    </p>
+
+                    {/* Upload form */}
+                    <div className="rounded-lg border border-dashed border-border bg-muted/30 p-3">
+                      <input
+                        type="file"
+                        id="drive-file-upload"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0]
+                          if (!file || !driveId) return
+                          setUploading(true)
+                          try {
+                            const formData = new FormData()
+                            formData.append('file', file)
+                            formData.append('description', fileDescription)
+                            const res = await fetch(`/api/drives/${driveId}/files`, {
+                              method: 'POST',
+                              body: formData,
+                            })
+                            if (!res.ok) {
+                              const err = await res.json().catch(() => ({ error: 'Upload failed' }))
+                              throw new Error(err.error || 'Upload failed')
+                            }
+                            toast.success(`${file.name} uploaded and shared with attending students`)
+                            setFileDescription('')
+                            await refreshFiles()
+                          } catch (err: any) {
+                            toast.error(err.message || 'Failed to upload file')
+                          } finally {
+                            setUploading(false)
+                            // Reset the input so the same file can be re-selected
+                            const input = document.getElementById('drive-file-upload') as HTMLInputElement
+                            if (input) input.value = ''
+                          }
+                        }}
+                      />
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                        <Input
+                          placeholder="Optional description (e.g. 'Round 1 study material')"
+                          value={fileDescription}
+                          onChange={(e) => setFileDescription(e.target.value)}
+                          className="flex-1"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={uploading}
+                          onClick={() => document.getElementById('drive-file-upload')?.click()}
+                          className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
+                        >
+                          {uploading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <UploadCloud className="mr-2 h-4 w-4" />
+                              Choose File
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Uploaded files list */}
+                    {driveFiles.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                          Shared Files ({driveFiles.length})
+                        </p>
+                        {driveFiles.map((f) => (
+                          <div
+                            key={f.id}
+                            className="group flex items-center gap-3 rounded-lg border border-border bg-card p-3 transition-colors hover:bg-accent/30"
+                          >
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+                              {getFileIcon(f.mimeType)}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <a
+                                href={f.filePath}
+                                download={f.fileName}
+                                className="truncate text-sm font-medium text-foreground hover:text-emerald-600 hover:underline dark:hover:text-emerald-400"
+                              >
+                                {f.fileName}
+                              </a>
+                              {f.description && (
+                                <p className="truncate text-xs text-muted-foreground">{f.description}</p>
+                              )}
+                              <p className="text-[10px] text-muted-foreground">
+                                {formatFileSize(f.fileSize)} · {new Date(f.createdAt).toLocaleString()}
+                              </p>
+                            </div>
+                            <a
+                              href={f.filePath}
+                              download={f.fileName}
+                              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/20"
+                              title="Download"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                            </a>
+                            <button
+                              onClick={async () => {
+                                if (!driveId) return
+                                setDeletingFile(f.id)
+                                try {
+                                  await apiDelete(`/api/drives/${driveId}/files?fileId=${f.id}`)
+                                  toast.success(`${f.fileName} deleted`)
+                                  await refreshFiles()
+                                } catch (e: any) {
+                                  toast.error(e.message || 'Failed to delete file')
+                                } finally {
+                                  setDeletingFile(null)
+                                }
+                              }}
+                              disabled={deletingFile === f.id}
+                              className="flex h-7 w-7 items-center justify-center rounded-md text-rose-600 transition-colors hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-900/20"
+                              title="Delete file"
+                            >
+                              {deletingFile === f.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-3.5 w-3.5" />
+                              )}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </div>

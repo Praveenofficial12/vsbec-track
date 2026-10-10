@@ -75,23 +75,56 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 }
 
-// DELETE: DISABLED per requirement — students registered on the website cannot
-// be removed through the API/UI. They can only be removed by staff directly
-// from the database (e.g. via Prisma Studio, sqlite3 CLI, or a DB console).
-// The cascade-delete logic is intentionally left commented below for staff
-// reference if they ever need to run it directly against the database.
-//
-// export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-//   ... cascade-delete RoundResult → DriveParticipation → Certification →
-//       Project → Notification → Student, then write an AuditLog entry ...
-// }
-export async function DELETE() {
-  return NextResponse.json(
-    {
-      error:
-        'Student deletion is disabled on the website. Registered students can only be removed by staff directly from the database.',
-      hint: 'Use Prisma Studio (bunx prisma studio) or the sqlite3 CLI to remove the Student row manually. The cascade delete order is: RoundResult → DriveParticipation → Certification → Project → Notification → Student.',
-    },
-    { status: 403 },
-  )
+// DELETE: Cascade-delete a student and all their dependent records
+// (round results → participations → certifications → projects → notifications → student).
+// Also writes an AuditLog entry for traceability. Admins can now delete
+// students directly from the admin panel UI.
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params
+
+    const student = await db.student.findUnique({
+      where: { id },
+      select: { id: true, fullName: true, registerNumber: true, department: true, year: true },
+    })
+    if (!student) {
+      return NextResponse.json({ error: 'Student not found' }, { status: 404 })
+    }
+
+    // Find every participation this student has so we can wipe their round results first.
+    const participations = await db.driveParticipation.findMany({
+      where: { studentId: id },
+      select: { id: true },
+    })
+    const participationIds = participations.map((p) => p.id)
+
+    await db.$transaction(async (tx) => {
+      if (participationIds.length > 0) {
+        await tx.roundResult.deleteMany({ where: { participationId: { in: participationIds } } })
+      }
+      await tx.driveParticipation.deleteMany({ where: { studentId: id } })
+      await tx.certification.deleteMany({ where: { studentId: id } })
+      await tx.project.deleteMany({ where: { studentId: id } })
+      await tx.notification.deleteMany({ where: { studentId: id } })
+      await tx.sessionTracker.deleteMany({ where: { userKey: `STUDENT:${student.registerNumber}` } })
+      await tx.student.delete({ where: { id } })
+
+      await tx.auditLog.create({
+        data: {
+          adminEmail: 'Vsbec@2027',
+          action: 'DELETE_STUDENT',
+          entity: 'Student',
+          entityId: id,
+          studentName: student.fullName,
+          previousValue: student.registerNumber,
+          newValue: 'DELETED',
+        },
+      })
+    })
+
+    return NextResponse.json({ success: true, message: `${student.fullName} (${student.registerNumber}) deleted successfully` })
+  } catch (error) {
+    console.error('Delete student error:', error)
+    return NextResponse.json({ error: 'Failed to delete student' }, { status: 500 })
+  }
 }

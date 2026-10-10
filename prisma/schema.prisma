@@ -125,9 +125,29 @@ model Drive {
   company          Company  @relation(fields: [companyId], references: [id])
   rounds           Round[]
   participants     DriveParticipation[]
+  files            DriveFile[]
 
   @@index([companyId])
   @@index([status])
+}
+
+// Files attached to a drive's announcement area — shared with attending students.
+// The physical file is stored under /public/uploads/drives/<driveId>/ and the
+// path is saved here so it can be served publicly for download.
+model DriveFile {
+  id          String   @id @default(cuid())
+  driveId     String
+  fileName    String   // original file name as uploaded
+  filePath    String   // relative public path, e.g. /uploads/drives/<driveId>/<uuid>.<ext>
+  fileSize    Int      // bytes
+  mimeType    String   // e.g. application/pdf, image/png
+  description String?  // optional admin caption
+  uploadedBy  String   @default("Vsbec@2027") // admin email
+  createdAt   DateTime @default(now())
+
+  drive       Drive    @relation(fields: [driveId], references: [id])
+
+  @@index([driveId])
 }
 
 model Round {
