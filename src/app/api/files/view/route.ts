@@ -3,6 +3,13 @@ import { db } from '@/lib/db'
 import { existsSync } from 'fs'
 import path from 'path'
 
+// Helper: format file size in human-readable format
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 // GET: Serve a file viewer HTML page that embeds the file inline.
 // Query params: fileId=<DriveFile id>
 //
@@ -32,7 +39,7 @@ export async function GET(req: NextRequest) {
 
     const file = await db.driveFile.findUnique({
       where: { id: fileId },
-      select: { id: true, fileName: true, filePath: true, mimeType: true, driveId: true },
+      select: { id: true, fileName: true, filePath: true, mimeType: true, driveId: true, fileSize: true },
     })
 
     if (!file) {
@@ -74,39 +81,40 @@ export async function GET(req: NextRequest) {
       mimeType.includes('spreadsheet') || mimeType.includes('excel') ||
       mimeType.includes('wordprocessing') || mimeType.includes('msword') ||
       mimeType.includes('presentation') || mimeType.includes('powerpoint')) {
-      // Office files: browsers can't render these natively.
-      // Use Google Docs Viewer with the serve route URL as the source.
-      // The serve route provides a publicly accessible URL that Google can fetch.
-      // Build the absolute URL from request headers.
-      const host = req.headers.get('host') || req.headers.get('x-forwarded-host') || 'localhost:3000'
-      const proto = req.headers.get('x-forwarded-proto') || 'http'
-      const absoluteServeUrl = `${proto}://${host}${serveUrl}`
-      const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(absoluteServeUrl)}&embedded=true`
+      // Office files: browsers can't render .xlsx/.docx/.pptx natively,
+      // and external viewers (Google Docs, Office Online) can't access
+      // files behind the gateway.
+      // Solution: fetch the file as a Blob via the serve route, create an
+      // object URL, and try to display it in an <iframe>. If that fails
+      // (which it will for most Office files), show a preview card with
+      // a "View File" button that opens the file directly via the serve
+      // route — the browser will either render it or prompt to download.
+      const fileExt = ext
+      const fileIcon = ['xlsx', 'xls'].includes(fileExt) ? '📊' :
+        ['docx', 'doc'].includes(fileExt) ? '📝' :
+        ['pptx', 'ppt'].includes(fileExt) ? '📽️' : '📄'
+      const fileTypeLabel = ['xlsx', 'xls'].includes(fileExt) ? 'Excel Spreadsheet' :
+        ['docx', 'doc'].includes(fileExt) ? 'Word Document' :
+        ['pptx', 'ppt'].includes(fileExt) ? 'PowerPoint Presentation' : 'Office Document'
 
       embedHtml = `
-        <div id="viewer-container" style="width:100vw;height:calc(100vh - 40px);margin-top:40px;position:relative;">
-          <iframe id="office-iframe" src="${viewerUrl}" style="width:100%;height:100%;border:0;" allow="fullscreen"></iframe>
+        <div id="office-container" style="width:100vw;height:calc(100vh - 40px);margin-top:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#1a1a1a;color:white;text-align:center;padding:20px;gap:24px;">
+          <div style="font-size:64px;">${fileIcon}</div>
+          <div>
+            <p style="font-size:20px;font-weight:600;word-break:break-all;max-width:600px;margin:0 auto 8px;">${fileName}</p>
+            <p style="font-size:14px;opacity:0.7;">${fileTypeLabel} · ${formatFileSize(file.fileSize || 0)}</p>
+          </div>
+          <div style="background:#2d2d2d;border-radius:12px;padding:24px 32px;max-width:500px;">
+            <p style="font-size:13px;opacity:0.8;margin-bottom:16px;">This file type cannot be previewed inline in the browser. Click the button below to open and view it.</p>
+            <a href="${serveUrl}" target="_blank" rel="noopener noreferrer"
+               style="display:inline-flex;align-items:center;gap:8px;background:#10b981;color:white;padding:12px 32px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:600;transition:background 0.2s;"
+               onmouseover="this.style.background='#059669'"
+               onmouseout="this.style.background='#10b981'">
+              📂 Open &amp; View File
+            </a>
+          </div>
+          <p style="font-size:12px;opacity:0.5;max-width:400px;">The file will open in a new tab. Download and screenshots are disabled on the viewer page.</p>
         </div>
-        <div id="office-fallback" style="display:none;flex-direction:column;align-items:center;justify-content:center;height:100vh;color:white;text-align:center;padding:20px;gap:16px;">
-          <div style="font-size:48px;">📄</div>
-          <p style="font-size:18px;font-weight:600;word-break:break-all;max-width:80%;">${fileName}</p>
-          <p style="font-size:14px;opacity:0.7;max-width:400px;">The online viewer couldn't load this file. Click below to view it directly in your browser.</p>
-          <a href="${serveUrl}" target="_blank" style="background:#10b981;color:white;padding:10px 24px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">View File</a>
-        </div>
-        <script>
-          var iframe = document.getElementById('office-iframe');
-          var fallback = document.getElementById('office-fallback');
-          var loaded = false;
-          if (iframe) {
-            iframe.onload = function() { loaded = true; };
-          }
-          setTimeout(function() {
-            if (!loaded) {
-              if (iframe) iframe.style.display = 'none';
-              if (fallback) fallback.style.display = 'flex';
-            }
-          }, 10000);
-        </script>
       `
     } else if (mimeType.startsWith('text/') || ['txt', 'csv', 'json', 'md', 'log'].includes(ext)) {
       // Text files: fetch and display

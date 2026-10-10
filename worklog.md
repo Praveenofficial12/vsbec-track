@@ -846,3 +846,46 @@ Stage Summary:
 - Recommendations page enhanced with search, filter, sort, export CSV, notify, match score distribution, skill gap analysis, and more.
 - Year values migrated to Roman numerals in the database.
 - Lint clean; dev server running.
+
+---
+Task ID: 26
+Agent: Main (Orchestrator)
+Task: Fix Excel/Word file preview, fix admin reports unplaced student report button error.
+
+Work Log:
+- Fixed Excel/Word file preview (src/app/api/files/view/route.ts):
+  * Root cause: Google Docs Viewer and Microsoft Office Online viewer couldn't access files behind the gateway (vsbec-track.space-z.ai) — they showed "No preview available" or "An error occurred".
+  * Fix: replaced the external viewer approach with a native preview card:
+    - Shows a file-type-specific icon (📊 Excel, 📝 Word, 📽️ PowerPoint)
+    - Shows the file name, type label ("Excel Spreadsheet"), and file size
+    - Has an "📂 Open & View File" button that opens the file via /api/files/serve?fileId=X
+    - The serve route streams the file with the correct Content-Type, so the browser will either render it natively (if it has a plugin) or prompt to download/open
+  * Added formatFileSize() helper function and fileSize to the DB query
+  * PDFs and images still render inline (no change — they work fine)
+  * Text files still fetch and display inline (no change)
+
+- Fixed admin reports "Unplaced Students Report" button error:
+  * Root cause: `s.cgpa?.toFixed(2)` would throw if cgpa was null, and the table would crash when trying to render students with null CGPA
+  * Fix: changed to `s.cgpa ? s.cgpa.toFixed(2) : '—'` — shows '—' for null CGPA
+  * Also added empty state handling: shows "No unplaced students" message when there are no unplaced students
+  * Also added `.filter(Boolean)` to the skills split to handle empty strings
+  * Applied the same CGPA fix to the "Overall Placement Report" table
+
+- Verified all 4 report types work correctly:
+  * Overall: returns summary stats + student table
+  * Selected: returns records (empty when no selected students — shows empty state)
+  * Unplaced: returns students with skills (now handles null CGPA)
+  * Department: returns department breakdown
+
+- Lint passes clean (0 errors, 0 warnings).
+- Tested the xlsx file viewer: shows a nice preview card with Excel icon, file name, type, size, and "Open & View File" button.
+- Tested the file serve route: returns xlsx content with correct Content-Type (application/vnd.openxmlformats-officedocument.spreadsheetml.sheet).
+- Cleaned up all test data.
+- Dev server running with auto-restart loop.
+
+Stage Summary:
+- Excel/Word/PowerPoint files now show a preview card with file info + "Open & View File" button instead of trying to use external viewers that can't access the gateway.
+- PDFs and images still render inline (working correctly).
+- Unplaced Students Report button fixed — handles null CGPA and empty data gracefully.
+- All 4 report types tested and working.
+- Lint clean; dev server running.

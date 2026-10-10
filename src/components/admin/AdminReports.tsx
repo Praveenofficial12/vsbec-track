@@ -209,7 +209,7 @@ export function AdminReports() {
                             <TableCell className="text-muted-foreground">{s.registerNumber}</TableCell>
                             <TableCell className="font-medium">{s.fullName}</TableCell>
                             <TableCell className="hidden md:table-cell">{s.department}</TableCell>
-                            <TableCell className="font-semibold text-emerald-600 dark:text-emerald-400">{s.cgpa?.toFixed(2)}</TableCell>
+                            <TableCell className="font-semibold text-emerald-600 dark:text-emerald-400">{s.cgpa ? s.cgpa.toFixed(2) : '—'}</TableCell>
                             <TableCell><Badge variant="outline" className={STATUS_COLORS[s.placementStatus]}>{s.placementStatus.replace(/_/g, ' ')}</Badge></TableCell>
                           </TableRow>
                         ))}
@@ -257,34 +257,40 @@ export function AdminReports() {
               )}
 
               {reportType === 'unplaced' && (
-                <div className="overflow-x-auto scrollbar-thin">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Register Number</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead className="hidden md:table-cell">Department</TableHead>
-                        <TableHead>CGPA</TableHead>
-                        <TableHead className="hidden lg:table-cell">Skills</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {report.students.map((s: any) => (
-                        <TableRow key={s.id}>
-                          <TableCell className="text-muted-foreground">{s.registerNumber}</TableCell>
-                          <TableCell className="font-medium">{s.fullName}</TableCell>
-                          <TableCell className="hidden md:table-cell">{s.department}</TableCell>
-                          <TableCell className="font-semibold text-emerald-600 dark:text-emerald-400">{s.cgpa?.toFixed(2)}</TableCell>
-                          <TableCell className="hidden lg:table-cell">
-                            <div className="flex flex-wrap gap-1">
-                              {(s.skills || '').split(',').slice(0, 3).map((sk: string, i: number) => <Badge key={i} variant="outline" className="text-[10px]">{sk.trim()}</Badge>)}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                <>
+                  {report.students && report.students.length > 0 ? (
+                    <div className="overflow-x-auto scrollbar-thin">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Register Number</TableHead>
+                            <TableHead>Name</TableHead>
+                            <TableHead className="hidden md:table-cell">Department</TableHead>
+                            <TableHead>CGPA</TableHead>
+                            <TableHead className="hidden lg:table-cell">Skills</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {report.students.map((s: any) => (
+                            <TableRow key={s.id}>
+                              <TableCell className="text-muted-foreground">{s.registerNumber}</TableCell>
+                              <TableCell className="font-medium">{s.fullName}</TableCell>
+                              <TableCell className="hidden md:table-cell">{s.department}</TableCell>
+                              <TableCell className="font-semibold text-emerald-600 dark:text-emerald-400">{s.cgpa ? s.cgpa.toFixed(2) : '—'}</TableCell>
+                              <TableCell className="hidden lg:table-cell">
+                                <div className="flex flex-wrap gap-1">
+                                  {(s.skills || '').split(',').filter(Boolean).slice(0, 3).map((sk: string, i: number) => <Badge key={i} variant="outline" className="text-[10px]">{sk.trim()}</Badge>)}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <EmptyState icon={<Users className="h-6 w-6" />} title="No unplaced students" description="All students have been placed or are in process." />
+                  )}
+                </>
               )}
 
               {reportType === 'department' && (
