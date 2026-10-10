@@ -220,34 +220,40 @@ export function AdminReports() {
               )}
 
               {reportType === 'selected' && (
-                <div className="overflow-x-auto scrollbar-thin">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Student</TableHead>
-                        <TableHead>Register No</TableHead>
-                        <TableHead className="hidden md:table-cell">Department</TableHead>
-                        <TableHead>Company</TableHead>
-                        <TableHead className="hidden lg:table-cell">Job Role</TableHead>
-                        <TableHead>CTC</TableHead>
-                        <TableHead className="hidden lg:table-cell">Joining Date</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {report.records.map((r: any, i: number) => (
-                        <TableRow key={i}>
-                          <TableCell className="font-medium">{r.studentName}</TableCell>
-                          <TableCell className="text-muted-foreground">{r.registerNumber}</TableCell>
-                          <TableCell className="hidden md:table-cell">{r.department}</TableCell>
-                          <TableCell>{r.company}</TableCell>
-                          <TableCell className="hidden lg:table-cell text-muted-foreground">{r.jobRole || '—'}</TableCell>
-                          <TableCell className="font-semibold text-emerald-600 dark:text-emerald-400">{r.ctc || '—'}</TableCell>
-                          <TableCell className="hidden lg:table-cell text-muted-foreground">{formatDate(r.joiningDate)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                <>
+                  {report.records && report.records.length > 0 ? (
+                    <div className="overflow-x-auto scrollbar-thin">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Student</TableHead>
+                            <TableHead>Register No</TableHead>
+                            <TableHead className="hidden md:table-cell">Department</TableHead>
+                            <TableHead>Company</TableHead>
+                            <TableHead className="hidden lg:table-cell">Job Role</TableHead>
+                            <TableHead>CTC</TableHead>
+                            <TableHead className="hidden lg:table-cell">Joining Date</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {report.records.map((r: any, i: number) => (
+                            <TableRow key={i}>
+                              <TableCell className="font-medium">{r.studentName}</TableCell>
+                              <TableCell className="text-muted-foreground">{r.registerNumber}</TableCell>
+                              <TableCell className="hidden md:table-cell">{r.department}</TableCell>
+                              <TableCell>{r.company}</TableCell>
+                              <TableCell className="hidden lg:table-cell text-muted-foreground">{r.jobRole || '—'}</TableCell>
+                              <TableCell className="font-semibold text-emerald-600 dark:text-emerald-400">{r.ctc || '—'}</TableCell>
+                              <TableCell className="hidden lg:table-cell text-muted-foreground">{formatDate(r.joiningDate)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <EmptyState icon={<Award className="h-6 w-6" />} title="No selected students" description="No students have been marked as selected yet." />
+                  )}
+                </>
               )}
 
               {reportType === 'unplaced' && (
@@ -282,30 +288,36 @@ export function AdminReports() {
               )}
 
               {reportType === 'department' && (
-                <div className="overflow-x-auto scrollbar-thin">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Department</TableHead>
-                        <TableHead className="text-center">Total</TableHead>
-                        <TableHead className="text-center">Placed</TableHead>
-                        <TableHead className="text-center">Unplaced</TableHead>
-                        <TableHead className="text-center">In Process</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {report.departments.map((d: any) => (
-                        <TableRow key={d.department}>
-                          <TableCell className="font-medium">{d.department}</TableCell>
-                          <TableCell className="text-center">{d.total}</TableCell>
-                          <TableCell className="text-center text-emerald-600 dark:text-emerald-400 font-semibold">{d.placed}</TableCell>
-                          <TableCell className="text-center text-rose-600 dark:text-rose-400">{d.unplaced}</TableCell>
-                          <TableCell className="text-center text-amber-600 dark:text-amber-400">{d.inProcess}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                <>
+                  {report.departments && report.departments.length > 0 ? (
+                    <div className="overflow-x-auto scrollbar-thin">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Department</TableHead>
+                            <TableHead className="text-center">Total</TableHead>
+                            <TableHead className="text-center">Placed</TableHead>
+                            <TableHead className="text-center">Unplaced</TableHead>
+                            <TableHead className="text-center">In Process</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {report.departments.map((d: any) => (
+                            <TableRow key={d.department}>
+                              <TableCell className="font-medium">{d.department}</TableCell>
+                              <TableCell className="text-center">{d.total}</TableCell>
+                              <TableCell className="text-center text-emerald-600 dark:text-emerald-400 font-semibold">{d.placed}</TableCell>
+                              <TableCell className="text-center text-rose-600 dark:text-rose-400">{d.unplaced}</TableCell>
+                              <TableCell className="text-center text-amber-600 dark:text-amber-400">{d.inProcess}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <EmptyState icon={<Building2 className="h-6 w-6" />} title="No department data" description="No students found with the current filters." />
+                  )}
+                </>
               )}
             </CardContent>
           </Card>

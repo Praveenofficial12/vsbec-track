@@ -6,20 +6,18 @@ import path from 'path'
 // GET: Serve a file viewer HTML page that embeds the file inline.
 // Query params: fileId=<DriveFile id>
 //
-// IMPORTANT: We use RELATIVE URLs (file.filePath) instead of absolute URLs
-// (origin + file.filePath) because:
-//   1. In production, req.nextUrl.origin may resolve to http://0.0.0.0:3000
-//      which is unreachable from the browser.
-//   2. Relative URLs resolve against the current page's origin, which is
-//      always correct (localhost:3000 in dev, vsbec-track.space-z.ai in prod).
-//
-// External viewers (Google Docs, Office Online) can't access internal files,
-// so we serve all files directly via the browser's native rendering:
+// This endpoint returns a complete HTML page that renders the file in the
+// browser using the appropriate method based on file type:
 //   - Images: <img>
 //   - PDFs: <iframe> (browser built-in PDF viewer)
-//   - Office files: <iframe> with Google Docs Viewer using a relative-to-origin
-//     URL, or direct file serving as fallback
+//   - Office files: served via /api/files/serve in an <iframe> — the browser
+//     will either render it natively or prompt to download
 //   - Text files: fetched and displayed in <pre>
+//
+// IMPORTANT: All file URLs use the /api/files/serve route (not /uploads/...)
+// because the serve route streams the file content with the correct
+// Content-Type header. This ensures the file renders correctly in the
+// browser regardless of the hosting environment.
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
@@ -44,53 +42,46 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    // Use RELATIVE URL — this resolves against the current page's origin,
-    // which is correct in both dev (localhost:3000) and production.
-    const fileUrl = file.filePath
-
     // Check if the file exists on disk
     const fullPath = path.join(process.cwd(), 'public', file.filePath)
     const fileExists = existsSync(fullPath)
 
     if (!fileExists) {
       return new NextResponse(
-        `<html><body style="background:#1a1a1a;color:white;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;"><h2>File not found on server</h2><p>The file "${file.fileName}" was not found on the server. It may have been deleted or moved.</p></div></body></html>`,
+        `<html><body style="background:#1a1a1a;color:white;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;"><h2>File not found on server</h2><p>The file "${file.fileName}" was not found on the server.</p></div></body></html>`,
         { status: 404, headers: { 'Content-Type': 'text/html' } },
       )
     }
 
     const fileName = file.fileName
     const mimeType = file.mimeType
+    // Use the serve route for ALL file types — it streams the file with
+    // the correct Content-Type so the browser can render it.
+    const serveUrl = `/api/files/serve?fileId=${file.id}`
+
     let embedHtml: string
 
-    if (mimeType.startsWith('image/')) {
+    // Determine the file extension
+    const ext = fileName.toLowerCase().split('.').pop() || ''
+
+    if (mimeType.startsWith('image/') || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'].includes(ext)) {
       // Images: render inline via <img>
-      embedHtml = `<img src="${fileUrl}" alt="${fileName}" style="margin-top:40px;max-width:100%;max-height:calc(100vh - 40px);object-fit:contain;" oncontextmenu="return false" ondragstart="return false" />`
-    } else if (mimeType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf')) {
-      // PDFs: render via <iframe> — browsers have built-in PDF viewers.
-      // Using relative URL so it resolves correctly in all environments.
-      embedHtml = `<iframe src="${fileUrl}" style="width:100vw;height:calc(100vh - 40px);margin-top:40px;border:0;" allow="fullscreen"></iframe>`
-    } else if (
-      mimeType.includes('spreadsheet') ||
-      mimeType.includes('excel') ||
-      mimeType.includes('officedocument.spreadsheet') ||
-      mimeType.includes('wordprocessing') ||
-      mimeType.includes('msword') ||
-      mimeType.includes('officedocument.wordprocessing') ||
-      mimeType.includes('presentation') ||
-      mimeType.includes('powerpoint') ||
-      mimeType.includes('officedocument.presentation') ||
-      fileName.match(/\.(xlsx|docx|pptx|xls|doc|ppt)$/i)
-    ) {
-      // Office files: browsers can't render .xlsx/.docx/.pptx natively.
-      // Try Google Docs Viewer first — it can render these if the file URL
-      // is publicly accessible. Use a full absolute URL built from the
-      // request headers so it works in production.
-      // If the viewer fails, show a fallback with a direct link.
+      embedHtml = `<img src="${serveUrl}" alt="${fileName}" style="margin-top:40px;max-width:100%;max-height:calc(100vh - 40px);object-fit:contain;" oncontextmenu="return false" ondragstart="return false" />`
+    } else if (mimeType === 'application/pdf' || ext === 'pdf') {
+      // PDFs: render via <iframe> — browsers have built-in PDF viewers
+      embedHtml = `<iframe src="${serveUrl}" style="width:100vw;height:calc(100vh - 40px);margin-top:40px;border:0;" allow="fullscreen"></iframe>`
+    } else if (['xlsx', 'xls', 'docx', 'doc', 'pptx', 'ppt'].includes(ext) ||
+      mimeType.includes('spreadsheet') || mimeType.includes('excel') ||
+      mimeType.includes('wordprocessing') || mimeType.includes('msword') ||
+      mimeType.includes('presentation') || mimeType.includes('powerpoint')) {
+      // Office files: browsers can't render these natively.
+      // Use Google Docs Viewer with the serve route URL as the source.
+      // The serve route provides a publicly accessible URL that Google can fetch.
+      // Build the absolute URL from request headers.
       const host = req.headers.get('host') || req.headers.get('x-forwarded-host') || 'localhost:3000'
       const proto = req.headers.get('x-forwarded-proto') || 'http'
-      const absoluteFileUrl = `${proto}://${host}${fileUrl}`
-      const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(absoluteFileUrl)}&embedded=true`
+      const absoluteServeUrl = `${proto}://${host}${serveUrl}`
+      const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(absoluteServeUrl)}&embedded=true`
 
       embedHtml = `
         <div id="viewer-container" style="width:100vw;height:calc(100vh - 40px);margin-top:40px;position:relative;">
@@ -100,11 +91,9 @@ export async function GET(req: NextRequest) {
           <div style="font-size:48px;">📄</div>
           <p style="font-size:18px;font-weight:600;word-break:break-all;max-width:80%;">${fileName}</p>
           <p style="font-size:14px;opacity:0.7;max-width:400px;">The online viewer couldn't load this file. Click below to view it directly in your browser.</p>
-          <a href="${fileUrl}" target="_blank" style="background:#10b981;color:white;padding:10px 24px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">View File</a>
+          <a href="${serveUrl}" target="_blank" style="background:#10b981;color:white;padding:10px 24px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">View File</a>
         </div>
         <script>
-          // Check if Google Docs Viewer loaded successfully. If it shows an
-          // error or is blank after 10 seconds, show the fallback.
           var iframe = document.getElementById('office-iframe');
           var fallback = document.getElementById('office-fallback');
           var loaded = false;
@@ -119,20 +108,20 @@ export async function GET(req: NextRequest) {
           }, 10000);
         </script>
       `
-    } else if (mimeType.startsWith('text/') || mimeType === 'text/plain' || fileName.match(/\.(txt|csv|json|md|log)$/i)) {
+    } else if (mimeType.startsWith('text/') || ['txt', 'csv', 'json', 'md', 'log'].includes(ext)) {
       // Text files: fetch and display
       embedHtml = `
         <div id="text-content" style="margin-top:40px;width:100vw;height:calc(100vh - 40px);overflow:auto;background:#1e1e1e;color:#d4d4d4;padding:16px;font-family:monospace;font-size:13px;white-space:pre-wrap;word-break:break-word;">Loading...</div>
         <script>
-          fetch("${fileUrl}")
+          fetch("${serveUrl}")
             .then(r => r.text())
             .then(t => { document.getElementById('text-content').textContent = t; })
             .catch(err => { document.getElementById('text-content').textContent = 'Failed to load file: ' + err; });
         </script>
       `
     } else {
-      // Fallback: open directly in iframe — browser will handle it
-      embedHtml = `<iframe src="${fileUrl}" style="width:100vw;height:calc(100vh - 40px);margin-top:40px;border:0;" allow="fullscreen"></iframe>`
+      // Fallback: open directly in iframe via the serve route
+      embedHtml = `<iframe src="${serveUrl}" style="width:100vw;height:calc(100vh - 40px);margin-top:40px;border:0;" allow="fullscreen"></iframe>`
     }
 
     // Build the complete HTML page with anti-download protections

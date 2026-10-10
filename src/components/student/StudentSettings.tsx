@@ -1,4 +1,5 @@
 'use client'
+import { useState } from 'react'
 import { StudentLayout } from './StudentLayout'
 import { useAppStore } from '@/lib/store'
 import { apiDelete } from '@/lib/api'
@@ -9,6 +10,10 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { User, Bell, Shield, Palette, Globe, Key, Save, LogOut } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -17,6 +22,7 @@ export function StudentSettings() {
   const logout = useAppStore((s) => s.logout)
   const setView = useAppStore((s) => s.setView)
   const sessionToken = useAppStore((s) => s.sessionToken)
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
   const handleLogout = async () => {
     // Drop this tab's session row so the same user can log in elsewhere.
@@ -100,13 +106,35 @@ export function StudentSettings() {
             <CardDescription>Sign out of your account on this device</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" onClick={handleLogout} className="border-rose-300 text-rose-600 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-400 dark:hover:bg-rose-900/20">
+            <Button variant="outline" onClick={() => setShowLogoutConfirm(true)} className="border-rose-300 text-rose-600 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-400 dark:hover:bg-rose-900/20">
               <LogOut className="mr-2 h-4 w-4" />
               Sign Out
             </Button>
           </CardContent>
         </Card>
       </div>
+
+      {/* Logout confirmation popup */}
+      <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Sign Out</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to sign out? You will need to log in again to access the portal.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLogout}
+              className="bg-rose-600 hover:bg-rose-700"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign Out
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </StudentLayout>
   )
 }

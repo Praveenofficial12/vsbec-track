@@ -788,3 +788,61 @@ Stage Summary:
 - Logout confirmation popup verified working for both student and admin portals.
 - Roman numerals verified across the entire codebase (I, II, III, IV).
 - Lint clean; dev server running.
+
+---
+Task ID: 25
+Agent: Main (Orchestrator)
+Task: Fix file preview for all file types, add logout popup to StudentSettings, fix Reports buttons, enhance Recommendations page, migrate year values to Roman numerals in DB.
+
+Work Log:
+- Fixed file preview for all file types (src/app/api/files/view/route.ts + src/app/api/files/serve/route.ts):
+  * Created a new /api/files/serve route that reads the file from disk and streams it to the browser with the correct Content-Type header (Content-Disposition: inline)
+  * Updated the /api/files/view route to use /api/files/serve?fileId=X for ALL file types:
+    - Images: <img src="/api/files/serve?fileId=X">
+    - PDFs: <iframe src="/api/files/serve?fileId=X"> — browser's built-in PDF viewer
+    - Office files: Google Docs Viewer with the serve route URL + fallback "View File" button
+    - Text files: fetch("/api/files/serve?fileId=X") and display in <pre>
+  * This ensures the file content is always served correctly regardless of the hosting environment
+
+- Added logout confirmation popup to StudentSettings signout button:
+  * Added AlertDialog with "Confirm Sign Out" title and "Are you sure you want to sign out?" description
+  * Cancel and Sign Out buttons (rose-colored)
+
+- Fixed Reports page — added empty state handling for "Selected Students Report" and "Department-wise Report":
+  * When there are no selected students, shows "No selected students" empty state
+  * When there's no department data, shows "No department data" empty state
+  * Previously, clicking these report types showed an empty table with no explanation
+
+- Migrated year values in the database from "1st Year"/"2nd Year"/"3rd Year"/"4th Year" to Roman numerals "I"/"II"/"III"/"IV":
+  * Updated all Student.year values in the DB
+  * Updated all Drive.eligibleYears CSV values in the DB
+  * This ensures the year filters work correctly with the Roman numeral UI
+
+- Enhanced Recommendations page (src/components/admin/AdminRecommendations.tsx):
+  * Added search bar — filter by name, register number, or department
+  * Added minimum match score filter (All/≥60%/≥70%/≥80%/≥90%)
+  * Added sort options (Match Score / CGPA / Name)
+  * Added checkbox selection for students (Select All / Deselect All)
+  * Added "Export CSV" button — exports the filtered recommendations with rank, student details, match score, reasons
+  * Added "Notify" button — notifies selected students about the drive
+  * Added match score distribution bar chart (High/Medium/Low)
+  * Added 6 summary stat cards (Total/High/Medium/Low/Avg Score/Already Placed)
+  * Added skill gap indicator — shows "Missing X of Y required skills" when not all skills match
+  * Added "Top Match" badge for students with ≥80% match score
+  * Added scrollable list with max height for large recommendation sets
+  * Shows Year, Section, and drives attended info for each student
+
+Verification:
+- Lint passes clean (0 errors, 0 warnings).
+- File serve route tested: returns file content with correct Content-Type (text/plain → HTTP 200).
+- File viewer route tested: returns HTML page that fetches from /api/files/serve?fileId=X.
+- Cleaned up test data.
+- Dev server running with auto-restart loop.
+
+Stage Summary:
+- File preview fixed: all file types (PDF, Excel, Word, PPT, images, text) are served via /api/files/serve route with correct Content-Type — browsers render them natively or via Google Docs Viewer with fallback.
+- StudentSettings signout button has a confirmation popup.
+- Reports page now shows proper empty states for "Selected Students" and "Department-wise" reports.
+- Recommendations page enhanced with search, filter, sort, export CSV, notify, match score distribution, skill gap analysis, and more.
+- Year values migrated to Roman numerals in the database.
+- Lint clean; dev server running.
