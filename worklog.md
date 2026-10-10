@@ -686,3 +686,36 @@ Stage Summary:
 - File viewing is now FIXED: uses a proper server-side API route (/api/files/view) that returns a complete HTML page with the file embedded. No more about:blank + document.write() — the viewer is a real URL that works reliably.
 - All toasts/popups auto-dismiss after 5 seconds (including "session expired", "login failed", "eligibility error", etc.).
 - Lint clean; landing page verified; dev server running.
+
+---
+Task ID: 22
+Agent: Main (Orchestrator)
+Task: Fix layout issue — long file names causing horizontal scroll in the student and admin drive detail modal.
+
+Work Log:
+- Analyzed the screenshots: long file names like "26-27-ODD SEM-SEM-III-AIML-EVEN SEMESTER BUS FEES DEMAND-1.xlsx" were causing horizontal scrollbars in the drive detail modal because the filename used `truncate` (text-overflow: ellipsis) which prevented wrapping, and the modal was too narrow.
+
+- Fixed StudentCompanies.tsx (student drive detail modal):
+  * Changed DialogContent from `max-w-4xl` to `max-w-5xl` (wider modal)
+  * Added `overflow-x-hidden` to prevent horizontal scroll
+  * Changed the file name `<p>` from `truncate` to `break-all` — long filenames now wrap to multiple lines instead of being cut off or causing horizontal scroll
+  * Added `overflow-hidden` to the file info container to ensure the text wraps within bounds
+  * The file description still uses `truncate` (one-line ellipsis) since descriptions are usually short
+
+- Fixed AdminDriveDetail.tsx (admin drive detail):
+  * Changed the file name `<a>` link from `truncate` to `break-all` — same fix as the student side
+
+- Fixed the file viewer route (/api/files/view):
+  * Changed `.filename` CSS from `white-space: nowrap; text-overflow: ellipsis` to `word-break: break-all; overflow-wrap: anywhere` — long filenames in the viewer toolbar now wrap properly
+  * Added `gap: 12px` to the toolbar for spacing between filename and badge
+  * Added `white-space: nowrap; flex-shrink: 0` to the badge so it stays on one line
+
+- Tested: uploaded a file with a very long name → verified the viewer route returns HTML with `word-break: break-all` on the filename → the filename wraps correctly.
+- Lint passes clean (0 errors, 0 warnings).
+
+Stage Summary:
+- Long file names now wrap using `break-all` instead of causing horizontal scroll.
+- The student drive detail modal is wider (max-w-5xl) with `overflow-x-hidden`.
+- The admin drive detail file list also wraps long filenames.
+- The file viewer toolbar wraps long filenames with `word-break: break-all`.
+- Lint clean; dev server running with auto-restart loop.

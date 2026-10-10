@@ -107,9 +107,9 @@ export async function GET(req: NextRequest) {
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #1a1a1a; min-height: 100vh; overflow: hidden; }
     img, embed, object, iframe { max-width: 100%; max-height: 100vh; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-    .toolbar { position: fixed; top: 0; left: 0; right: 0; background: #2d2d2d; color: white; padding: 8px 16px; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 13px; display: flex; align-items: center; justify-content: space-between; z-index: 9999; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
-    .filename { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%; font-weight: 500; }
-    .badge { font-size: 11px; opacity: 0.7; }
+    .toolbar { position: fixed; top: 0; left: 0; right: 0; background: #2d2d2d; color: white; padding: 8px 16px; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 13px; display: flex; align-items: center; justify-content: space-between; z-index: 9999; box-shadow: 0 2px 8px rgba(0,0,0,0.3); gap: 12px; }
+    .filename { font-weight: 500; word-break: break-all; overflow-wrap: anywhere; max-width: 70%; }
+    .badge { font-size: 11px; opacity: 0.7; white-space: nowrap; flex-shrink: 0; }
   </style>
 </head>
 <body oncontextmenu="return false" onkeydown="if(event.key==='PrintScreen'||event.key==='F12'||(event.ctrlKey&&event.shiftKey&&(event.key==='I'||event.key==='J'||event.key==='C'))||(event.ctrlKey&&event.key==='u')||(event.ctrlKey&&(event.key==='p'||event.key==='s'))) return false">

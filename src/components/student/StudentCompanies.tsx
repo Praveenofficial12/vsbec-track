@@ -460,7 +460,7 @@ export function StudentCompanies() {
 
         {/* Drive Detail Modal with interactive round status form */}
         <Dialog open={!!selectedDrive} onOpenChange={(open) => !open && setSelectedDrive(null)}>
-          <DialogContent className="max-h-[92vh] max-w-4xl overflow-y-auto scrollbar-thin">
+          <DialogContent className="max-h-[92vh] max-w-5xl overflow-x-hidden overflow-y-auto scrollbar-thin">
             <DialogHeader>
               <div className="flex items-start gap-4">
                 <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-lg bg-muted ring-1 ring-border">
@@ -780,8 +780,8 @@ export function StudentCompanies() {
                               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted">
                                 <FileText className="h-4 w-4 text-muted-foreground" />
                               </div>
-                              <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-medium text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
+                              <div className="min-w-0 flex-1 overflow-hidden">
+                                <p className="break-all text-sm font-medium text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
                                   {f.fileName}
                                 </p>
                                 {f.description && (

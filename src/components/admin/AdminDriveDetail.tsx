@@ -668,7 +668,7 @@ export function AdminDriveDetail() {
                                   e.preventDefault()
                                   openFileViewer({ fileId: f.id, filePath: f.filePath, fileName: f.fileName, mimeType: f.mimeType })
                                 }}
-                                className="truncate text-sm font-medium text-foreground hover:text-emerald-600 hover:underline dark:hover:text-emerald-400"
+                                className="break-all text-sm font-medium text-foreground hover:text-emerald-600 hover:underline dark:hover:text-emerald-400"
                               >
                                 {f.fileName}
                               </a>
