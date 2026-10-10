@@ -159,7 +159,7 @@ export function AdminReports() {
               <SelectTrigger className="w-32 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All Years</SelectItem>
-                {['1st Year', '2nd Year', '3rd Year', '4th Year'].map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                {['I', 'II', 'III', 'IV'].map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={section} onValueChange={setSection}>

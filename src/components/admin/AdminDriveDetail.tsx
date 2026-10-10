@@ -474,7 +474,7 @@ export function AdminDriveDetail() {
                     <div className="space-y-3">
                       <div>
                         <Label className="mb-1.5 block text-xs text-muted-foreground">Eligible Years (comma-separated)</Label>
-                        <Input value={eligForm.eligibleYears} onChange={(e) => setEligForm((f: any) => ({ ...f, eligibleYears: e.target.value }))} placeholder="3rd Year,4th Year" />
+                        <Input value={eligForm.eligibleYears} onChange={(e) => setEligForm((f: any) => ({ ...f, eligibleYears: e.target.value }))} placeholder="III,IV" />
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>

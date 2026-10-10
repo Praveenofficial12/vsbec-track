@@ -719,3 +719,38 @@ Stage Summary:
 - The admin drive detail file list also wraps long filenames.
 - The file viewer toolbar wraps long filenames with `word-break: break-all`.
 - Lint clean; dev server running with auto-restart loop.
+
+---
+Task ID: 23
+Agent: Main (Orchestrator)
+Task: Fix file viewing "No preview available" error, add logout confirmation popup, change year to Roman numerals (I, II, III, IV).
+
+Work Log:
+- Fixed file viewing "No preview available" for .xlsx files (src/app/api/files/view/route.ts):
+  * Root cause: Google Docs Viewer couldn't access the file URL — it showed "No preview available"
+  * Fix: switched to Microsoft Office Online viewer (https://view.officeapps.live.com/op/embed.aspx?src=<url>) which is more reliable for Office files
+  * Added a fallback: if the Office Online viewer fails to load within 8 seconds, a fallback UI appears with the file name and an "Open File" button that opens the file directly
+  * The iframe has onerror handler that shows the fallback immediately if the viewer fails
+  * Tested: uploaded a .xlsx file → viewer route returns HTML with the Microsoft Office Online viewer iframe + fallback
+
+- Added logout confirmation popup:
+  * StudentLayout.tsx: added showLogoutConfirm state + AlertDialog. All logout buttons (sidebar + topbar desktop + topbar mobile) now open the confirmation popup instead of logging out directly. The popup says "Are you sure you want to log out? You will need to log in again to access the portal." with Cancel and Logout buttons.
+  * AdminLayout.tsx: same changes — logout confirmation popup with "Are you sure you want to log out? You will need to log in again to access the admin portal."
+
+- Changed year display from "1st Year", "2nd Year", "3rd Year", "4th Year" to Roman numerals "I", "II", "III", "IV":
+  * Updated YEARS constants in: StudentRegister.tsx, AdminStudents.tsx, AdminDashboard.tsx, AdminDrives.tsx, AdminSettings.tsx, AdminReports.tsx, AdminDriveDetail.tsx
+  * Updated SelectItem labels to show "Year I", "Year II", "Year III", "Year IV"
+  * Updated default eligible years in AdminDrives.tsx from ['3rd Year', '4th Year'] to ['III', 'IV']
+  * Updated placeholder text in AdminDriveDetail.tsx from "3rd Year,4th Year" to "III,IV"
+  * Updated comment from "3rd & 4th Year pre-selected" to "III & IV pre-selected"
+
+Verification:
+- Lint passes clean (0 errors, 0 warnings).
+- File viewer tested: .xlsx file → viewer route returns HTML with Microsoft Office Online viewer iframe + fallback div.
+- Dev server running with auto-restart loop.
+
+Stage Summary:
+- File viewing fixed: Office files (.xlsx, .docx, .pptx) now use Microsoft Office Online viewer with a fallback "Open File" button.
+- Logout confirmation popup added for both student and admin portals.
+- Year display changed to Roman numerals (I, II, III, IV) across the entire codebase.
+- Lint clean; dev server running.

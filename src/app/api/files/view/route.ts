@@ -77,9 +77,32 @@ export async function GET(req: NextRequest) {
       mimeType.includes('officedocument.presentation') ||
       fileName.match(/\.(xlsx|docx|pptx|xls|doc|ppt)$/i)
     ) {
-      // Office files: use Google Docs Viewer in an iframe
-      const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`
-      embedHtml = `<iframe src="${viewerUrl}" style="width:100vw;height:calc(100vh - 40px);margin-top:40px;border:0;" allow="fullscreen"></iframe>`
+      // Office files: use Microsoft Office Online viewer (more reliable than
+      // Google Docs Viewer). If it fails, show a fallback link to open the
+      // file directly.
+      const officeViewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`
+      embedHtml = `
+        <iframe src="${officeViewerUrl}" style="width:100vw;height:calc(100vh - 40px);margin-top:40px;border:0;" allow="fullscreen"
+          onload="this.dataset.loaded='true'"
+          onerror="this.style.display='none';document.getElementById('office-fallback').style.display='flex'">
+        </iframe>
+        <div id="office-fallback" style="display:none;flex-direction:column;align-items:center;justify-content:center;height:100vh;color:white;text-align:center;padding:20px;gap:16px;">
+          <div style="font-size:48px;">📄</div>
+          <p style="font-size:18px;font-weight:600;">${fileName}</p>
+          <p style="font-size:14px;opacity:0.7;max-width:400px;">The online viewer couldn't load this file. Click below to open it directly in your browser.</p>
+          <a href="${fileUrl}" target="_blank" style="background:#10b981;color:white;padding:10px 24px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">Open File</a>
+        </div>
+        <script>
+          // If the iframe doesn't load within 8 seconds, show the fallback
+          setTimeout(function() {
+            var iframe = document.querySelector('iframe');
+            if (iframe && !iframe.dataset.loaded) {
+              iframe.style.display = 'none';
+              document.getElementById('office-fallback').style.display = 'flex';
+            }
+          }, 8000);
+        </script>
+      `
     } else if (mimeType.startsWith('text/') || mimeType === 'text/plain' || fileName.match(/\.(txt|csv|json|md|log)$/i)) {
       // Text files: fetch and display
       embedHtml = `
@@ -92,7 +115,7 @@ export async function GET(req: NextRequest) {
         </script>
       `
     } else {
-      // Fallback: try <iframe> for other types
+      // Fallback: open directly in iframe — browser will handle it
       embedHtml = `<iframe src="${fileUrl}" style="width:100vw;height:calc(100vh - 40px);margin-top:40px;border:0;" allow="fullscreen"></iframe>`
     }
 

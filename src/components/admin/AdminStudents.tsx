@@ -33,7 +33,7 @@ import type { Student } from '@/lib/types'
 const DEPARTMENTS = [
   'ALL', 'AI-DS', 'AI-ML', 'BT', 'BME', 'CHEM', 'CIVIL', 'CCE', 'CSBS', 'CSE', 'ECE', 'EEE', 'IT', 'MECH',
 ]
-const YEARS = ['ALL', '1st Year', '2nd Year', '3rd Year', '4th Year']
+const YEARS = ['ALL', 'I', 'II', 'III', 'IV']
 const SECTIONS = ['ALL', 'A', 'B', 'C', 'D']
 const STATUSES = ['ALL', 'PLACED', 'IN_PROCESS', 'UNPLACED']
 const SKILLS = ['ALL', 'Java', 'Python', 'JavaScript', 'React', 'SQL', 'Cloud', 'Machine Learning', 'C++']
@@ -214,7 +214,7 @@ export function AdminStudents() {
               </Select>
               <Select value={filters.year} onValueChange={(v) => setFilters(f => ({ ...f, year: v }))}>
                 <SelectTrigger><SelectValue placeholder="Year" /></SelectTrigger>
-                <SelectContent>{YEARS.map(y => <SelectItem key={y} value={y}>{y === 'ALL' ? 'All Years' : y}</SelectItem>)}</SelectContent>
+                <SelectContent>{YEARS.map(y => <SelectItem key={y} value={y}>{y === 'ALL' ? 'All Years' : `Year ${y}`}</SelectItem>)}</SelectContent>
               </Select>
               <Select value={filters.section} onValueChange={(v) => setFilters(f => ({ ...f, section: v }))}>
                 <SelectTrigger><SelectValue placeholder="Section" /></SelectTrigger>

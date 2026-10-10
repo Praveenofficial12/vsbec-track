@@ -7,6 +7,10 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
   GraduationCap, LayoutDashboard, User, Award, Building2, Target,
   History, Bell, Settings, LogOut, Menu, Search, ChevronRight, Shield
 } from 'lucide-react'
@@ -31,6 +35,7 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
   const logout = useAppStore((s) => s.logout)
   const sessionToken = useAppStore((s) => s.sessionToken)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
   const handleLogout = async () => {
     // Tell the server to drop this tab's session row so the same user can
@@ -94,7 +99,7 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
             <p className="truncate text-xs text-muted-foreground">{user?.registerNumber}</p>
           </div>
         </div>
-        <Button variant="ghost" size="sm" onClick={handleLogout} className="w-full justify-start text-muted-foreground hover:text-foreground">
+        <Button variant="ghost" size="sm" onClick={() => setShowLogoutConfirm(true)} className="w-full justify-start text-muted-foreground hover:text-foreground">
           <LogOut className="mr-2 h-4 w-4" />
           Logout
         </Button>
@@ -147,7 +152,7 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleLogout}
+              onClick={() => setShowLogoutConfirm(true)}
               className="hidden items-center gap-2 text-muted-foreground hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-900/20 sm:inline-flex"
             >
               <LogOut className="h-4 w-4" />
@@ -156,7 +161,7 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
             <Button
               variant="ghost"
               size="icon"
-              onClick={handleLogout}
+              onClick={() => setShowLogoutConfirm(true)}
               className="text-muted-foreground hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-900/20 sm:hidden"
             >
               <LogOut className="h-4 w-4" />
@@ -174,6 +179,28 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       </div>
+
+      {/* Logout confirmation popup */}
+      <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to log out? You will need to log in again to access the portal.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLogout}
+              className="bg-rose-600 hover:bg-rose-700"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

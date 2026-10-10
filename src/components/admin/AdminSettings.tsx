@@ -414,7 +414,7 @@ export function AdminSettings() {
                   <div>
                     <Label className="mb-2 block text-xs text-muted-foreground">Years</Label>
                     <div className="flex flex-wrap gap-1.5">
-                      {['1st Year', '2nd Year', '3rd Year', '4th Year'].map(y => (
+                      {['I', 'II', 'III', 'IV'].map(y => (
                         <Badge key={y} variant="outline" className="border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-900/30 dark:text-violet-300">{y}</Badge>
                       ))}
                     </div>

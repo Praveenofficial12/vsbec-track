@@ -21,7 +21,7 @@ import {
 import type { Drive, Company } from '@/lib/types'
 
 const DEPARTMENTS = ['AI & DS', 'CSE', 'IT', 'ECE', 'EEE', 'MECH', 'CIVIL']
-const YEARS = ['1st Year', '2nd Year', '3rd Year', '4th Year']
+const YEARS = ['I', 'II', 'III', 'IV']
 const CLASSES = ['A', 'B', 'C', 'D']
 const SKILLS = ['Java', 'Python', 'C', 'C++', 'JavaScript', 'React', 'SQL', 'MongoDB', 'Cloud']
 
@@ -34,8 +34,8 @@ const EMPTY_FORM = {
   ctc: '',
   location: '',
   eligibleDepartments: [] as string[],
-  // Default to 3rd AND 4th Year as requested
-  eligibleYears: ['3rd Year', '4th Year'] as string[],
+  // Default to III AND IV as requested
+  eligibleYears: ['III', 'IV'] as string[],
   eligibleClasses: ['A', 'B', 'C', 'D'] as string[],
   minCgpa: '6.5',
   maxBacklogs: '0',
@@ -373,7 +373,7 @@ export function AdminDrives() {
                 {/* Eligible Years */}
                 <div>
                   <Label className="mb-2 block text-xs text-muted-foreground">
-                    Eligible Years <span className="text-violet-600">(3rd & 4th Year pre-selected)</span>
+                    Eligible Years <span className="text-violet-600">(III & IV pre-selected)</span>
                   </Label>
                   <div className="flex flex-wrap gap-1.5">
                     {YEARS.map(y => (

@@ -52,7 +52,7 @@ const ALL_SKILLS = [
   'Microservices', 'Event-Driven Architecture', 'Git', 'GitHub', 'GitLab', 'Bitbucket',
 ]
 
-const YEARS = ['1st Year', '2nd Year', '3rd Year', '4th Year']
+const YEARS = ['I', 'II', 'III', 'IV']
 const SECTIONS = ['A', 'B', 'C', 'D']
 const GENDERS = ['Male', 'Female', 'Other']
 
@@ -388,7 +388,7 @@ export function StudentRegister() {
                     <Select value={form.year} onValueChange={(v) => updateForm('year', v)}>
                       <SelectTrigger><SelectValue placeholder="Select year" /></SelectTrigger>
                       <SelectContent>
-                        {YEARS.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                        {YEARS.map((y) => <SelectItem key={y} value={y}>Year {y}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>

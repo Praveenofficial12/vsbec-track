@@ -21,7 +21,7 @@ import type { AnalyticsData, Drive } from '@/lib/types'
 import { formatDate, STATUS_COLORS } from '@/lib/api'
 
 const DEPARTMENTS = ['ALL', 'AI & DS', 'CSE', 'IT', 'ECE', 'EEE', 'MECH', 'CIVIL']
-const YEARS = ['ALL', '1st Year', '2nd Year', '3rd Year', '4th Year']
+const YEARS = ['ALL', 'I', 'II', 'III', 'IV']
 const SECTIONS = ['ALL', 'A', 'B', 'C', 'D']
 
 const PIE_COLORS = ['oklch(0.55 0.13 165)', 'oklch(0.6 0.16 200)', 'oklch(0.7 0.18 80)', 'oklch(0.6 0.2 320)', 'oklch(0.7 0.18 25)', 'oklch(0.65 0.16 145)', 'oklch(0.7 0.17 250)']
