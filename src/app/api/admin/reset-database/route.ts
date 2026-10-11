@@ -18,7 +18,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, message: 'Action logged' })
     }
 
-    // Delete ALL data
+    // SAFETY: By default, we do NOT delete students. The "wipe" mode now
+    // only clears drives, participations, rounds, and notifications —
+    // students and companies are preserved. To delete students, the admin
+    // must explicitly pass `force: true` in the request body.
+    const forceDeleteStudents = body.force === true
+
+    if (!forceDeleteStudents) {
+      // Safe wipe: preserve students and companies
+      await db.roundResult.deleteMany()
+      await db.driveParticipation.deleteMany()
+      await db.round.deleteMany()
+      await db.drive.deleteMany()
+      await db.notification.deleteMany()
+      await db.certification.deleteMany()
+      await db.project.deleteMany()
+      await db.sessionTracker.deleteMany()
+      // NOTE: students, companies, and admin are PRESERVED
+      await db.auditLog.deleteMany()
+
+      return NextResponse.json({
+        success: true,
+        message: 'Drive data wiped. Students, companies, and admin account are preserved.',
+      })
+    }
+
+    // Full wipe (force=true): delete everything including students
     await db.roundResult.deleteMany()
     await db.driveParticipation.deleteMany()
     await db.round.deleteMany()
@@ -26,6 +51,7 @@ export async function POST(req: NextRequest) {
     await db.notification.deleteMany()
     await db.certification.deleteMany()
     await db.project.deleteMany()
+    await db.sessionTracker.deleteMany()
     await db.student.deleteMany()
     await db.company.deleteMany()
     await db.auditLog.deleteMany()
@@ -47,13 +73,13 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: 'Database wiped. Placement rules and custom fields re-created. No students/companies/drives.',
+        message: 'Database fully wiped (including students). Placement rules and custom fields re-created.',
       })
     }
 
     return NextResponse.json({
       success: true,
-      message: 'All data wiped. Admin account preserved.',
+      message: 'All data wiped including students (force=true). Admin account preserved.',
     })
   } catch (error) {
     console.error('Database reset error:', error)

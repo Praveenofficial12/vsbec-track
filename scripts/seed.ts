@@ -80,7 +80,18 @@ const SELECTION_PROCESS = 'Aptitude -> Coding -> GD -> Technical HR -> General H
 async function main() {
   console.log('🌱 Seeding VSBEC Placement database...')
 
-  // Clean existing data (including the new UserActivityLog table)
+  // SAFETY CHECK: Only seed if the database is empty. This prevents
+  // accidentally wiping registered students when the seed script runs.
+  const existingStudents = await db.student.count()
+  if (existingStudents > 0) {
+    console.log(`⚠️  Database already has ${existingStudents} student(s). Skipping seed to preserve existing data.`)
+    console.log('✅ Seed skipped — existing student data is preserved.')
+    return
+  }
+
+  console.log('📦 Database is empty. Proceeding with seed...')
+
+  // Only clean non-student tables (keep students safe)
   await db.userActivityLog.deleteMany()
   await db.roundResult.deleteMany()
   await db.driveParticipation.deleteMany()
@@ -89,9 +100,10 @@ async function main() {
   await db.notification.deleteMany()
   await db.certification.deleteMany()
   await db.project.deleteMany()
+  // NOTE: We do NOT delete students here — the safety check above ensures
+  // we only reach this point if there are 0 students.
   await db.student.deleteMany()
   await db.company.deleteMany()
-  await db.adminUser.deleteMany()
   await db.auditLog.deleteMany()
   await db.placementRule.deleteMany()
   await db.customField.deleteMany()

@@ -1027,3 +1027,42 @@ Stage Summary:
 - All file types preview online without any download option.
 - Global anti-screenshot protections remain active on the entire website.
 - Lint clean; dev server running.
+
+---
+Task ID: 30
+Agent: Main (Orchestrator)
+Task: Fix student data loss — registered students disappearing from the database.
+
+Work Log:
+- Root cause identified: The seed script (scripts/seed.ts) deleted ALL students before seeding new data. If the seed script was run (manually or during development), it wiped all registered students. Additionally, `db:push` used the `--accept-data-loss` flag which could also cause data loss during schema changes.
+
+- Fixed scripts/seed.ts:
+  * Added a SAFETY CHECK at the beginning of main(): if there are existing students in the DB, the seed script SKIPS seeding entirely and prints a warning message
+  * The seed script now only proceeds if the student count is 0
+  * This prevents any accidental data loss from running `bun run scripts/seed.ts`
+
+- Fixed package.json:
+  * Removed `--accept-data-loss` flag from the `db:push` command
+  * Changed from `"db:push": "prisma db push --accept-data-loss"` to `"db:push": "prisma db push"`
+  * This prevents Prisma from dropping data when the schema is pushed
+
+- Fixed src/app/api/admin/reset-database/route.ts:
+  * The default "wipe" mode now PRESERVES students and companies — only clears drives, participations, rounds, notifications, certifications, projects, sessions, and audit logs
+  * To delete students, the admin must explicitly pass `force: true` in the request body
+  * This prevents accidental student data loss from the "Erase All Data" button in admin settings
+
+- Created database backup:
+  * Copied the current database to db/custom.db.backup
+  * Created scripts/backup-db.sh — creates timestamped backups and keeps the last 5
+
+- Verified: the existing student (VSBTEST1, Test Student With Links, AI-DS, Year IV) is still in the database and will be preserved across server restarts.
+
+- Lint passes clean (0 errors, 0 warnings).
+
+Stage Summary:
+- Student data is now PERMANENTLY stored until the admin explicitly deletes it (via the student card delete button or the reset API with force=true).
+- The seed script will NOT wipe existing students — it skips seeding if any students exist.
+- The db:push command no longer accepts data loss.
+- The reset-database API preserves students by default — requires explicit `force: true` to delete students.
+- Database backup created for safety.
+- Lint clean; dev server running with auto-restart loop.
