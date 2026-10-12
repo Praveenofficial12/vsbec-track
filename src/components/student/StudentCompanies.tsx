@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { EmptyState, CardSkeleton } from '@/components/common/States'
 import {
   Building2, Search, Calendar, Briefcase, MapPin, ExternalLink, CheckCircle2, X,
-  Trophy, Clock, RefreshCw, AlertCircle, ListChecks, Bell, XCircle, Lock,
+  Trophy, Clock, RefreshCw, AlertCircle, ListChecks, Bell, XCircle, Lock, FileText,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Company, Drive, DriveParticipation, Round, RoundResult, Student } from '@/lib/types'
@@ -47,6 +47,8 @@ export function StudentCompanies() {
   // Drive links shared by admin in the announcement area — fetched when the
   // student opens a drive detail modal.
   const [driveLinks, setDriveLinks] = useState<any[]>([])
+  // Drive files shared by admin — view only, no download
+  const [driveFiles, setDriveFiles] = useState<any[]>([])
   const lastRefreshRef = useRef<number>(Date.now())
 
   const loadStudentAndDrives = async () => {
@@ -360,6 +362,7 @@ export function StudentCompanies() {
               // NOT marked "Closed" and the "closed" popup is NOT shown).
               const driveBlocked = participation && ['NOT_ATTENDING', 'REJECTED', 'WITHDRAWN'].includes(participation.attendance)
               const isSelectedStudent = participation?.finalResult === 'SELECTED'
+              const driveCompleted = drive.status === 'COMPLETED'
               const canOpen = eligible && !driveBlocked
               return (
                 <Card
@@ -370,6 +373,10 @@ export function StudentCompanies() {
                       : 'cursor-not-allowed opacity-75'
                   }`}
                   onClick={() => {
+                    if (driveCompleted) {
+                      toast.error('Admin has completed and closed this drive. You can no longer participate.', { duration: 5000 })
+                      return
+                    }
                     if (driveBlocked) {
                       toast.error('This drive is closed for you. You marked it as not attending or not cleared.')
                       return
@@ -395,6 +402,10 @@ export function StudentCompanies() {
                     apiGet<{ links: any[] }>(`/api/drives/${drive.id}/links`)
                       .then((r) => setDriveLinks(r.links || []))
                       .catch(() => setDriveLinks([]))
+                    // Fetch files shared in the announcement area
+                    apiGet<{ files: any[] }>(`/api/drives/${drive.id}/files`)
+                      .then((r) => setDriveFiles(r.files || []))
+                      .catch(() => setDriveFiles([]))
                   }}
                 >
                   <CardContent className="p-5">
@@ -749,6 +760,58 @@ export function StudentCompanies() {
                     </div>
                     )
                     })()}
+
+                    {/* Shared Files — view only, no download/save/screenshot/share.
+                        Opens in a secure online viewer. DISABLED for SELECTED students. */}
+                    {driveFiles.length > 0 && myParticipation?.finalResult !== 'SELECTED' && (
+                      <div className="rounded-lg border border-border bg-card p-4">
+                        <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+                          <FileText className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                          Shared Files ({driveFiles.length}) — View Only
+                        </p>
+                        <p className="mb-3 text-xs text-muted-foreground">
+                          Click a file to view it online. Download, save, screenshot, and sharing are disabled.
+                        </p>
+                        <div className="space-y-2">
+                          {driveFiles.map((f) => (
+                            <button
+                              key={f.id}
+                              onClick={() => window.open(`/api/files/view?fileId=${f.id}`, '_blank')}
+                              oncopy={(e) => { e.preventDefault(); return false }}
+                              oncontextmenu={(e) => { e.preventDefault(); return false }}
+                              className="group flex w-full items-center gap-3 rounded-lg border border-border bg-muted/30 p-2.5 transition-colors hover:border-emerald-300 hover:bg-emerald-50/50 dark:hover:border-emerald-700 dark:hover:bg-emerald-900/10 cursor-pointer select-none"
+                            >
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted">
+                                <FileText className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                              <div className="min-w-0 flex-1 overflow-hidden text-left">
+                                <p className="break-all text-sm font-medium text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
+                                  {f.fileName}
+                                </p>
+                                {f.description && (
+                                  <p className="truncate text-xs text-muted-foreground">{f.description}</p>
+                                )}
+                                <p className="text-[10px] text-muted-foreground">
+                                  {new Date(f.createdAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {driveFiles.length > 0 && myParticipation?.finalResult === 'SELECTED' && (
+                      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-700 dark:bg-emerald-900/10">
+                        <p className="flex items-center gap-2 text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                          <Lock className="h-4 w-4" />
+                          File access is locked
+                        </p>
+                        <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
+                          You have been marked as Selected. File access is now disabled.
+                        </p>
+                      </div>
+                    )}
 
                     {/* Shared Links — shown ONLY after the student marks
                         "Will Attend". DISABLED when the student is marked SELECTED.

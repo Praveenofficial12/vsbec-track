@@ -717,6 +717,129 @@ export function AdminDriveDetail() {
                   />
                   <p className="mt-2 text-xs text-muted-foreground">Click outside the text area to save. Students will see this message in the drive details.</p>
 
+                  {/* File Upload Section — share files with attending students.
+                      Students can ONLY view files online (no download, no save,
+                      no screenshot, no share). */}
+                  <div className="mt-4 border-t border-border pt-4">
+                    <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <UploadCloud className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                      Share Files with Attending Students
+                    </p>
+                    <p className="mb-3 text-xs text-muted-foreground">
+                      Upload documents (PDF, Excel, Word, images, etc.) that attending students can view online. Download, save, screenshot, and sharing are all disabled — view only.
+                    </p>
+                    <input
+                      type="file"
+                      id="drive-file-upload"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (!file || !driveId) return
+                        setUploading(true)
+                        try {
+                          const formData = new FormData()
+                          formData.append('file', file)
+                          formData.append('description', fileDescription)
+                          const res = await fetch(`/api/drives/${driveId}/files`, {
+                            method: 'POST',
+                            body: formData,
+                          })
+                          if (!res.ok) {
+                            const err = await res.json().catch(() => ({ error: 'Upload failed' }))
+                            throw new Error(err.error || 'Upload failed')
+                          }
+                          toast.success(`${file.name} uploaded — students can view it online (view only)`)
+                          setFileDescription('')
+                          await refreshFiles()
+                        } catch (err: any) {
+                          toast.error(err.message || 'Failed to upload file')
+                        } finally {
+                          setUploading(false)
+                          const input = document.getElementById('drive-file-upload') as HTMLInputElement
+                          if (input) input.value = ''
+                        }
+                      }}
+                    />
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                      <Input
+                        placeholder="Optional description (e.g. 'Round 1 study material')"
+                        value={fileDescription}
+                        onChange={(e) => setFileDescription(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={uploading}
+                        onClick={() => document.getElementById('drive-file-upload')?.click()}
+                        className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
+                      >
+                        {uploading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <UploadCloud className="mr-2 h-4 w-4" />
+                            Choose File
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    {/* Uploaded files list — admin can view/delete */}
+                    {driveFiles.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                          Shared Files ({driveFiles.length}) — View Only for Students
+                        </p>
+                        {driveFiles.map((f) => (
+                          <div
+                            key={f.id}
+                            className="group flex items-center gap-3 rounded-lg border border-border bg-card p-3 transition-colors hover:bg-accent/30"
+                          >
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+                              {getFileIcon(f.mimeType)}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="break-all text-sm font-medium text-foreground">{f.fileName}</p>
+                              {f.description && (
+                                <p className="truncate text-xs text-muted-foreground">{f.description}</p>
+                              )}
+                              <p className="text-[10px] text-muted-foreground">
+                                {formatFileSize(f.fileSize)} · {new Date(f.createdAt).toLocaleString()}
+                              </p>
+                            </div>
+                            <button
+                              onClick={async () => {
+                                if (!driveId) return
+                                setDeletingFile(f.id)
+                                try {
+                                  await apiDelete(`/api/drives/${driveId}/files?fileId=${f.id}`)
+                                  toast.success(`${f.fileName} deleted`)
+                                  await refreshFiles()
+                                } catch (e: any) {
+                                  toast.error(e.message || 'Failed to delete file')
+                                } finally {
+                                  setDeletingFile(null)
+                                }
+                              }}
+                              disabled={deletingFile === f.id}
+                              className="flex h-7 w-7 items-center justify-center rounded-md text-rose-600 transition-colors hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-900/20"
+                              title="Delete file"
+                            >
+                              {deletingFile === f.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-3.5 w-3.5" />
+                              )}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   {/* Link Sharing Section — share links with attending students */}
                   <div className="mt-4 border-t border-border pt-4">
                     <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">

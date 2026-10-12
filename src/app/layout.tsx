@@ -57,8 +57,8 @@ const antiCaptureScript = `
 (function() {
   'use strict';
 
-  // Create a custom popup that appears centered INSIDE the website
-  // (not using alert() which comes from the browser top bar)
+  // Create a custom popup that appears centered INSIDE the website.
+  // On OK click or auto-close, the website returns to normal (overlay removed).
   function showBlockPopup(message) {
     // Remove any existing popup
     var existing = document.getElementById('block-popup-overlay');
@@ -79,22 +79,31 @@ const antiCaptureScript = `
     overlay.appendChild(popup);
     document.body.appendChild(overlay);
 
-    // Auto-close after 3 seconds
-    var closeTimer = setTimeout(function() {
+    // Function to close popup AND remove any screenshot blank overlay
+    // so the website returns to normal
+    function closeAll() {
       if (overlay.parentNode) overlay.remove();
-    }, 3000);
+      // Also remove the screenshot blank overlay if it exists
+      var blankOverlay = document.getElementById('screenshot-blank-overlay');
+      if (blankOverlay && blankOverlay.parentNode) {
+        blankOverlay.remove();
+      }
+    }
 
-    // Close on button click
+    // Auto-close after 2 seconds — website returns to normal
+    var closeTimer = setTimeout(closeAll, 2000);
+
+    // Close on button click — website returns to normal immediately
     overlay.querySelector('#block-popup-close').addEventListener('click', function() {
       clearTimeout(closeTimer);
-      if (overlay.parentNode) overlay.remove();
+      closeAll();
     });
 
-    // Close on overlay click
+    // Close on overlay click — website returns to normal
     overlay.addEventListener('click', function(e) {
       if (e.target === overlay) {
         clearTimeout(closeTimer);
-        if (overlay.parentNode) overlay.remove();
+        closeAll();
       }
     });
   }
@@ -111,52 +120,36 @@ const antiCaptureScript = `
     return false;
   });
 
-  // 2. Block PrintScreen (screenshot) → make website BLANK permanently until reload
-  var screenshotCount = 0;
+  // 2. Block PrintScreen (screenshot) → blank screen + popup, auto-restore on OK
   document.addEventListener('keyup', function(e) {
     if (e.key === 'PrintScreen' || e.code === 'PrintScreen') {
-      screenshotCount++;
       // Clear clipboard immediately
       if (navigator.clipboard) {
         navigator.clipboard.writeText('').catch(function(){});
       }
-      // Make the entire website go BLANK (white screen) to ruin the screenshot
+      // Temporarily blank the screen (removed when popup closes)
       var existing = document.getElementById('screenshot-blank-overlay');
       if (!existing) {
         var blankOverlay = document.createElement('div');
         blankOverlay.id = 'screenshot-blank-overlay';
-        blankOverlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#ffffff;z-index:9999999;';
+        blankOverlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#1a1a1a;z-index:9999998;';
         document.body.appendChild(blankOverlay);
       }
-      // Show popup
-      showBlockPopup('Screenshots are disabled on this website. The page has been hidden.');
-      // On 2nd+ screenshot attempt, make overlay permanent (black screen) until reload
-      if (screenshotCount >= 2) {
-        var perm = document.getElementById('screenshot-blank-overlay');
-        if (perm) perm.style.background = '#000000';
-        showBlockPopup('Multiple screenshot attempts detected. The page is now permanently hidden. Please reload the page.');
-      }
+      // Show popup — clicking OK or auto-close will remove the blank overlay
+      showBlockPopup('Screenshots are disabled on this website. Click OK to return.');
     }
   });
 
-  // 2b. Detect screenshot via clipboard read (works on some browsers)
+  // 2b. Detect screenshot via clipboard read
   if (navigator.clipboard && navigator.clipboard.readText) {
     setInterval(function() {
       navigator.clipboard.readText().then(function(text) {
         if (text && text.length > 50) {
           navigator.clipboard.writeText('').catch(function(){});
-          // Also blank the screen
-          var existing = document.getElementById('screenshot-blank-overlay');
-          if (!existing) {
-            var blankOverlay = document.createElement('div');
-            blankOverlay.id = 'screenshot-blank-overlay';
-            blankOverlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#ffffff;z-index:9999999;';
-            document.body.appendChild(blankOverlay);
-          }
-          showBlockPopup('Screenshots are disabled on this website.');
+          showBlockPopup('Screenshots are disabled on this website. Click OK to return.');
         }
       }).catch(function(){});
-    }, 500);
+    }, 1000);
   }
 
   // 3. Block copy (Ctrl+C) → show popup

@@ -23,7 +23,6 @@ export type ViewKey =
   | 'admin-drives'
   | 'admin-drive-detail'
   | 'admin-analytics'
-  | 'admin-recommendations'
   | 'admin-reports'
   | 'admin-student-activity'
   | 'admin-settings'

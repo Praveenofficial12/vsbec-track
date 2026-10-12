@@ -23,7 +23,6 @@ import { AdminCompanyDetail } from '@/components/admin/AdminCompanyDetail'
 import { AdminDrives } from '@/components/admin/AdminDrives'
 import { AdminDriveDetail } from '@/components/admin/AdminDriveDetail'
 import { AdminAnalytics } from '@/components/admin/AdminAnalytics'
-import { AdminRecommendations } from '@/components/admin/AdminRecommendations'
 import { AdminReports } from '@/components/admin/AdminReports'
 import { AdminStudentActivity } from '@/components/admin/AdminStudentActivity'
 import { AdminSettings } from '@/components/admin/AdminSettings'
@@ -38,7 +37,7 @@ const STUDENT_VIEWS = [
 const ADMIN_VIEWS = [
   'admin-dashboard', 'admin-students', 'admin-student-detail', 'admin-companies',
   'admin-company-detail', 'admin-drives', 'admin-drive-detail', 'admin-analytics',
-  'admin-recommendations', 'admin-reports', 'admin-student-activity', 'admin-settings',
+  'admin-reports', 'admin-student-activity', 'admin-settings',
 ]
 const AUTHED_VIEWS = new Set([...STUDENT_VIEWS, ...ADMIN_VIEWS])
 
@@ -111,7 +110,6 @@ export default function Home() {
   if (view === 'admin-drives') return <AdminDrives />
   if (view === 'admin-drive-detail') return <AdminDriveDetail />
   if (view === 'admin-analytics') return <AdminAnalytics />
-  if (view === 'admin-recommendations') return <AdminRecommendations />
   if (view === 'admin-reports') return <AdminReports />
   if (view === 'admin-student-activity') return <AdminStudentActivity />
   if (view === 'admin-settings') return <AdminSettings />

@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import {
   GraduationCap, LayoutDashboard, Users, Building2, Target, BarChart3,
-  Sparkles, FileText, Settings, LogOut, Menu, Bell, Search, ChevronRight, Shield, ExternalLink
+  FileText, Settings, LogOut, Menu, Bell, Search, ChevronRight, Shield, ExternalLink
 } from 'lucide-react'
 import { COLLEGE_LOGO } from '@/lib/college'
 import type { ViewKey } from '@/lib/types'
@@ -23,7 +23,6 @@ const NAV_ITEMS: { key: ViewKey; label: string; icon: any; section: string }[] =
   { key: 'admin-companies', label: 'Companies', icon: Building2, section: 'Overview' },
   { key: 'admin-drives', label: 'Placement Drives', icon: Target, section: 'Overview' },
   { key: 'admin-analytics', label: 'Analytics', icon: BarChart3, section: 'Insights' },
-  { key: 'admin-recommendations', label: 'Recommendations', icon: Sparkles, section: 'Insights' },
   { key: 'admin-reports', label: 'Reports', icon: FileText, section: 'Insights' },
   { key: 'admin-student-activity', label: 'Student Activity', icon: BarChart3, section: 'System' },
   { key: 'admin-settings', label: 'Settings', icon: Settings, section: 'System' },

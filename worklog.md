@@ -1363,3 +1363,56 @@ Stage Summary:
 - Selection process is editable from the Edit Criteria form
 - Recommendations page handles errors gracefully and works correctly when a drive is selected
 - Lint clean; dev server running with auto-restart loop
+
+---
+Task ID: 37
+Agent: Main (Orchestrator)
+Task: Fix screenshot popup auto-return, add completed drive popup for students, remove recommendations page, add file upload area with view-only access.
+
+Work Log:
+- Fixed screenshot popup — auto returns to website on OK (src/app/layout.tsx):
+  * The `closeAll()` function now removes BOTH the popup overlay AND the screenshot blank overlay
+  * When user clicks OK or the popup auto-closes (2 seconds), the website returns to normal immediately
+  * Removed the "permanent black screen" behavior — the blank overlay is always removed when the popup closes
+  * Popup message changed to "Screenshots are disabled on this website. Click OK to return."
+  * Clipboard check interval reduced from 500ms to 1000ms to reduce false positives
+
+- Added "Drive completed" popup for students (StudentCompanies.tsx):
+  * When a student clicks on a drive with status COMPLETED, they see a toast: "Admin has completed and closed this drive. You can no longer participate." (duration 5s)
+  * The drive card is not opened — the student is informed and redirected back
+
+- Removed Recommendations page from admin portal:
+  * Removed "admin-recommendations" from AdminLayout NAV_ITEMS
+  * Removed Sparkles import from AdminLayout
+  * Removed "admin-recommendations" from ViewKey type
+  * Removed AdminRecommendations import and route from page.tsx
+  * Removed from ADMIN_VIEWS list
+
+- Added file upload area back to drive detail page (AdminDriveDetail.tsx):
+  * File upload section with "Choose File" button + optional description
+  * Admin can upload any file type (PDF, Excel, Word, images, etc.)
+  * Uploaded files list with file icon, name, description, size, date
+  * Admin can delete files
+  * Files are labeled "View Only for Students"
+  * The file upload section appears alongside the link sharing section
+
+- Added file viewing section for students (StudentCompanies.tsx):
+  * Students see "Shared Files — View Only" section after marking "Will Attend"
+  * Files open in `/api/files/view?fileId=X` — the secure server-side viewer
+  * The viewer route renders PDFs via PDF.js (canvas-based), Office files via server-side conversion, images inline
+  * Download, save, screenshot, and sharing are all disabled in the viewer
+  * File access is DISABLED for SELECTED students (shows "File access is locked" banner)
+  * Copy, right-click, and drag are disabled on file cards
+  * Only the file name and date are shown (no URL)
+
+- Lint passes clean (0 errors, 0 warnings).
+- Dev server running with auto-restart loop.
+- Email service running on port 3030.
+
+Stage Summary:
+- Screenshot popup now auto-returns to the website when OK is clicked (no permanent blank)
+- Students see "Admin has completed and closed this drive" popup when clicking a completed drive
+- Recommendations page removed from admin portal
+- File upload area restored in drive detail — admin can upload files, students view online only (no download/save/screenshot/share)
+- Files open in a secure viewer that renders all types (PDF via canvas, Excel/Word via server-side HTML conversion, images inline)
+- Lint clean; all services running.
