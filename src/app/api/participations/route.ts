@@ -223,6 +223,29 @@ export async function PUT(req: NextRequest) {
           type: 'SELECTION',
         },
       })
+
+      // Send email notification to the placement officer about the selection
+      const studentInfo = await db.student.findUnique({
+        where: { id: participation.studentId },
+        select: { fullName: true, registerNumber: true, department: true },
+      })
+      const driveInfo = await db.drive.findUnique({
+        where: { id: participation.driveId },
+        select: { driveName: true, company: { select: { name: true } } },
+      })
+      if (studentInfo && driveInfo) {
+        import('@/lib/email-notifications').then(({ sendSelectionNotificationToOfficer }) => {
+          sendSelectionNotificationToOfficer({
+            studentName: studentInfo.fullName,
+            registerNumber: studentInfo.registerNumber,
+            department: studentInfo.department || '—',
+            companyName: driveInfo.company?.name || '—',
+            jobRole: jobRole || 'Software Engineer',
+            ctc: ctc || 'TBD',
+            driveName: driveInfo.driveName,
+          }).catch(() => {})
+        }).catch(() => {})
+      }
     } else if (finalResult && finalResult !== 'SELECTED') {
       // When a previously-selected student's result is changed away from
       // SELECTED (e.g. via "Unlock & Remove" → REJECTED), check if any other

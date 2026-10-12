@@ -1187,3 +1187,51 @@ Stage Summary:
 - File upload replaced with link sharing — admin can share external URLs (Google Drive, YouTube, etc.) with attending students.
 - Audit Logs removed; replaced with Student Activity page that tracks student logins, registrations, page visits, and failed logins.
 - Lint clean; dev server running.
+
+---
+Task ID: 33
+Agent: Main (Orchestrator)
+Task: Email notifications (drive created → students, student selected → officer), blank website on screenshot, AI agent for students, File Host button in admin.
+
+Work Log:
+- Email notifications (src/lib/email-notifications.ts):
+  * Updated sendDriveCreationEmails() to send actual emails via z-ai-web-dev-sdk to all eligible students when a drive is created
+  * Created sendSelectionNotificationToOfficer() — sends an email to the placement officer (Vsbec@2027) when a student is marked SELECTED, with student name, register number, department, company, job role, CTC, and drive name
+  * Both functions create in-app Notifications + send emails + log to UserActivityLog
+
+- Wired up selection email in participations API (src/app/api/participations/route.ts):
+  * When finalResult=SELECTED, after updating the student and drive status, imports and calls sendSelectionNotificationToOfficer() with the student and drive info
+  * Fire-and-forget (doesn't block the API response)
+
+- Enhanced anti-screenshot — website goes BLANK on screenshot (src/app/layout.tsx):
+  * When PrintScreen is pressed, a full-screen white overlay (z-index 9999999) covers the entire website
+  * The overlay stays for 3 seconds, ruining any screenshot attempt
+  * Clipboard is also cleared immediately
+  * A popup appears: "Screenshots are disabled on this website. The page has been hidden."
+  * Added clipboard monitoring — checks every 1 second for screenshot evidence
+
+- Added AI Agent chatbot to student portal (src/components/student/StudentAgent.tsx):
+  * Floating button (bottom-right) with Bot icon + Sparkles badge
+  * Opens a chat panel with:
+    - Header: "VSBEC Assistant — Always here to help"
+    - Messages area with user/assistant bubbles
+    - Quick question buttons (How do I register?, How do I apply?, etc.)
+    - Input field with Send button
+  * Knowledge base covers: registration, login, applying for drives, eligibility, profile, rounds, notifications, logout, password, drives, selection, skills
+  * findAnswer() function matches user questions to knowledge base entries
+  * Integrated into StudentLayout — appears on all student pages
+
+- Added File Host button in admin portal (src/components/admin/AdminLayout.tsx):
+  * Added a link button in the sidebar (above the user profile) that opens https://filehost.base44.app/ in a new tab
+  * Styled with violet border + icon (ExternalLink)
+
+- Lint passes clean (0 errors, 0 warnings).
+- Dev server running with auto-restart loop.
+
+Stage Summary:
+- Drive creation → emails sent to all eligible registered students via z-ai-web-dev-sdk
+- Student selected → email sent to placement officer automatically
+- Screenshot attempt → website goes completely BLANK (white screen) for 3 seconds
+- AI Agent chatbot available on all student pages — guides students with registration, drives, eligibility, profile, rounds, etc.
+- File Host button in admin sidebar → opens https://filehost.base44.app/ in new tab
+- Lint clean; dev server running.

@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import {
   GraduationCap, LayoutDashboard, Users, Building2, Target, BarChart3,
-  Sparkles, FileText, Settings, LogOut, Menu, Bell, Search, ChevronRight, Shield
+  Sparkles, FileText, Settings, LogOut, Menu, Bell, Search, ChevronRight, Shield, ExternalLink
 } from 'lucide-react'
 import { COLLEGE_LOGO } from '@/lib/college'
 import type { ViewKey } from '@/lib/types'
@@ -98,6 +98,15 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       </nav>
 
       <div className="border-t border-sidebar-border p-3">
+        <a
+          href="https://filehost.base44.app/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mb-2 flex items-center gap-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-medium text-violet-700 transition-colors hover:bg-violet-100 dark:border-violet-800 dark:bg-violet-900/20 dark:text-violet-300 dark:hover:bg-violet-900/30"
+        >
+          <ExternalLink className="h-4 w-4" />
+          File Host
+        </a>
         <div className="mb-2 flex items-center gap-3 rounded-lg bg-sidebar-accent/50 px-3 py-2">
           <Avatar className="h-9 w-9 ring-2 ring-sidebar-primary/30">
             <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-xs font-semibold text-white">

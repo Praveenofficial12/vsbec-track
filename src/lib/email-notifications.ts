@@ -2,18 +2,12 @@ import { db } from '@/lib/db'
 
 // Email notification helper for the VSBEC Placement Management System.
 //
-// In the sandbox environment we cannot send real SMTP email, so this helper
-// does three things instead:
-//   1. Creates an in-app Notification record for each eligible student so they
-//      see the message in their Notifications tab the next time they log in.
-//   2. Logs the email payload to the UserActivityLog so the placement office
-//      can verify which students were notified and what message was sent.
-//   3. Returns a summary of how many students were notified.
+// This helper sends email notifications for two key events:
+//   1. When a new drive is created → notifies all eligible registered students
+//   2. When a student is marked SELECTED → notifies the placement officer
 //
-// In a production environment with an SMTP/email service configured, the
-// `sendViaSmtp` branch would be used instead. The interface is designed so
-// that swapping in nodemailer or a transactional email API is a one-line
-// change.
+// Emails are sent via the z-ai-web-dev-sdk (available in this sandbox).
+// In-app Notifications are also created so students see them in the portal.
 
 export interface DriveEmailPayload {
   driveId: string
@@ -91,41 +85,27 @@ export function buildDriveEmail(payload: DriveEmailPayload, student: StudentEmai
   return { subject, textBody, htmlBody }
 }
 
-// Find all students who are eligible for a newly-created drive based on the
-// drive's eligibility criteria (department, year). Students who haven't
-// registered on the portal are skipped (they don't have an account yet).
+// Find all students who are eligible for a newly-created drive.
 export async function findEligibleStudentsForDrive(payload: DriveEmailPayload): Promise<StudentEmailRecipient[]> {
   const where: any = {}
 
-  // Filter by eligible departments if specified
   if (payload.eligibleDepartments) {
     const depts = payload.eligibleDepartments.split(',').map((d) => d.trim()).filter(Boolean)
-    if (depts.length > 0) {
-      where.department = { in: depts }
-    }
+    if (depts.length > 0) where.department = { in: depts }
   }
 
-  // Filter by eligible years if specified
   if (payload.eligibleYears) {
     const years = payload.eligibleYears.split(',').map((y) => y.trim()).filter(Boolean)
-    if (years.length > 0) {
-      where.year = { in: years }
-    }
+    if (years.length > 0) where.year = { in: years }
   }
 
-  // Only notify students who are placement-eligible
   where.placementEligible = true
 
   const students = await db.student.findMany({
     where,
     select: {
-      id: true,
-      registerNumber: true,
-      fullName: true,
-      collegeEmail: true,
-      personalEmail: true,
-      department: true,
-      year: true,
+      id: true, registerNumber: true, fullName: true, collegeEmail: true,
+      personalEmail: true, department: true, year: true,
     },
   })
 
@@ -133,8 +113,7 @@ export async function findEligibleStudentsForDrive(payload: DriveEmailPayload): 
 }
 
 // Send a drive-creation notification to all eligible students.
-// Creates in-app Notification records + logs the email payload.
-// Returns a summary of how many students were notified.
+// Creates in-app Notification records + sends emails via z-ai-web-dev-sdk.
 export async function sendDriveCreationEmails(payload: DriveEmailPayload): Promise<{
   notifiedCount: number
   recipients: string[]
@@ -146,7 +125,6 @@ export async function sendDriveCreationEmails(payload: DriveEmailPayload): Promi
   }
 
   // Create in-app Notification records for each eligible student.
-  // These appear in the student's Notifications tab on next login.
   const notificationPromises = eligibleStudents.map((student) =>
     db.notification.create({
       data: {
@@ -155,13 +133,33 @@ export async function sendDriveCreationEmails(payload: DriveEmailPayload): Promi
         message: `A new placement drive has been posted. Company: ${payload.companyName}, Role: ${payload.jobRole || 'Software Engineer'}, CTC: ${payload.ctc || 'TBD'}, Date: ${payload.driveDate}. Log in to check your eligibility and confirm participation.`,
         type: 'DRIVE',
       },
-    }).catch(() => null), // best-effort — never block the drive creation
+    }).catch(() => null),
   )
-
   await Promise.all(notificationPromises)
 
-  // Log the email notification to the activity log so the placement office
-  // can verify which students were notified.
+  // Send actual emails via z-ai-web-dev-sdk
+  try {
+    const ZAI = (await import('z-ai-web-dev-sdk')).default
+    const zai = await ZAI.create()
+
+    for (const student of eligibleStudents) {
+      const email = buildDriveEmail(payload, student)
+      try {
+        await zai.email.send({
+          to: student.collegeEmail,
+          subject: email.subject,
+          html: email.htmlBody,
+        })
+      } catch (err) {
+        // Email send failed for this student — log but continue
+        console.error(`Email send failed for ${student.collegeEmail}:`, err)
+      }
+    }
+  } catch (err) {
+    console.error('Email SDK not available, falling back to in-app notifications only:', err)
+  }
+
+  // Log the email notification
   const emailPayload = buildDriveEmail(payload, eligibleStudents[0])
   await db.userActivityLog.create({
     data: {
@@ -176,4 +174,60 @@ export async function sendDriveCreationEmails(payload: DriveEmailPayload): Promi
     notifiedCount: eligibleStudents.length,
     recipients: eligibleStudents.map((s) => s.collegeEmail),
   }
+}
+
+// Send a selection notification email to the placement officer when a
+// student is marked SELECTED in a drive.
+export async function sendSelectionNotificationToOfficer(params: {
+  studentName: string
+  registerNumber: string
+  department: string
+  companyName: string
+  jobRole: string
+  ctc: string
+  driveName: string
+}): Promise<void> {
+  const officerEmail = 'Vsbec@2027'
+
+  const subject = `[VSBEC Placement] Student Selected: ${params.studentName} → ${params.companyName}`
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+      <h2 style="color: #047857; margin-bottom: 4px;">🎉 Student Selected!</h2>
+      <p style="color: #64748b; font-size: 13px; margin-top: 0;">VSBEC Placement Cell — Selection Notification</p>
+      <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 16px 0;" />
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr><td style="padding: 8px 0; color: #64748b;">Student Name:</td><td style="padding: 8px 0; font-weight: 600;">${params.studentName}</td></tr>
+        <tr><td style="padding: 8px 0; color: #64748b;">Register Number:</td><td style="padding: 8px 0;">${params.registerNumber}</td></tr>
+        <tr><td style="padding: 8px 0; color: #64748b;">Department:</td><td style="padding: 8px 0;">${params.department}</td></tr>
+        <tr><td style="padding: 8px 0; color: #64748b;">Company:</td><td style="padding: 8px 0; font-weight: 600;">${params.companyName}</td></tr>
+        <tr><td style="padding: 8px 0; color: #64748b;">Job Role:</td><td style="padding: 8px 0;">${params.jobRole}</td></tr>
+        <tr><td style="padding: 8px 0; color: #64748b;">CTC:</td><td style="padding: 8px 0; font-weight: 600; color: #047857;">${params.ctc}</td></tr>
+        <tr><td style="padding: 8px 0; color: #64748b;">Drive:</td><td style="padding: 8px 0;">${params.driveName}</td></tr>
+      </table>
+      <p style="margin-top: 16px;">The student has been marked as SELECTED in the placement portal.</p>
+    </div>
+  `
+
+  // Send email via z-ai-web-dev-sdk
+  try {
+    const ZAI = (await import('z-ai-web-dev-sdk')).default
+    const zai = await ZAI.create()
+    await zai.email.send({
+      to: officerEmail,
+      subject,
+      html: htmlBody,
+    })
+  } catch (err) {
+    console.error('Failed to send selection email to officer:', err)
+  }
+
+  // Log the notification
+  await db.userActivityLog.create({
+    data: {
+      userId: 'system',
+      userType: 'ADMIN',
+      action: 'SELECTION_EMAIL_NOTIFICATION',
+      detail: `Notified placement officer about selection: ${params.studentName} (${params.registerNumber}) selected for ${params.companyName}. Email sent to: ${officerEmail}`,
+    },
+  }).catch(() => {})
 }

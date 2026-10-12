@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useAppStore } from '@/lib/store'
 import { apiDelete } from '@/lib/api'
-import { cn } from '@/lib/utils'
+import { StudentAgent } from './StudentAgent'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
@@ -201,6 +201,9 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* AI Assistant Chatbot */}
+      <StudentAgent />
     </div>
   )
 }
