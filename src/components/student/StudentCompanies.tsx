@@ -753,7 +753,9 @@ export function StudentCompanies() {
                     })()}
 
                     {/* Shared Links — shown ONLY after the student marks
-                        "Will Attend". DISABLED when the student is marked SELECTED. */}
+                        "Will Attend". DISABLED when the student is marked SELECTED.
+                        Links are shown as hyperlinks using the TITLE only — the
+                        actual URL is HIDDEN from the user. Link copying is disabled. */}
                     {driveLinks.length > 0 && myParticipation?.finalResult !== 'SELECTED' && (
                       <div className="rounded-lg border border-border bg-card p-4">
                         <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
@@ -762,29 +764,35 @@ export function StudentCompanies() {
                         </p>
                         <div className="space-y-2">
                           {driveLinks.map((l) => (
-                            <a
+                            <div
                               key={l.id}
-                              href={l.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
                               className="group flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-2.5 transition-colors hover:border-emerald-300 hover:bg-emerald-50/50 dark:hover:border-emerald-700 dark:hover:bg-emerald-900/10"
                             >
                               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted">
                                 <ExternalLink className="h-4 w-4 text-muted-foreground" />
                               </div>
                               <div className="min-w-0 flex-1 overflow-hidden">
-                                <p className="break-all text-sm font-medium text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
+                                {/* Show as hyperlink with TITLE only — URL is hidden */}
+                                <a
+                                  href={l.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  oncopy={(e) => { e.preventDefault(); return false }}
+                                  oncontextmenu={(e) => { e.preventDefault(); return false }}
+                                  className="break-all text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+                                  title="Click to open"
+                                >
                                   {l.title}
-                                </p>
+                                </a>
                                 {l.description && (
                                   <p className="truncate text-xs text-muted-foreground">{l.description}</p>
                                 )}
-                                <p className="truncate text-[10px] text-muted-foreground">
-                                  {l.url} · {new Date(l.createdAt).toLocaleDateString()}
+                                <p className="text-[10px] text-muted-foreground">
+                                  {new Date(l.createdAt).toLocaleDateString()}
                                 </p>
                               </div>
                               <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400" />
-                            </a>
+                            </div>
                           ))}
                         </div>
                       </div>

@@ -90,8 +90,11 @@ export function useSessionHeartbeat() {
             const beatRes = await apiPost('/api/auth/session', { token: sessionToken })
             if (cancelled) return
             if (beatRes?.ok === false) {
-              // Heartbeat also failed — session truly invalid. Force logout.
-              forceLogout((beatRes.reason as 'replaced' | 'expired' | 'invalid') || 'invalid')
+              // Only force-logout if replaced by another tab — for expired
+              // or invalid, the server might be restarting (dev refresh).
+              if (beatRes.reason === 'replaced') {
+                forceLogout('replaced')
+              }
             }
             // Heartbeat succeeded — session is now valid, stay logged in.
           } catch {

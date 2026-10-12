@@ -1,0 +1,11 @@
+{
+  "name": "vsbec-email-service",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "bun --hot index.ts"
+  },
+  "dependencies": {
+    "express": "^4.18.0",
+    "nodemailer": "^10.1.0"
+  }
+}
