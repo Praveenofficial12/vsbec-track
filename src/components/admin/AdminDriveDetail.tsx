@@ -81,6 +81,61 @@ export function AdminDriveDetail() {
   const [uploading, setUploading] = useState(false)
   const [fileDescription, setFileDescription] = useState('')
   const [deletingFile, setDeletingFile] = useState<string | null>(null)
+  // Drive links (shared in the announcement area)
+  const [driveLinks, setDriveLinks] = useState<any[]>([])
+  const [linkTitle, setLinkTitle] = useState('')
+  const [linkUrl, setLinkUrl] = useState('')
+  const [linkDesc, setLinkDesc] = useState('')
+  const [addingLink, setAddingLink] = useState(false)
+  const [deletingLink, setDeletingLink] = useState<string | null>(null)
+
+  const refreshLinks = async () => {
+    if (!driveId) return
+    try {
+      const r = await apiGet<{ links: any[] }>(`/api/drives/${driveId}/links`)
+      setDriveLinks(r.links || [])
+    } catch { /* best-effort */ }
+  }
+
+  const handleAddLink = async () => {
+    if (!driveId) return
+    if (!linkUrl.trim()) {
+      toast.error('URL is required')
+      return
+    }
+    setAddingLink(true)
+    try {
+      await apiPost(`/api/drives/${driveId}/links`, {
+        title: linkTitle.trim() || undefined,
+        url: linkUrl.trim(),
+        description: linkDesc.trim() || undefined,
+      })
+      toast.success('Link shared with attending students')
+      setLinkTitle('')
+      setLinkUrl('')
+      setLinkDesc('')
+      await refreshLinks()
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to add link')
+    } finally {
+      setAddingLink(false)
+    }
+  }
+
+  const handleDeleteLink = async (linkId: string) => {
+    if (!driveId) return
+    setDeletingLink(linkId)
+    try {
+      await apiDelete(`/api/drives/${driveId}/links?linkId=${linkId}`)
+      toast.success('Link deleted')
+      await refreshLinks()
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to delete link')
+    } finally {
+      setDeletingLink(null)
+    }
+  }
+
   // Round editing state
   const [editingRound, setEditingRound] = useState<string | null>(null)
   const [roundForm, setRoundForm] = useState<{ roundName: string; description: string; date: string; startTime: string; endTime: string; status: string }>({ roundName: '', description: '', date: '', startTime: '', endTime: '', status: 'UPCOMING' })
@@ -111,6 +166,7 @@ export function AdminDriveDetail() {
     if (!driveId) return
     apiGet<{ drive: Drive }>(`/api/drives/${driveId}`).then(r => setDrive(r.drive)).finally(() => setLoading(false))
     refreshFiles()
+    refreshLinks()
   }, [driveId])
 
   const updateParticipation = async (participation: DriveParticipation, updates: any) => {
@@ -571,146 +627,105 @@ export function AdminDriveDetail() {
                   />
                   <p className="mt-2 text-xs text-muted-foreground">Click outside the text area to save. Students will see this message in the drive details.</p>
 
-                  {/* File Upload Section — share files with attending students */}
+                  {/* Link Sharing Section — share links with attending students */}
                   <div className="mt-4 border-t border-border pt-4">
                     <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
-                      <UploadCloud className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                      Share Files with Attending Students
+                      <ExternalLink className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                      Share Links with Attending Students
                     </p>
                     <p className="mb-3 text-xs text-muted-foreground">
-                      Upload documents (PDF, images, docs, etc.) that attending students can download from the drive. Max 25 MB per file.
+                      Share external links (Google Drive, YouTube, websites, etc.) that attending students can open.
                     </p>
 
-                    {/* Upload form */}
+                    {/* Add link form */}
                     <div className="rounded-lg border border-dashed border-border bg-muted/30 p-3">
-                      <input
-                        type="file"
-                        id="drive-file-upload"
-                        className="hidden"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0]
-                          if (!file || !driveId) return
-                          setUploading(true)
-                          try {
-                            const formData = new FormData()
-                            formData.append('file', file)
-                            formData.append('description', fileDescription)
-                            const res = await fetch(`/api/drives/${driveId}/files`, {
-                              method: 'POST',
-                              body: formData,
-                            })
-                            if (!res.ok) {
-                              const err = await res.json().catch(() => ({ error: 'Upload failed' }))
-                              throw new Error(err.error || 'Upload failed')
-                            }
-                            toast.success(`${file.name} uploaded and shared with attending students`)
-                            setFileDescription('')
-                            await refreshFiles()
-                          } catch (err: any) {
-                            toast.error(err.message || 'Failed to upload file')
-                          } finally {
-                            setUploading(false)
-                            // Reset the input so the same file can be re-selected
-                            const input = document.getElementById('drive-file-upload') as HTMLInputElement
-                            if (input) input.value = ''
-                          }
-                        }}
-                      />
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                      <div className="grid gap-2 sm:grid-cols-2">
                         <Input
-                          placeholder="Optional description (e.g. 'Round 1 study material')"
-                          value={fileDescription}
-                          onChange={(e) => setFileDescription(e.target.value)}
-                          className="flex-1"
+                          placeholder="Link title (e.g. 'Study Material')"
+                          value={linkTitle}
+                          onChange={(e) => setLinkTitle(e.target.value)}
+                          className="text-sm"
                         />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          disabled={uploading}
-                          onClick={() => document.getElementById('drive-file-upload')?.click()}
-                          className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
-                        >
-                          {uploading ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Uploading...
-                            </>
-                          ) : (
-                            <>
-                              <UploadCloud className="mr-2 h-4 w-4" />
-                              Choose File
-                            </>
-                          )}
-                        </Button>
+                        <Input
+                          placeholder="https://... (URL is required)"
+                          value={linkUrl}
+                          onChange={(e) => setLinkUrl(e.target.value)}
+                          className="text-sm"
+                        />
                       </div>
+                      <Input
+                        placeholder="Optional description"
+                        value={linkDesc}
+                        onChange={(e) => setLinkDesc(e.target.value)}
+                        className="mt-2 text-sm"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={addingLink || !linkUrl.trim()}
+                        onClick={handleAddLink}
+                        className="mt-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
+                      >
+                        {addingLink ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Adding...
+                          </>
+                        ) : (
+                          <>
+                            <ExternalLink className="mr-2 h-4 w-4" />
+                            Share Link
+                          </>
+                        )}
+                      </Button>
                     </div>
 
-                    {/* Uploaded files list */}
-                    {driveFiles.length > 0 && (
+                    {/* Shared links list */}
+                    {driveLinks.length > 0 && (
                       <div className="mt-3 space-y-2">
                         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                          Shared Files ({driveFiles.length})
+                          Shared Links ({driveLinks.length})
                         </p>
-                        {driveFiles.map((f) => (
+                        {driveLinks.map((l) => (
                           <div
-                            key={f.id}
+                            key={l.id}
                             className="group flex items-center gap-3 rounded-lg border border-border bg-card p-3 transition-colors hover:bg-accent/30"
                           >
                             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
-                              {getFileIcon(f.mimeType)}
+                              <ExternalLink className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                             </div>
                             <div className="min-w-0 flex-1">
                               <a
-                                href={f.filePath}
+                                href={l.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                onClick={(e) => {
-                                  e.preventDefault()
-                                  openFileViewer({ fileId: f.id, filePath: f.filePath, fileName: f.fileName, mimeType: f.mimeType })
-                                }}
                                 className="break-all text-sm font-medium text-foreground hover:text-emerald-600 hover:underline dark:hover:text-emerald-400"
                               >
-                                {f.fileName}
+                                {l.title}
                               </a>
-                              {f.description && (
-                                <p className="truncate text-xs text-muted-foreground">{f.description}</p>
+                              {l.description && (
+                                <p className="truncate text-xs text-muted-foreground">{l.description}</p>
                               )}
-                              <p className="text-[10px] text-muted-foreground">
-                                {formatFileSize(f.fileSize)} · {new Date(f.createdAt).toLocaleString()}
+                              <p className="truncate text-[10px] text-muted-foreground">
+                                {l.url} · {new Date(l.createdAt).toLocaleString()}
                               </p>
                             </div>
                             <a
-                              href={f.filePath}
+                              href={l.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              onClick={(e) => {
-                                e.preventDefault()
-                                openFileViewer({ filePath: f.filePath, fileName: f.fileName, mimeType: f.mimeType })
-                              }}
                               className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/20"
-                              title="View online"
+                              title="Open link"
                             >
                               <ExternalLink className="h-3.5 w-3.5" />
                             </a>
                             <button
-                              onClick={async () => {
-                                if (!driveId) return
-                                setDeletingFile(f.id)
-                                try {
-                                  await apiDelete(`/api/drives/${driveId}/files?fileId=${f.id}`)
-                                  toast.success(`${f.fileName} deleted`)
-                                  await refreshFiles()
-                                } catch (e: any) {
-                                  toast.error(e.message || 'Failed to delete file')
-                                } finally {
-                                  setDeletingFile(null)
-                                }
-                              }}
-                              disabled={deletingFile === f.id}
+                              onClick={() => handleDeleteLink(l.id)}
+                              disabled={deletingLink === l.id}
                               className="flex h-7 w-7 items-center justify-center rounded-md text-rose-600 transition-colors hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-900/20"
-                              title="Delete file"
+                              title="Delete link"
                             >
-                              {deletingFile === f.id ? (
+                              {deletingLink === l.id ? (
                                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                               ) : (
                                 <Trash2 className="h-3.5 w-3.5" />

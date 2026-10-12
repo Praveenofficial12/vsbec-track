@@ -45,87 +45,144 @@ export const viewport: Viewport = {
 
 // Global anti-screenshot / anti-right-click / anti-screen-capture script.
 // This runs on EVERY page of the website and blocks:
-//   - Right-click context menu
-//   - PrintScreen (clears clipboard + shows alert)
-//   - Ctrl+S (save), Ctrl+P (print), Ctrl+U (view source)
-//   - F12, Ctrl+Shift+I/J/C (dev tools)
-//   - Text selection (via CSS user-select: none)
-//   - Drag-and-drop of images
-//   - Screen capture API (when supported by the browser)
-//   - Visibility change detection (blurs content when tab loses focus)
-//   - Camera access detection (notifies if camera is activated)
+//   - Right-click context menu → shows popup
+//   - Copy / Paste → shows popup
+//   - PrintScreen (screenshot) → shows popup + clears clipboard
+//   - Screen recording → shows popup
+//   - Ctrl+S, Ctrl+P, Ctrl+U, F12, Ctrl+Shift+I/J/C → blocked
+//   - Text selection, drag-and-drop
+//   - Visibility change (blurs content when tab loses focus)
 const antiCaptureScript = `
 <script>
 (function() {
   'use strict';
 
-  // 1. Disable right-click context menu
+  // Create a custom popup that appears centered INSIDE the website
+  // (not using alert() which comes from the browser top bar)
+  function showBlockPopup(message) {
+    // Remove any existing popup
+    var existing = document.getElementById('block-popup-overlay');
+    if (existing) existing.remove();
+
+    var overlay = document.createElement('div');
+    overlay.id = 'block-popup-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:9999999;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease;';
+
+    var popup = document.createElement('div');
+    popup.style.cssText = 'background:#1e1e1e;color:white;border-radius:12px;padding:32px 40px;max-width:400px;text-align:center;font-family:-apple-system,BlinkMacSystemFont,sans-serif;box-shadow:0 8px 32px rgba(0,0,0,0.5);border:1px solid #333;';
+    popup.innerHTML =
+      '<div style="font-size:40px;margin-bottom:12px;">🚫</div>' +
+      '<p style="font-size:16px;font-weight:600;margin-bottom:8px;">Action Blocked</p>' +
+      '<p style="font-size:14px;opacity:0.8;line-height:1.5;">' + message + '</p>' +
+      '<button id="block-popup-close" style="margin-top:16px;background:#10b981;color:white;border:none;padding:8px 24px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;">OK</button>';
+
+    overlay.appendChild(popup);
+    document.body.appendChild(overlay);
+
+    // Auto-close after 3 seconds
+    var closeTimer = setTimeout(function() {
+      if (overlay.parentNode) overlay.remove();
+    }, 3000);
+
+    // Close on button click
+    overlay.querySelector('#block-popup-close').addEventListener('click', function() {
+      clearTimeout(closeTimer);
+      if (overlay.parentNode) overlay.remove();
+    });
+
+    // Close on overlay click
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) {
+        clearTimeout(closeTimer);
+        if (overlay.parentNode) overlay.remove();
+      }
+    });
+  }
+
+  // Add fade-in animation
+  var animStyle = document.createElement('style');
+  animStyle.textContent = '@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }';
+  document.head.appendChild(animStyle);
+
+  // 1. Disable right-click context menu → show popup
   document.addEventListener('contextmenu', function(e) {
     e.preventDefault();
+    showBlockPopup('Right-click is disabled on this website.');
     return false;
   });
 
-  // 2. Block PrintScreen — clear clipboard and show alert
+  // 2. Block PrintScreen (screenshot) → show popup + clear clipboard
   document.addEventListener('keyup', function(e) {
     if (e.key === 'PrintScreen' || e.code === 'PrintScreen') {
-      // Try to clear the clipboard
       if (navigator.clipboard) {
         navigator.clipboard.writeText('').catch(function(){});
       }
-      // Show alert
-      alert('Screenshots are disabled on this website.');
+      showBlockPopup('Screenshots are disabled on this website.');
     }
   });
 
-  // Also check clipboard periodically for screenshot evidence
-  if (navigator.clipboard && navigator.clipboard.readText) {
-    var lastClip = '';
-    setInterval(function() {
-      navigator.clipboard.readText().then(function(text) {
-        if (text && text !== lastClip && text.length > 100) {
-          // Clipboard was modified — possibly a screenshot
-          navigator.clipboard.writeText('').catch(function(){});
-        }
-        lastClip = text;
-      }).catch(function(){});
-    }, 2000);
-  }
-
-  // 3. Block keyboard shortcuts: Ctrl+S, Ctrl+P, Ctrl+U, F12, Ctrl+Shift+I/J/C
-  document.addEventListener('keydown', function(e) {
-    // Ctrl+S (save page)
-    if (e.ctrlKey && e.key === 's') { e.preventDefault(); return false; }
-    // Ctrl+P (print)
-    if (e.ctrlKey && e.key === 'p') { e.preventDefault(); return false; }
-    // Ctrl+U (view source)
-    if (e.ctrlKey && e.key === 'u') { e.preventDefault(); return false; }
-    // F12 (dev tools)
-    if (e.key === 'F12') { e.preventDefault(); return false; }
-    // Ctrl+Shift+I / J / C (dev tools)
-    if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) {
-      e.preventDefault(); return false;
-    }
-    // Ctrl+A (select all) — block to prevent easy copying
-    if (e.ctrlKey && e.key === 'a') { e.preventDefault(); return false; }
-    // Ctrl+C (copy) — block on non-input elements
-    if (e.ctrlKey && e.key === 'c' && !e.target.matches('input, textarea, [contenteditable]')) {
-      e.preventDefault(); return false;
-    }
-  });
-
-  // 4. Disable drag-and-drop (prevents dragging images to desktop)
-  document.addEventListener('dragstart', function(e) {
+  // 3. Block copy (Ctrl+C) → show popup
+  document.addEventListener('copy', function(e) {
     e.preventDefault();
+    showBlockPopup('Copying content is disabled on this website.');
     return false;
   });
 
-  // 5. Disable text selection via CSS (added dynamically)
+  // 4. Block paste (Ctrl+V) on non-input elements → show popup
+  document.addEventListener('paste', function(e) {
+    if (!e.target.matches('input, textarea, [contenteditable]')) {
+      e.preventDefault();
+      showBlockPopup('Pasting is disabled on this website.');
+      return false;
+    }
+  });
+
+  // 5. Block cut (Ctrl+X) → show popup
+  document.addEventListener('cut', function(e) {
+    e.preventDefault();
+    showBlockPopup('Cutting content is disabled on this website.');
+    return false;
+  });
+
+  // 6. Block keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    // Ctrl+S (save page)
+    if (e.ctrlKey && e.key === 's') { e.preventDefault(); showBlockPopup('Saving is disabled.'); return false; }
+    // Ctrl+P (print)
+    if (e.ctrlKey && e.key === 'p') { e.preventDefault(); showBlockPopup('Printing is disabled.'); return false; }
+    // Ctrl+U (view source)
+    if (e.ctrlKey && e.key === 'u') { e.preventDefault(); showBlockPopup('Viewing source is disabled.'); return false; }
+    // F12 (dev tools)
+    if (e.key === 'F12') { e.preventDefault(); showBlockPopup('Developer tools are disabled.'); return false; }
+    // Ctrl+Shift+I / J / C (dev tools)
+    if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) {
+      e.preventDefault(); showBlockPopup('Developer tools are disabled.'); return false;
+    }
+    // Ctrl+A (select all)
+    if (e.ctrlKey && e.key === 'a') { e.preventDefault(); showBlockPopup('Select all is disabled.'); return false; }
+    // Ctrl+C (copy) on non-input
+    if (e.ctrlKey && e.key === 'c' && !e.target.matches('input, textarea, [contenteditable]')) {
+      e.preventDefault(); showBlockPopup('Copying is disabled.'); return false;
+    }
+    // Ctrl+V (paste) on non-input
+    if (e.ctrlKey && e.key === 'v' && !e.target.matches('input, textarea, [contenteditable]')) {
+      e.preventDefault(); showBlockPopup('Pasting is disabled.'); return false;
+    }
+  });
+
+  // 7. Disable drag-and-drop
+  document.addEventListener('dragstart', function(e) {
+    e.preventDefault();
+    showBlockPopup('Dragging is disabled on this website.');
+    return false;
+  });
+
+  // 8. Disable text selection via CSS
   var style = document.createElement('style');
   style.textContent = [
     'body { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }',
     'input, textarea, [contenteditable] { -webkit-user-select: text; -moz-user-select: text; -ms-user-select: text; user-select: text; }',
     'img { -webkit-user-drag: none; -moz-user-drag: none; pointer-events: auto; }',
-    // Add a blur overlay when the page is not visible (anti-screen-capture)
     '.anti-capture-overlay {',
     '  position: fixed; top: 0; left: 0; right: 0; bottom: 0;',
     '  background: #1a1a1a; z-index: 999999;',
@@ -135,11 +192,10 @@ const antiCaptureScript = `
   ].join('\\n');
   document.head.appendChild(style);
 
-  // 6. Add blur overlay — shown when the tab loses visibility (screen capture
-  //    tools often switch tabs/windows, which triggers visibilitychange)
+  // 9. Blur overlay when tab loses visibility (anti-screen-capture)
   var overlay = document.createElement('div');
   overlay.className = 'anti-capture-overlay';
-  overlay.innerHTML = '<div style="text-align:center;"><p>🔒 Content hidden</p><p style="font-size:14px;opacity:0.7;">This content is protected. Please return to the tab to view it.</p></div>';
+  overlay.innerHTML = '<div style="text-align:center;"><p>🔒 Content hidden</p><p style="font-size:14px;opacity:0.7;">This content is protected.</p></div>';
   document.body.appendChild(overlay);
 
   document.addEventListener('visibilitychange', function() {
@@ -150,13 +206,12 @@ const antiCaptureScript = `
     }
   });
 
-  // 7. Detect dev tools via window size difference
+  // 10. Detect dev tools via window size difference
   var devToolsCheck = function() {
     var threshold = 200;
     var widthDiff = window.outerWidth - window.innerWidth;
     var heightDiff = window.outerHeight - window.innerHeight;
     if (widthDiff > threshold || heightDiff > threshold) {
-      // Dev tools likely open — blur the content
       document.body.style.filter = 'blur(10px)';
     } else {
       document.body.style.filter = '';
@@ -165,44 +220,20 @@ const antiCaptureScript = `
   setInterval(devToolsCheck, 1000);
   window.addEventListener('resize', devToolsCheck);
 
-  // 8. Try to block screen capture via getDisplayMedia (if browser supports it)
+  // 11. Block screen recording via getDisplayMedia → show popup
   if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
-    var origGetDisplayMedia = navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices);
     navigator.mediaDevices.getDisplayMedia = function() {
-      alert('Screen recording is disabled on this website.');
+      showBlockPopup('Screen recording is disabled on this website.');
       return Promise.reject(new Error('Screen recording is disabled'));
     };
   }
 
-  // 9. Detect if the camera is accessed (for phone screen capture)
-  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-    var origGetUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
-    navigator.mediaDevices.getUserMedia = function(constraints) {
-      if (constraints && constraints.video) {
-        // Allow the camera for profile photos etc., but log it
-        console.warn('Camera access detected — screen capture may be in progress.');
-      }
-      return origGetUserMedia(constraints);
-    };
-  }
-
-  // 10. Detect screen capture via the Screen Capture API
-  if ('getScreenDetails' in window) {
-    // Browser supports Screen Details API — monitor for screen changes
-    window.getScreenDetails().then(function(screenDetails) {
-      screenDetails.addEventListener('change', function() {
-        // Screen configuration changed — could be a capture tool
-        console.warn('Screen configuration changed.');
-      });
-    }).catch(function(){});
-  }
-
-  // 11. Block printing
+  // 12. Block printing
   window.onbeforeprint = function() {
     document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#333;font-family:sans-serif;"><p>Printing is disabled on this website.</p></div>';
   };
 
-  // 12. Add print CSS to hide everything when printing
+  // 13. Add print CSS
   var printStyle = document.createElement('style');
   printStyle.textContent = '@media print { body { display: none !important; } }';
   document.head.appendChild(printStyle);
@@ -226,7 +257,7 @@ export default function RootLayout({
       >
         {children}
         <RadixToaster />
-        <SonnerToaster position="top-right" richColors closeButton duration={5000} />
+        <SonnerToaster position="top-center" richColors closeButton duration={5000} />
         <span dangerouslySetInnerHTML={{ __html: antiCaptureScript }} />
       </body>
     </html>

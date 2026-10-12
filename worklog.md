@@ -1125,3 +1125,65 @@ Stage Summary:
 - All sample/test data removed from the website — database is clean for real data.
 - Admin account, placement rules, and custom fields are preserved.
 - Lint clean; dev server running.
+
+---
+Task ID: 32
+Agent: Main (Orchestrator)
+Task: Add popups for blocked actions (right-click, copy, paste, screenshot, screen-record), replace file upload with link sharing, move popups inside website, remove audit logs and replace with student activity tracking.
+
+Work Log:
+- Added custom popup for ALL blocked actions (src/app/layout.tsx):
+  * Created a showBlockPopup(message) function that shows a centered popup INSIDE the website (not using browser alert())
+  * The popup has a 🚫 icon, "Action Blocked" title, the specific message, and an "OK" button
+  * Auto-closes after 3 seconds, or on button/overlay click
+  * Added fade-in animation
+  * Replaced all alert() calls with showBlockPopup() for:
+    - Right-click context menu → "Right-click is disabled on this website."
+    - Copy (Ctrl+C) → "Copying content is disabled on this website."
+    - Paste (Ctrl+V) → "Pasting is disabled on this website."
+    - Cut (Ctrl+X) → "Cutting content is disabled on this website."
+    - PrintScreen → "Screenshots are disabled on this website."
+    - Screen recording → "Screen recording is disabled on this website."
+    - Drag-and-drop → "Dragging is disabled on this website."
+    - Ctrl+S/P/U, F12, Ctrl+Shift+I/J/C → each shows its own message
+  * Added copy/paste/cut event listeners (not just keydown)
+
+- Changed Sonner toaster position from "top-right" to "top-center" so all toast notifications appear centered inside the website.
+
+- Replaced file upload area with link sharing:
+  * Added DriveLink model to Prisma schema (id, driveId, title, url, description, createdBy, createdAt)
+  * Ran db:push to sync the DB
+  * Created /api/drives/[id]/links route with GET (list), POST (add), DELETE (remove) handlers
+  * Updated AdminDriveDetail.tsx: replaced the entire file upload section with a "Share Links" section that has:
+    - Title input, URL input, description input
+    - "Share Link" button → calls POST /api/drives/<id>/links
+    - Shared links list with open and delete buttons
+    - Notifies attending students when a new link is shared
+  * Updated StudentCompanies.tsx: replaced the "Shared Files" section with "Shared Links" — shows clickable link cards that open in a new tab
+  * Links are disabled for SELECTED students (same as files were)
+
+- Removed Audit Logs from admin portal:
+  * Removed "Audit Logs" from AdminLayout NAV_ITEMS
+  * Removed ScrollText import from AdminLayout
+  * Replaced with "Student Activity" (admin-student-activity) using BarChart3 icon
+  * Updated ViewKey type in types.ts
+  * Created AdminStudentActivity.tsx — a new page that shows:
+    - Stats cards (Total Activities, Logins, Registrations, Failed Logins)
+    - Search by register number, email, or detail
+    - Filter by action (Login, Login Failed, Registration, Page Visit, Logout)
+    - Filter by user type (Student, Admin, All)
+    - Activity logs table with action badges, user avatars, IP addresses, timestamps
+    - Export to CSV button
+    - Uses the existing /api/admin/activity-logs endpoint
+  * Updated page.tsx to render AdminStudentActivity instead of AdminAuditLogs
+
+- Lint passes clean (0 errors, 0 warnings).
+- Links API tested: returns 200 with empty list.
+- Dev server running with auto-restart loop.
+
+Stage Summary:
+- Right-click, copy, paste, cut, screenshot, screen-record, and drag all show centered popups INSIDE the website.
+- All toast notifications now appear at top-center (inside the website).
+- File upload replaced with link sharing — admin can share external URLs (Google Drive, YouTube, etc.) with attending students.
+- Audit Logs removed; replaced with Student Activity page that tracks student logins, registrations, page visits, and failed logins.
+- Lint clean; dev server running.

@@ -25,7 +25,7 @@ import { AdminDriveDetail } from '@/components/admin/AdminDriveDetail'
 import { AdminAnalytics } from '@/components/admin/AdminAnalytics'
 import { AdminRecommendations } from '@/components/admin/AdminRecommendations'
 import { AdminReports } from '@/components/admin/AdminReports'
-import { AdminAuditLogs } from '@/components/admin/AdminAuditLogs'
+import { AdminStudentActivity } from '@/components/admin/AdminStudentActivity'
 import { AdminSettings } from '@/components/admin/AdminSettings'
 
 // Views that require an authenticated session. Each visit is logged to the
@@ -38,7 +38,7 @@ const STUDENT_VIEWS = [
 const ADMIN_VIEWS = [
   'admin-dashboard', 'admin-students', 'admin-student-detail', 'admin-companies',
   'admin-company-detail', 'admin-drives', 'admin-drive-detail', 'admin-analytics',
-  'admin-recommendations', 'admin-reports', 'admin-audit-logs', 'admin-settings',
+  'admin-recommendations', 'admin-reports', 'admin-student-activity', 'admin-settings',
 ]
 const AUTHED_VIEWS = new Set([...STUDENT_VIEWS, ...ADMIN_VIEWS])
 
@@ -113,7 +113,7 @@ export default function Home() {
   if (view === 'admin-analytics') return <AdminAnalytics />
   if (view === 'admin-recommendations') return <AdminRecommendations />
   if (view === 'admin-reports') return <AdminReports />
-  if (view === 'admin-audit-logs') return <AdminAuditLogs />
+  if (view === 'admin-student-activity') return <AdminStudentActivity />
   if (view === 'admin-settings') return <AdminSettings />
 
   return <LandingPage />

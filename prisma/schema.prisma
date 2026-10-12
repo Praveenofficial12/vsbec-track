@@ -126,6 +126,7 @@ model Drive {
   rounds           Round[]
   participants     DriveParticipation[]
   files            DriveFile[]
+  links            DriveLink[]
 
   @@index([companyId])
   @@index([status])
@@ -143,6 +144,22 @@ model DriveFile {
   mimeType    String   // e.g. application/pdf, image/png
   description String?  // optional admin caption
   uploadedBy  String   @default("Vsbec@2027") // admin email
+  createdAt   DateTime @default(now())
+
+  drive       Drive    @relation(fields: [driveId], references: [id])
+
+  @@index([driveId])
+}
+
+// Links shared by admin in the drive announcement area — students can click
+// to open external resources (Google Drive, YouTube, websites, etc.)
+model DriveLink {
+  id          String   @id @default(cuid())
+  driveId     String
+  title       String   // display title for the link
+  url         String   // the actual URL
+  description String?  // optional description
+  createdBy   String   @default("Vsbec@2027")
   createdAt   DateTime @default(now())
 
   drive       Drive    @relation(fields: [driveId], references: [id])
