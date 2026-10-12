@@ -1416,3 +1416,54 @@ Stage Summary:
 - File upload area restored in drive detail — admin can upload files, students view online only (no download/save/screenshot/share)
 - Files open in a secure viewer that renders all types (PDF via canvas, Excel/Word via server-side HTML conversion, images inline)
 - Lint clean; all services running.
+
+---
+Task ID: 38
+Agent: Main (Orchestrator)
+Task: Completely remove Recommendations page, remove all restrictions from admin portal only, fix Win+PrintScreen, verify file upload + view-only.
+
+Work Log:
+- Completely removed Recommendations page from admin portal:
+  * Removed the "Smart Recommendations" CTA card from AdminDashboard.tsx
+  * Removed Sparkles and Zap icon imports from AdminDashboard.tsx
+  * Recommendations page was already removed from AdminLayout NAV_ITEMS and page.tsx in previous task
+
+- Removed ALL anti-copy/screenshot restrictions from admin portal ONLY:
+  * Added `window.__blockPopupDisabled` flag system
+  * AdminLayout.tsx useEffect sets `__blockPopupDisabled = true` on mount, `false` on unmount
+  * AdminLayout uses capture-phase event listeners (`true` third arg) with `stopImmediatePropagation()` to prevent the global listeners from firing
+  * All global event handlers in layout.tsx now check `if (window.__blockPopupDisabled) return;` before blocking
+  * This means: admin pages have full right-click, copy, paste, cut, drag, keyboard shortcuts
+  * Student pages still have all restrictions active
+  * user-select CSS is restored on admin pages
+
+- Fixed screenshot disable for Win+PrintScreen:
+  * Added `keydown` event listener (in addition to `keyup`) to catch Win+PrintScreen
+  * Added `e.keyCode === 44` check (PrintScreen keyCode)
+  * Both keydown and keyup now blank the screen + show popup + clear clipboard
+  * Auto-restore on OK click or 2-second timeout
+  * All checks respect `__blockPopupDisabled` (admin pages skip blocking)
+
+- File upload + view-only verified:
+  * Admin can upload files via the file upload section in drive detail
+  * Students see "Shared Files — View Only" section after marking "Will Attend"
+  * Files open in /api/files/view which uses:
+    - PDF.js for PDFs (canvas-based, anti-screenshot)
+    - SheetJS for Excel (server-side HTML conversion)
+    - Mammoth for Word (server-side HTML conversion)
+    - <img> for images
+    - <pre> for text files
+  * All viewers have: no download, no save, no screenshot, no share, no right-click, no copy
+  * File access disabled for SELECTED students
+
+- Lint passes clean (0 errors, 0 warnings).
+- Dev server running with auto-restart loop.
+- Email service running on port 3030.
+
+Stage Summary:
+- Recommendations page completely removed (no nav item, no dashboard CTA, no route)
+- Admin portal has NO restrictions (full right-click, copy, paste, drag, keyboard shortcuts)
+- Student portal keeps ALL restrictions (right-click, copy, paste, screenshot, etc.)
+- Win+PrintScreen is now caught (both keydown and keyup listeners)
+- File upload + view-only works for all file types (PDF, Excel, Word, images, text)
+- Lint clean; all services running.

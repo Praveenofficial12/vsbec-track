@@ -59,7 +59,9 @@ const antiCaptureScript = `
 
   // Create a custom popup that appears centered INSIDE the website.
   // On OK click or auto-close, the website returns to normal (overlay removed).
+  // Skipped on admin pages (where __blockPopupDisabled is set by AdminLayout).
   function showBlockPopup(message) {
+    if (window.__blockPopupDisabled) return;
     // Remove any existing popup
     var existing = document.getElementById('block-popup-overlay');
     if (existing) existing.remove();
@@ -113,16 +115,19 @@ const antiCaptureScript = `
   animStyle.textContent = '@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }';
   document.head.appendChild(animStyle);
 
-  // 1. Disable right-click context menu → show popup
+  // 1. Disable right-click context menu → show popup (not on admin pages)
   document.addEventListener('contextmenu', function(e) {
+    if (window.__blockPopupDisabled) return;
     e.preventDefault();
     showBlockPopup('Right-click is disabled on this website.');
     return false;
   });
 
-  // 2. Block PrintScreen (screenshot) → blank screen + popup, auto-restore on OK
+  // 2. Block PrintScreen (screenshot) — handles Win+PrintScreen, Ctrl+PrintScreen,
+  //    and plain PrintScreen. Blanks screen + popup, auto-restore on OK.
   document.addEventListener('keyup', function(e) {
-    if (e.key === 'PrintScreen' || e.code === 'PrintScreen') {
+    if (window.__blockPopupDisabled) return;
+    if (e.key === 'PrintScreen' || e.code === 'PrintScreen' || e.keyCode === 44) {
       // Clear clipboard immediately
       if (navigator.clipboard) {
         navigator.clipboard.writeText('').catch(function(){});
@@ -136,6 +141,25 @@ const antiCaptureScript = `
         document.body.appendChild(blankOverlay);
       }
       // Show popup — clicking OK or auto-close will remove the blank overlay
+      showBlockPopup('Screenshots are disabled on this website. Click OK to return.');
+    }
+  });
+
+  // Also catch keydown for Win+PrintScreen (some browsers send it on keydown)
+  document.addEventListener('keydown', function(e) {
+    if (window.__blockPopupDisabled) return;
+    if (window.__blockPopupDisabled) return;
+    if (e.key === 'PrintScreen' || e.code === 'PrintScreen' || e.keyCode === 44) {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText('').catch(function(){});
+      }
+      var existing = document.getElementById('screenshot-blank-overlay');
+      if (!existing) {
+        var blankOverlay = document.createElement('div');
+        blankOverlay.id = 'screenshot-blank-overlay';
+        blankOverlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#1a1a1a;z-index:9999998;';
+        document.body.appendChild(blankOverlay);
+      }
       showBlockPopup('Screenshots are disabled on this website. Click OK to return.');
     }
   });
@@ -154,6 +178,7 @@ const antiCaptureScript = `
 
   // 3. Block copy (Ctrl+C) → show popup
   document.addEventListener('copy', function(e) {
+    if (window.__blockPopupDisabled) return;
     e.preventDefault();
     showBlockPopup('Copying content is disabled on this website.');
     return false;
@@ -161,6 +186,7 @@ const antiCaptureScript = `
 
   // 4. Block paste (Ctrl+V) on non-input elements → show popup
   document.addEventListener('paste', function(e) {
+    if (window.__blockPopupDisabled) return;
     if (!e.target.matches('input, textarea, [contenteditable]')) {
       e.preventDefault();
       showBlockPopup('Pasting is disabled on this website.');
@@ -170,6 +196,7 @@ const antiCaptureScript = `
 
   // 5. Block cut (Ctrl+X) → show popup
   document.addEventListener('cut', function(e) {
+    if (window.__blockPopupDisabled) return;
     e.preventDefault();
     showBlockPopup('Cutting content is disabled on this website.');
     return false;
@@ -177,6 +204,7 @@ const antiCaptureScript = `
 
   // 6. Block keyboard shortcuts
   document.addEventListener('keydown', function(e) {
+    if (window.__blockPopupDisabled) return;
     // Ctrl+S (save page)
     if (e.ctrlKey && e.key === 's') { e.preventDefault(); showBlockPopup('Saving is disabled.'); return false; }
     // Ctrl+P (print)
@@ -203,6 +231,7 @@ const antiCaptureScript = `
 
   // 7. Disable drag-and-drop
   document.addEventListener('dragstart', function(e) {
+    if (window.__blockPopupDisabled) return;
     e.preventDefault();
     showBlockPopup('Dragging is disabled on this website.');
     return false;

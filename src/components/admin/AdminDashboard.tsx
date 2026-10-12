@@ -15,7 +15,7 @@ import {
 } from 'recharts'
 import {
   Users, CheckCircle2, Building2, Target, Award, Activity, TrendingUp,
-  Clock, Sparkles, ChevronRight, BarChart3, Zap, IndianRupee, Trophy
+  Clock, ChevronRight, BarChart3, IndianRupee, Trophy
 } from 'lucide-react'
 import type { AnalyticsData, Drive } from '@/lib/types'
 import { formatDate, STATUS_COLORS } from '@/lib/api'
@@ -209,7 +209,7 @@ export function AdminDashboard() {
           </Card>
         </div>
 
-        {/* Active Drives + Recommendations CTA */}
+        {/* Active Drives */}
         <div className="grid gap-4 lg:grid-cols-3">
           <Card className="card-hover lg:col-span-2">
             <CardHeader>
@@ -246,25 +246,6 @@ export function AdminDashboard() {
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
-
-          {/* Smart Recommendations CTA */}
-          <Card className="relative overflow-hidden border-violet-200 bg-gradient-to-br from-violet-50 to-purple-50 dark:border-violet-800 dark:from-violet-900/20 dark:to-purple-900/20">
-            <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-violet-500/20 blur-3xl" />
-            <CardHeader className="relative">
-              <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-soft">
-                <Sparkles className="h-6 w-6" />
-              </div>
-              <CardTitle className="text-base">Smart Recommendations</CardTitle>
-              <CardDescription>AI-powered student matching for upcoming drives</CardDescription>
-            </CardHeader>
-            <CardContent className="relative">
-              <p className="text-sm text-muted-foreground mb-4">Find the best-fit students for your next placement drive based on skills, CGPA, and eligibility criteria.</p>
-              <Button onClick={() => setView('admin-recommendations')} className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700">
-                <Zap className="mr-2 h-4 w-4" />
-                Get Recommendations
-              </Button>
             </CardContent>
           </Card>
         </div>

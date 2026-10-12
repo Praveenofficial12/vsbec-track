@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAppStore } from '@/lib/store'
 import { apiDelete } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -36,6 +36,54 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const sessionToken = useAppStore((s) => s.sessionToken)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+
+  // Remove all anti-copy/screenshot restrictions on admin pages.
+  // The global script in layout.tsx adds event listeners that block
+  // right-click, copy, paste, screenshot etc. We remove those restrictions
+  // when the admin layout mounts, and restore them on unmount.
+  useEffect(() => {
+    // Override the global showBlockPopup so it does nothing on admin pages
+    (window as any).__blockPopupDisabled = true
+
+    // Re-enable context menu
+    const handleContext = (e: Event) => { e.stopImmediatePropagation() }
+    document.addEventListener('contextmenu', handleContext, true)
+
+    // Re-enable copy/paste/cut
+    const handleCopy = (e: Event) => { e.stopImmediatePropagation() }
+    document.addEventListener('copy', handleCopy, true)
+    document.addEventListener('paste', handleCopy, true)
+    document.addEventListener('cut', handleCopy, true)
+
+    // Re-enable keyboard shortcuts (Ctrl+S, Ctrl+P, etc.)
+    const handleKey = (e: KeyboardEvent) => {
+      // Allow all Ctrl combinations on admin pages
+      if (e.ctrlKey || e.key === 'F12' || e.key === 'PrintScreen') {
+        e.stopImmediatePropagation()
+      }
+    }
+    document.addEventListener('keydown', handleKey, true)
+    document.addEventListener('keyup', handleKey, true)
+
+    // Re-enable drag
+    const handleDrag = (e: Event) => { e.stopImmediatePropagation() }
+    document.addEventListener('dragstart', handleDrag, true)
+
+    // Remove user-select restriction
+    document.body.style.userSelect = ''
+    document.body.style.webkitUserSelect = ''
+
+    return () => {
+      (window as any).__blockPopupDisabled = false
+      document.removeEventListener('contextmenu', handleContext, true)
+      document.removeEventListener('copy', handleCopy, true)
+      document.removeEventListener('paste', handleCopy, true)
+      document.removeEventListener('cut', handleCopy, true)
+      document.removeEventListener('keydown', handleKey, true)
+      document.removeEventListener('keyup', handleKey, true)
+      document.removeEventListener('dragstart', handleDrag, true)
+    }
+  }, [])
 
   const handleLogout = async () => {
     // Drop this tab's session row so the same admin can log in elsewhere.
