@@ -43,10 +43,16 @@ export function AdminRecommendations() {
   useEffect(() => {
     if (!selectedDriveId) return
     startAnalyze(async () => {
-      const r = await apiGet<{ recommendations: Recommendation[]; totalCandidates: number }>(`/api/recommendations?driveId=${selectedDriveId}`)
-      setRecommendations(r.recommendations)
-      setTotalCandidates(r.totalCandidates)
-      setSelectedRecs(new Set())
+      try {
+        const r = await apiGet<{ recommendations: Recommendation[]; totalCandidates: number }>(`/api/recommendations?driveId=${selectedDriveId}`)
+        setRecommendations(r.recommendations || [])
+        setTotalCandidates(r.totalCandidates || 0)
+        setSelectedRecs(new Set())
+      } catch (e: any) {
+        console.error('Recommendations fetch error:', e)
+        setRecommendations([])
+        setTotalCandidates(0)
+      }
     })
   }, [selectedDriveId])
 

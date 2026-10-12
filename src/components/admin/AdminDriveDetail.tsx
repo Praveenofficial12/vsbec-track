@@ -23,7 +23,7 @@ import {
   ArrowLeft, Calendar, Briefcase, MapPin, Users, Building2, Target,
   CheckCircle2, XCircle, Clock, Award, Activity, AlertCircle, ListChecks,
   Trophy, Loader2, Download, IndianRupee, Trash2, RotateCcw, PartyPopper, Bell, Save, Lock,
-  UploadCloud, FileText, File as FileIcon, Paperclip, ExternalLink,
+  UploadCloud, FileText, File as FileIcon, Paperclip, ExternalLink, ChevronUp, ChevronDown,
 } from 'lucide-react'
 import type { Drive, DriveParticipation, Student } from '@/lib/types'
 
@@ -343,6 +343,32 @@ export function AdminDriveDetail() {
     }
   }
 
+  // Move a round up or down in the order
+  const handleMoveRound = async (roundId: string, direction: 'up' | 'down') => {
+    if (!driveId || !drive) return
+    const currentRounds = [...(drive.rounds || [])].sort((a: any, b: any) => a.roundNumber - b.roundNumber)
+    const idx = currentRounds.findIndex((r: any) => r.id === roundId)
+    if (idx === -1) return
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+    if (swapIdx < 0 || swapIdx >= currentRounds.length) return
+
+    // Swap the two rounds
+    const reordered = [...currentRounds]
+    const temp = reordered[idx]
+    reordered[idx] = reordered[swapIdx]
+    reordered[swapIdx] = temp
+
+    // Build the new round numbers
+    const updates = reordered.map((r: any, i: number) => ({ id: r.id, roundNumber: i + 1 }))
+
+    try {
+      await apiPost(`/api/drives/${driveId}/rounds/reorder`, { rounds: updates })
+      await refreshDrive()
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to reorder rounds')
+    }
+  }
+
   const handleExportSelected = () => {
     if (!drive) return
     const selected = (drive.participants || []).filter((p) => p.finalResult === 'SELECTED')
@@ -517,6 +543,7 @@ export function AdminDriveDetail() {
                           minTenthPercentage: drive.minTenthPercentage?.toString() || '',
                           minTwelfthPercentage: drive.minTwelfthPercentage?.toString() || '',
                           eligibleYears: drive.eligibleYears || '',
+                          selectionProcess: drive.selectionProcess || '',
                         })
                       }
                     }}>
@@ -557,8 +584,9 @@ export function AdminDriveDetail() {
                             maxBacklogs: eligForm.maxBacklogs !== '' ? eligForm.maxBacklogs : undefined,
                             minTenthPercentage: eligForm.minTenthPercentage || undefined,
                             minTwelfthPercentage: eligForm.minTwelfthPercentage || undefined,
+                            selectionProcess: (eligForm as any).selectionProcess || undefined,
                           })
-                          toast.success('Eligibility criteria updated!')
+                          toast.success('Eligibility criteria & selection process updated!')
                           setEditEligibility(false)
                           await refreshDrive()
                         } catch (e: any) { toast.error(e.message) }
@@ -594,10 +622,73 @@ export function AdminDriveDetail() {
                       </div>
                     </>
                   )}
+                  {/* Selection Process — editable in edit mode */}
                   <div>
                     <p className="mb-1 text-xs text-muted-foreground">Selection Process</p>
-                    <p className="text-xs">{drive.selectionProcess}</p>
+                    {editEligibility ? (
+                      <Input
+                        value={(eligForm as any).selectionProcess || ''}
+                        onChange={(e) => setEligForm((f: any) => ({ ...f, selectionProcess: e.target.value }))}
+                        placeholder="e.g. Aptitude -> Coding -> GD -> Technical HR -> General HR"
+                        className="text-xs"
+                      />
+                    ) : (
+                      <p className="text-xs">{drive.selectionProcess}</p>
+                    )}
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Participant & Round Stats Cards */}
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Users className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                    Participation & Round Statistics
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                    <div className="rounded-lg border border-violet-200 bg-violet-50 p-3 text-center dark:border-violet-800 dark:bg-violet-900/20">
+                      <p className="text-xs text-muted-foreground">Total Participants</p>
+                      <p className="text-2xl font-bold text-violet-600 dark:text-violet-400">{participants.length}</p>
+                    </div>
+                    <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-center dark:border-emerald-800 dark:bg-emerald-900/20">
+                      <p className="text-xs text-muted-foreground">Attended</p>
+                      <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{attended.length}</p>
+                    </div>
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-center dark:border-amber-800 dark:bg-amber-900/20">
+                      <p className="text-xs text-muted-foreground">Selected</p>
+                      <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{selected.length}</p>
+                    </div>
+                    <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-center dark:border-rose-800 dark:bg-rose-900/20">
+                      <p className="text-xs text-muted-foreground">Rejected</p>
+                      <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">{rejected.length}</p>
+                    </div>
+                  </div>
+                  {/* Each round cleared count */}
+                  {rounds.length > 0 && (
+                    <div className="mt-4">
+                      <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">Round-wise Cleared Count</p>
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                        {rounds.map((round, idx) => {
+                          const clearedCount = participants.filter(p =>
+                            p.roundResults?.some((rr: any) => rr.roundId === round.id && rr.status === 'CLEARED')
+                          ).length
+                          return (
+                            <div key={round.id} className="rounded-lg border border-border bg-muted/30 p-3 text-center">
+                              <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold text-white">
+                                {idx + 1}
+                              </div>
+                              <p className="truncate text-xs font-medium text-foreground">{round.roundName}</p>
+                              <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{clearedCount}</p>
+                              <p className="text-[10px] text-muted-foreground">cleared</p>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -931,8 +1022,28 @@ export function AdminDriveDetail() {
                               <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {formatDate(round.date)}</span>
                               <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {round.startTime || '—'} - {round.endTime || '—'}</span>
                             </div>
-                            {/* Action buttons: Edit + Download cleared students + Delete */}
+                            {/* Action buttons: Move Up/Down + Edit + Download cleared students + Delete */}
                             <div className="mt-3 flex flex-wrap gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 gap-1 text-xs"
+                                onClick={() => handleMoveRound(round.id, 'up')}
+                                disabled={idx === 0}
+                                title="Move up"
+                              >
+                                <ChevronUp className="h-3 w-3" /> Up
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 gap-1 text-xs"
+                                onClick={() => handleMoveRound(round.id, 'down')}
+                                disabled={idx === rounds.length - 1}
+                                title="Move down"
+                              >
+                                <ChevronDown className="h-3 w-3" /> Down
+                              </Button>
                               <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => startEditRound(round)}>
                                 <Save className="h-3 w-3" /> Edit
                               </Button>
@@ -942,7 +1053,7 @@ export function AdminDriveDetail() {
                                 className="h-7 gap-1 text-xs border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
                                 onClick={() => handleDownloadClearedStudents(round.id, round.roundName)}
                               >
-                                <Download className="h-3 w-3" /> Download Cleared Students
+                                <Download className="h-3 w-3" /> Cleared Students
                               </Button>
                               <Button
                                 size="sm"

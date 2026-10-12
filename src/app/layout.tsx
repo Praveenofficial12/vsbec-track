@@ -111,24 +111,31 @@ const antiCaptureScript = `
     return false;
   });
 
-  // 2. Block PrintScreen (screenshot) → make website BLANK + show popup
+  // 2. Block PrintScreen (screenshot) → make website BLANK permanently until reload
+  var screenshotCount = 0;
   document.addEventListener('keyup', function(e) {
     if (e.key === 'PrintScreen' || e.code === 'PrintScreen') {
+      screenshotCount++;
       // Clear clipboard immediately
       if (navigator.clipboard) {
         navigator.clipboard.writeText('').catch(function(){});
       }
       // Make the entire website go BLANK (white screen) to ruin the screenshot
-      var blankOverlay = document.createElement('div');
-      blankOverlay.id = 'screenshot-blank-overlay';
-      blankOverlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#ffffff;z-index:9999999;';
-      document.body.appendChild(blankOverlay);
+      var existing = document.getElementById('screenshot-blank-overlay');
+      if (!existing) {
+        var blankOverlay = document.createElement('div');
+        blankOverlay.id = 'screenshot-blank-overlay';
+        blankOverlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#ffffff;z-index:9999999;';
+        document.body.appendChild(blankOverlay);
+      }
       // Show popup
       showBlockPopup('Screenshots are disabled on this website. The page has been hidden.');
-      // Remove blank overlay after 3 seconds
-      setTimeout(function() {
-        if (blankOverlay.parentNode) blankOverlay.remove();
-      }, 3000);
+      // On 2nd+ screenshot attempt, make overlay permanent (black screen) until reload
+      if (screenshotCount >= 2) {
+        var perm = document.getElementById('screenshot-blank-overlay');
+        if (perm) perm.style.background = '#000000';
+        showBlockPopup('Multiple screenshot attempts detected. The page is now permanently hidden. Please reload the page.');
+      }
     }
   });
 
@@ -137,12 +144,19 @@ const antiCaptureScript = `
     setInterval(function() {
       navigator.clipboard.readText().then(function(text) {
         if (text && text.length > 50) {
-          // Clipboard was modified — possibly a screenshot
           navigator.clipboard.writeText('').catch(function(){});
+          // Also blank the screen
+          var existing = document.getElementById('screenshot-blank-overlay');
+          if (!existing) {
+            var blankOverlay = document.createElement('div');
+            blankOverlay.id = 'screenshot-blank-overlay';
+            blankOverlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#ffffff;z-index:9999999;';
+            document.body.appendChild(blankOverlay);
+          }
           showBlockPopup('Screenshots are disabled on this website.');
         }
       }).catch(function(){});
-    }, 1000);
+    }, 500);
   }
 
   // 3. Block copy (Ctrl+C) → show popup
