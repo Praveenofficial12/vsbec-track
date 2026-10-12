@@ -13,10 +13,8 @@ import { EmptyState, CardSkeleton } from '@/components/common/States'
 import {
   Building2, Search, Calendar, Briefcase, MapPin, ExternalLink, CheckCircle2, X,
   Trophy, Clock, RefreshCw, AlertCircle, ListChecks, Bell, XCircle, Lock,
-  Paperclip, FileText,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { openFileViewer } from '@/lib/file-viewer'
 import type { Company, Drive, DriveParticipation, Round, RoundResult, Student } from '@/lib/types'
 
 const ROUND_STATUS_OPTIONS = [
@@ -767,31 +765,36 @@ export function StudentCompanies() {
                             <div
                               key={l.id}
                               className="group flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-2.5 transition-colors hover:border-emerald-300 hover:bg-emerald-50/50 dark:hover:border-emerald-700 dark:hover:bg-emerald-900/10"
+                              oncopy={(e) => { e.preventDefault(); return false }}
+                              oncontextmenu={(e) => { e.preventDefault(); return false }}
+                              oncut={(e) => { e.preventDefault(); return false }}
                             >
                               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted">
                                 <ExternalLink className="h-4 w-4 text-muted-foreground" />
                               </div>
                               <div className="min-w-0 flex-1 overflow-hidden">
-                                {/* Show as hyperlink with TITLE only — URL is hidden */}
+                                {/* ONLY show the title as a hyperlink — URL is completely hidden.
+                                    Copy, cut, right-click are all disabled on this element. */}
                                 <a
                                   href={l.url}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   oncopy={(e) => { e.preventDefault(); return false }}
                                   oncontextmenu={(e) => { e.preventDefault(); return false }}
-                                  className="break-all text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400"
-                                  title="Click to open"
+                                  ondragstart={(e) => { e.preventDefault(); return false }}
+                                  className="break-all text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400 cursor-pointer select-none"
+                                  title="Click to open link"
                                 >
                                   {l.title}
                                 </a>
                                 {l.description && (
-                                  <p className="truncate text-xs text-muted-foreground">{l.description}</p>
+                                  <p className="truncate text-xs text-muted-foreground select-none">{l.description}</p>
                                 )}
-                                <p className="text-[10px] text-muted-foreground">
+                                <p className="text-[10px] text-muted-foreground select-none">
                                   {new Date(l.createdAt).toLocaleDateString()}
                                 </p>
                               </div>
-                              <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400" />
+                              <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 select-none" />
                             </div>
                           ))}
                         </div>

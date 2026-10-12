@@ -19,7 +19,6 @@ import {
 import { EmptyState, CardSkeleton } from '@/components/common/States'
 import { StatCard } from '@/components/common/StatCard'
 import { toast } from 'sonner'
-import { openFileViewer } from '@/lib/file-viewer'
 import {
   ArrowLeft, Calendar, Briefcase, MapPin, Users, Building2, Target,
   CheckCircle2, XCircle, Clock, Award, Activity, AlertCircle, ListChecks,
@@ -690,31 +689,38 @@ export function AdminDriveDetail() {
                           <div
                             key={l.id}
                             className="group flex items-center gap-3 rounded-lg border border-border bg-card p-3 transition-colors hover:bg-accent/30"
+                            oncopy={(e) => { e.preventDefault(); return false }}
+                            oncontextmenu={(e) => { e.preventDefault(); return false }}
                           >
                             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
                               <ExternalLink className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                             </div>
                             <div className="min-w-0 flex-1">
+                              {/* Show as hyperlink with TITLE only — URL is hidden */}
                               <a
                                 href={l.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="break-all text-sm font-medium text-foreground hover:text-emerald-600 hover:underline dark:hover:text-emerald-400"
+                                oncopy={(e) => { e.preventDefault(); return false }}
+                                oncontextmenu={(e) => { e.preventDefault(); return false }}
+                                ondragstart={(e) => { e.preventDefault(); return false }}
+                                className="break-all text-sm font-medium text-foreground hover:text-emerald-600 hover:underline dark:hover:text-emerald-400 cursor-pointer select-none"
+                                title="Click to open link"
                               >
                                 {l.title}
                               </a>
                               {l.description && (
-                                <p className="truncate text-xs text-muted-foreground">{l.description}</p>
+                                <p className="truncate text-xs text-muted-foreground select-none">{l.description}</p>
                               )}
-                              <p className="truncate text-[10px] text-muted-foreground">
-                                {l.url} · {new Date(l.createdAt).toLocaleString()}
+                              <p className="text-[10px] text-muted-foreground select-none">
+                                {new Date(l.createdAt).toLocaleString()}
                               </p>
                             </div>
                             <a
                               href={l.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/20"
+                              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/20 select-none"
                               title="Open link"
                             >
                               <ExternalLink className="h-3.5 w-3.5" />
