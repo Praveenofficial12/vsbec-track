@@ -1066,3 +1066,62 @@ Stage Summary:
 - The reset-database API preserves students by default — requires explicit `force: true` to delete students.
 - Database backup created for safety.
 - Lint clean; dev server running with auto-restart loop.
+
+---
+Task ID: 31
+Agent: Main (Orchestrator)
+Task: Fix delete option for companies and drives, delete all sample data from the website.
+
+Work Log:
+- Fixed drive DELETE endpoint (src/app/api/drives/[id]/route.ts):
+  * Root cause: the DELETE handler did a simple `db.drive.delete()` without cascade-deleting related records first, causing SQLite foreign key constraint errors
+  * Fix: rewrote the DELETE handler to use a transaction that cascade-deletes in the correct order:
+    1. Find all participations for this drive
+    2. Delete RoundResults referencing those participations
+    3. Delete DriveParticipations
+    4. Delete Rounds
+    5. Delete DriveFiles
+    6. Delete the drive itself
+    7. Write an AuditLog entry
+  * Returns 404 if the drive doesn't exist
+  * Returns 200 with success message on successful deletion
+
+- Company DELETE endpoint (src/app/api/companies/[id]/route.ts) was already fixed in a previous task with proper cascade delete. Verified it works correctly (returns 404 for non-existent companies).
+
+- Added delete button to AdminDrives page (src/components/admin/AdminDrives.tsx):
+  * Added a Trash2 delete button (rose-colored) on each drive card
+  * Added a confirmation AlertDialog: "Are you sure you want to delete this drive? This will also delete all rounds, participations, round results, and shared files."
+  * The handleDelete function calls DELETE /api/drives/<id>, shows a toast, and removes the card from the list
+
+- Deleted all sample/test data from the website:
+  * Deleted all UserActivityLogs (138 entries)
+  * Deleted all AuditLogs (15 entries)
+  * Deleted all SessionTrackers
+  * Deleted all RoundResults
+  * Deleted all DriveParticipations
+  * Deleted all DriveFiles
+  * Deleted all Rounds
+  * Deleted all Drives (TCS Test Drive, Drive)
+  * Deleted all Notifications
+  * Deleted all Certifications
+  * Deleted all Projects
+  * Deleted all Students (VSBTEST1 - Test Student With Links)
+  * Deleted all Companies (Wipro, TCS, Tata)
+  * Deleted uploaded files from /public/uploads/drives/
+  * PRESERVED: Admin account (Vsbec@2027), Placement Rules (1), Custom Fields (5)
+
+- The database is now clean — ready for real student registrations and company/drive data.
+
+Verification:
+- Lint passes clean (0 errors, 0 warnings).
+- Drive delete API tested: returns 404 for non-existent drives, cascade deletes work.
+- Company delete API tested: returns 404 for non-existent companies, cascade deletes work.
+- Database verified: 0 students, 0 companies, 0 drives, 0 audit logs — clean slate.
+- Dev server running with auto-restart loop.
+
+Stage Summary:
+- Drive and company delete options now work correctly with proper cascade deletion.
+- Delete button added to AdminDrives page with confirmation popup.
+- All sample/test data removed from the website — database is clean for real data.
+- Admin account, placement rules, and custom fields are preserved.
+- Lint clean; dev server running.

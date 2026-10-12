@@ -62,13 +62,65 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 }
 
-// DELETE: Delete drive
+// DELETE: Delete drive — cascade delete all related records first
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
-    await db.drive.delete({ where: { id } })
-    return NextResponse.json({ success: true })
-  } catch (error) {
+
+    await db.$transaction(async (tx) => {
+      // Verify the drive exists
+      const drive = await tx.drive.findUnique({
+        where: { id },
+        select: { id: true, driveName: true, companyId: true },
+      })
+      if (!drive) {
+        throw new Error('NOT_FOUND')
+      }
+
+      // 1) Find all participation rows for this drive.
+      const participations = await tx.driveParticipation.findMany({
+        where: { driveId: id },
+        select: { id: true },
+      })
+      const participationIds = participations.map((p) => p.id)
+
+      // 2) Delete RoundResult rows referencing those participations.
+      if (participationIds.length > 0) {
+        await tx.roundResult.deleteMany({
+          where: { participationId: { in: participationIds } },
+        })
+      }
+
+      // 3) Delete DriveParticipation rows.
+      await tx.driveParticipation.deleteMany({ where: { driveId: id } })
+
+      // 4) Delete Round rows.
+      await tx.round.deleteMany({ where: { driveId: id } })
+
+      // 5) Delete DriveFile rows.
+      await tx.driveFile.deleteMany({ where: { driveId: id } })
+
+      // 6) Delete the drive itself.
+      await tx.drive.delete({ where: { id } })
+
+      // 7) Audit trail.
+      await tx.auditLog.create({
+        data: {
+          adminEmail: 'Vsbec@2027',
+          action: 'DELETE_DRIVE',
+          entity: 'Drive',
+          entityId: id,
+          driveName: drive.driveName,
+          newValue: 'Deleted',
+        },
+      })
+    })
+
+    return NextResponse.json({ success: true, message: 'Drive deleted successfully' })
+  } catch (error: any) {
+    if (error?.message === 'NOT_FOUND') {
+      return NextResponse.json({ error: 'Drive not found' }, { status: 404 })
+    }
     console.error('Delete drive error:', error)
     return NextResponse.json({ error: 'Failed to delete drive' }, { status: 500 })
   }

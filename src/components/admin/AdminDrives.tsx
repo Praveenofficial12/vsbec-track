@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useAppStore } from '@/lib/store'
-import { apiGet, apiPost, formatDate, STATUS_COLORS, getCompanyLogo } from '@/lib/api'
+import { apiGet, apiPost, apiDelete, formatDate, STATUS_COLORS, getCompanyLogo } from '@/lib/api'
 import { AdminLayout } from './AdminLayout'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -11,12 +11,16 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { EmptyState, CardSkeleton } from '@/components/common/States'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import {
   Target, Plus, Calendar, Briefcase, MapPin, Users, Building2, ChevronRight,
-  CheckCircle2, Clock, AlertCircle, Filter, X, Search, Globe, Sparkles, Loader2
+  CheckCircle2, Clock, AlertCircle, Filter, X, Search, Globe, Sparkles, Loader2, Trash2
 } from 'lucide-react'
 import type { Drive, Company } from '@/lib/types'
 
@@ -159,6 +163,24 @@ export function AdminDrives() {
     setView('admin-drive-detail')
   }
 
+  const [deleteTarget, setDeleteTarget] = useState<Drive | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      await apiDelete(`/api/drives/${deleteTarget.id}`)
+      toast.success(`Drive "${deleteTarget.driveName}" deleted successfully`)
+      setDrives(prev => prev.filter(d => d.id !== deleteTarget.id))
+      setDeleteTarget(null)
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to delete drive')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   return (
     <AdminLayout>
       <div className="space-y-6 p-4 sm:p-6">
@@ -243,9 +265,19 @@ export function AdminDrives() {
                             <Badge variant="outline" className="text-[10px]">+{drive.eligibleDepartments.split(',').length - 2}</Badge>
                           )}
                         </div>
-                        <Button variant="ghost" size="sm" className="h-7 text-xs opacity-0 transition-opacity group-hover:opacity-100">
-                          Manage <ChevronRight className="ml-1 h-3 w-3" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="sm" className="h-7 text-xs opacity-0 transition-opacity group-hover:opacity-100">
+                            Manage <ChevronRight className="ml-1 h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-rose-600 opacity-0 transition-opacity hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-900/20 group-hover:opacity-100"
+                            onClick={(e) => { e.stopPropagation(); setDeleteTarget(drive) }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -446,6 +478,30 @@ export function AdminDrives() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Delete drive confirmation */}
+        <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Drive</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete <strong>{deleteTarget?.driveName}</strong>?
+                This will also delete all rounds, participations, round results, and shared files for this drive.
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDelete}
+                disabled={deleting}
+                className="bg-rose-600 hover:bg-rose-700"
+              >
+                {deleting ? 'Deleting...' : 'Delete Drive'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AdminLayout>
   )
