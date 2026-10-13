@@ -1522,3 +1522,56 @@ Stage Summary:
 - Students are permanently stored — only admin can delete via Students page
 - File viewer opens INSIDE the website in an overlay modal (not a new tab) — all disable rules apply
 - Lint clean; all services running.
+
+---
+Task ID: 10
+Agent: Main (Orchestrator)
+Task: Fix file viewer download-error issue + add per-company breakdown card for "X Not Cleared" filters in admin Student Registry
+
+Work Log:
+- Investigated user-reported issues:
+  1) Files were showing "Download the file" / "Open File" buttons when opening PPTX/Excel/Word files, but the iframe sandbox blocked downloads — students saw an unclickable button instead of content.
+  2) Admin Student Registry had round-not-cleared filters (Apti / Coding / GD / Technical HR / General HR Not Cleared) but no per-company breakdown of how filtered students fared at each company.
+- Diagnosed file viewer root cause:
+  - /api/files/preview returned HTML containing `<a href="…/serve">Download original file</a>` for PowerPoint files and on parsing errors for xlsx/docx. The student iframe uses `sandbox="allow-same-origin allow-scripts"` (no `allow-downloads`), so clicking those links did nothing, leaving the user looking at a download button they couldn't click.
+  - mammoth.convertToHtml was called with `{ arrayBuffer: ... }` but mammoth only supports `{ buffer: ... }`, so all .docx files were showing the "could not be parsed" card.
+- Fixed file viewer:
+  - Removed every "Download original file" / "Open File" link from the preview route.
+  - Added a real PowerPoint preview using JSZip: parses pptx zip, extracts `<a:t>` text runs from every slide, renders a styled slide-by-slide HTML view.
+  - Fixed mammoth call to use `{ buffer: fileBuffer }` — Word files now render their headings, paragraphs, lists inline.
+  - Added a clean `.unsupported-card` style for genuinely unparseable files (no download links).
+  - Installed `jszip` package for pptx parsing.
+- Added per-company breakdown API: GET /api/students/company-breakdown
+  - Accepts the same filter params as /api/students.
+  - Aggregates participations of every matching student grouped by (company, drive).
+  - Returns per-company: companyName, logoUrl, driveName, studentCount, attended, cleared, selectedCount, rejectedCount, onHoldCount, inProgressCount, notClearedCount (for the filtered round), and a derived success %.
+- Added the "Company Breakdown" card to AdminStudents.tsx:
+  - Only visible when filters.roundNotCleared is set (one of the 5 round filters).
+  - Header shows total companies, drives, students for the active filter.
+  - Each company card shows: company logo, name, drive name, student count, and a 4×2 stat grid (Attended / Cleared / Not Cleared / Selected / Rejected / On Hold / In Progress / Success %). The Not Cleared cell is highlighted red and ringed because that's the most actionable number for the active filter.
+  - Cards sorted by notClearedCount desc then attended desc so the worst-performing companies float to the top.
+  - Loading skeleton + empty state included.
+- Seeded fresh DB (60 students, 8 companies, 7 drives, 5 rounds each, ~100 participations with NOT_CLEARED results) so the breakdown has real data.
+- Created 4 sample test files (xlsx, docx, pptx, txt) attached to TCS + Accenture drives for verification.
+
+Verification (Agent Browser):
+- Logged in as admin, opened Student Registry, clicked each of the 5 round filters.
+- "Company Breakdown — <Round> Not Cleared" card appeared for every filter, showing company logos, drive names, student counts and the full 8-stat grid (Attended, Cleared, Not Cleared, Selected, Rejected, On Hold, In Progress, Success %).
+- Apti filter: 2 companies (Wipro, Cognizant). Coding filter: 3 companies (Wipro, Cognizant, Accenture). GD filter: 3 companies with full breakdown.
+- Logged in as student VSB2421 (attending Accenture drive), opened the drive dialog, clicked each sample file.
+- PPTX preview rendered both slides with their text content (no "Open File" button anymore).
+- DOCX preview rendered the Word doc with headings + paragraphs.
+- XLSX preview rendered both sheets as HTML tables.
+- TXT preview rendered the full text content.
+- Only the "View only — download disabled" badge remained (informational, not a link).
+- Lint clean (0 errors, 0 warnings). Dev server stable on port 3000.
+
+Stage Summary:
+- File viewer now opens PPTX / DOCX / XLSX / TXT / PDF inline with no broken download buttons.
+- Per-company breakdown card added to admin Student Registry, visible only when a "X Not Cleared" round filter is active, showing all the requested counts (company name, attended, cleared, rejected, selected, on hold, in progress, not cleared for the filtered round, plus success %).
+- Files changed:
+  - src/app/api/files/preview/route.ts (rewrote — pptx via JSZip, fixed mammoth buffer, removed download links, added unsupported-card)
+  - src/app/api/files/view/route.ts (csv is office category; clarifying comments)
+  - src/app/api/students/company-breakdown/route.ts (new endpoint)
+  - src/components/admin/AdminStudents.tsx (new CompanyBreakdown card UI + fetch hook + types)
+  - package.json (added jszip@3.10.0, docx@9.10.0 for test file generation)

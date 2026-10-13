@@ -138,13 +138,13 @@ export async function GET(req: NextRequest) {
       mimeType.includes('wordprocessing') || mimeType.includes('msword') ||
       mimeType.includes('presentation') || mimeType.includes('powerpoint')) {
       // Office files: use the server-side preview route that converts
-      // the file to HTML using mammoth (Word) and SheetJS (Excel).
+      // the file to HTML using mammoth (Word), SheetJS (Excel) and JSZip (PPT).
       // This avoids needing external viewers (Google Docs, Office Online)
       // that can't access files behind the gateway.
       // The preview route renders as HTML (not downloadable) — no download possible.
       const previewUrl = `/api/files/preview?fileId=${file.id}`
       embedHtml = `<iframe src="${previewUrl}" style="width:100vw;height:calc(100vh - 40px);margin-top:40px;border:0;" sandbox="allow-same-origin allow-scripts"></iframe>`
-    } else if (mimeType.startsWith('text/') || ['txt', 'csv', 'json', 'md', 'log'].includes(ext)) {
+    } else if (mimeType.startsWith('text/') || ['txt', 'log'].includes(ext) || ext === 'json' || ext === 'md') {
       // Text files: fetch and display
       embedHtml = `
         <div id="text-content" style="margin-top:40px;width:100vw;height:calc(100vh - 40px);overflow:auto;background:#1e1e1e;color:#d4d4d4;padding:16px;font-family:monospace;font-size:13px;white-space:pre-wrap;word-break:break-word;">Loading...</div>

@@ -4,10 +4,15 @@ import { readFile } from 'fs/promises'
 import path from 'path'
 import mammoth from 'mammoth'
 import * as XLSX from 'xlsx'
+import JSZip from 'jszip'
 
 // GET: Convert an Office file (xlsx, docx, pptx) to HTML and return it
 // for inline display in the browser — no external viewer needed.
 // Query params: fileId=<DriveFile id>
+//
+// IMPORTANT: This route NEVER includes download links. Download is disabled
+// for all students. If a file can't be parsed, we show a clean message
+// explaining the file can only be viewed by the admin who uploaded it.
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
@@ -32,7 +37,6 @@ export async function GET(req: NextRequest) {
     const fullPath = path.join(process.cwd(), 'public', file.filePath)
     const fileBuffer = await readFile(fullPath)
     const ext = file.fileName.toLowerCase().split('.').pop() || ''
-    const serveUrl = `/api/files/serve?fileId=${file.id}`
 
     let contentHtml = ''
 
@@ -56,29 +60,91 @@ export async function GET(req: NextRequest) {
 
         contentHtml = sheetsHtml.join('')
       } catch (err) {
-        contentHtml = `<div style="text-align:center;color:white;padding:40px;"><h3>Could not parse Excel file</h3><p>The file may be corrupted or in an unsupported format.</p><a href="${serveUrl}" target="_blank" style="color:#10b981;">Download original file</a></div>`
+        contentHtml = renderUnsupportedCard(
+          file.fileName,
+          'spreadsheet',
+          'The Excel file could not be parsed. It may use an unsupported format or be corrupted.'
+        )
       }
     } else if (ext === 'docx' || ext === 'doc') {
-      // Word files: convert to HTML using mammoth
+      // Word files: convert to HTML using mammoth.
+      // mammoth accepts a Node Buffer via the `buffer` option (NOT arrayBuffer).
       try {
-        const result = await mammoth.convertToHtml({ arrayBuffer: fileBuffer.buffer.slice(fileBuffer.byteOffset, fileBuffer.byteOffset + fileBuffer.byteLength) })
+        const result = await mammoth.convertToHtml({ buffer: fileBuffer })
         contentHtml = `<div class="document-content">${result.value}</div>`
       } catch (err) {
-        contentHtml = `<div style="text-align:center;color:white;padding:40px;"><h3>Could not parse Word document</h3><p>The file may be corrupted or in an unsupported format.</p><a href="${serveUrl}" target="_blank" style="color:#10b981;">Download original file</a></div>`
+        console.error('mammoth conversion error:', err)
+        contentHtml = renderUnsupportedCard(
+          file.fileName,
+          'Word document',
+          'The Word document could not be parsed. It may use an older .doc format or be corrupted.'
+        )
       }
     } else if (ext === 'pptx' || ext === 'ppt') {
-      // PowerPoint: can't easily convert server-side, show info card
-      contentHtml = `
-        <div style="text-align:center;color:white;padding:40px;">
-          <div style="font-size:64px;">📽️</div>
-          <h3>${file.fileName}</h3>
-          <p style="opacity:0.7;margin-bottom:20px;">PowerPoint Presentation · ${(file.fileSize / 1024).toFixed(1)} KB</p>
-          <p style="max-width:400px;margin:0 auto 20px;opacity:0.6;">PowerPoint files cannot be previewed inline. Click below to open the file.</p>
-          <a href="${serveUrl}" target="_blank" style="display:inline-block;background:#10b981;color:white;padding:12px 32px;border-radius:8px;text-decoration:none;font-weight:600;">📂 Open File</a>
-        </div>
-      `
+      // PowerPoint: extract slide text using JSZip (pptx is a zip of XML files)
+      try {
+        const zip = await JSZip.loadAsync(fileBuffer)
+        const slideFiles = Object.keys(zip.files)
+          .filter((name) => /^ppt\/slides\/slide\d+\.xml$/.test(name))
+          .sort((a, b) => {
+            const numA = parseInt(a.match(/slide(\d+)\.xml/)?.[1] || '0', 10)
+            const numB = parseInt(b.match(/slide(\d+)\.xml/)?.[1] || '0', 10)
+            return numA - numB
+          })
+
+        if (slideFiles.length === 0) {
+          contentHtml = renderUnsupportedCard(
+            file.fileName,
+            'PowerPoint',
+            'No slides were found in this presentation. It may be corrupted.'
+          )
+        } else {
+          const slidesHtml: string[] = []
+          for (let i = 0; i < slideFiles.length; i++) {
+            const slideXml = await zip.files[slideFiles[i]].async('string')
+            // Extract all <a:t>...</a:t> text runs from the slide XML
+            const textRuns = slideXml.match(/<a:t>([^<]*)<\/a:t>/g) || []
+            const texts = textRuns.map((t) => t.replace(/<a:t>/, '').replace(/<\/a:t>/, ''))
+            const slideText = texts.join(' ').trim()
+            const paragraphs = slideXml.split(/<\/a:p>/).map(p => {
+              const runs = p.match(/<a:t>([^<]*)<\/a:t>/g) || []
+              return runs.map((r: string) => r.replace(/<a:t>/, '').replace(/<\/a:t>/, '')).join(' ')
+            }).filter((p: string) => p.trim().length > 0)
+
+            slidesHtml.push(`
+              <div class="pptx-slide">
+                <div class="pptx-slide-number">Slide ${i + 1} of ${slideFiles.length}</div>
+                <div class="pptx-slide-content">
+                  ${paragraphs.length > 0
+                    ? paragraphs.map((p: string) => `<p>${escapeHtml(p)}</p>`).join('')
+                    : `<p class="pptx-empty">[Blank slide]</p>`}
+                </div>
+              </div>
+            `)
+          }
+          contentHtml = `
+            <div class="pptx-container">
+              <div class="pptx-header">
+                <span class="pptx-title">📽️ ${escapeHtml(file.fileName)}</span>
+                <span class="pptx-count">${slideFiles.length} slides · Text-only preview</span>
+              </div>
+              ${slidesHtml.join('')}
+            </div>
+          `
+        }
+      } catch (err) {
+        contentHtml = renderUnsupportedCard(
+          file.fileName,
+          'PowerPoint',
+          'The PowerPoint file could not be parsed. It may use an older .ppt format or be corrupted.'
+        )
+      }
     } else {
-      contentHtml = `<div style="text-align:center;color:white;padding:40px;"><h3>Unsupported file type</h3></div>`
+      contentHtml = renderUnsupportedCard(
+        file.fileName,
+        ext.toUpperCase() + ' file',
+        'This file type does not support inline preview.'
+      )
     }
 
     // Build the complete HTML page
@@ -87,7 +153,7 @@ export async function GET(req: NextRequest) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>${file.fileName}</title>
+  <title>${escapeHtml(file.fileName)}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #1a1a1a; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
@@ -112,11 +178,29 @@ export async function GET(req: NextRequest) {
     .document-content ul, .document-content ol { margin-left: 20px; margin-bottom: 12px; }
     .document-content table { border: 1px solid #ddd; }
     .document-content td, .document-content th { border: 1px solid #ddd; padding: 8px; }
+
+    /* PowerPoint styles */
+    .pptx-container { margin-top: 40px; padding: 20px; max-width: 900px; margin-left: auto; margin-right: auto; }
+    .pptx-header { background: #2d2d2d; padding: 16px 20px; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .pptx-title { font-size: 15px; font-weight: 600; color: #fff; word-break: break-all; }
+    .pptx-count { font-size: 12px; color: #10b981; }
+    .pptx-slide { background: #fff; color: #333; margin-bottom: 12px; border-radius: 0 0 8px 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+    .pptx-slide-number { background: #f3f4f6; padding: 6px 16px; font-size: 11px; font-weight: 600; color: #6b7280; border-bottom: 1px solid #e5e7eb; }
+    .pptx-slide-content { padding: 20px 24px; min-height: 60px; }
+    .pptx-slide-content p { margin-bottom: 8px; line-height: 1.5; font-size: 14px; }
+    .pptx-empty { color: #9ca3af; font-style: italic; }
+
+    /* Unsupported file card */
+    .unsupported-card { margin-top: 40px; padding: 40px; max-width: 500px; margin-left: auto; margin-right: auto; text-align: center; background: #2d2d2d; border-radius: 12px; border: 1px solid #444; }
+    .unsupported-icon { font-size: 64px; margin-bottom: 16px; }
+    .unsupported-title { color: #fff; font-size: 18px; font-weight: 600; margin-bottom: 12px; word-break: break-all; }
+    .unsupported-msg { color: #9ca3af; font-size: 13px; line-height: 1.5; margin-bottom: 16px; }
+    .unsupported-meta { color: #6b7280; font-size: 11px; }
   </style>
 </head>
 <body oncontextmenu="return false" onkeydown="if(event.key==='PrintScreen'||event.key==='F12'||(event.ctrlKey&&event.shiftKey&&(event.key==='I'||event.key==='J'||event.key==='C'))||(event.ctrlKey&&event.key==='u')||(event.ctrlKey&&(event.key==='p'||event.key==='s'))) return false">
   <div class="toolbar">
-    <span class="filename">${file.fileName}</span>
+    <span class="filename">${escapeHtml(file.fileName)}</span>
     <span class="badge">View only — download disabled</span>
   </div>
   ${contentHtml}
@@ -163,4 +247,25 @@ export async function GET(req: NextRequest) {
       { status: 500, headers: { 'Content-Type': 'text/html' } },
     )
   }
+}
+
+function escapeHtml(s: string): string {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function renderUnsupportedCard(fileName: string, fileType: string, message: string): string {
+  const size = '(unknown size)'
+  return `
+    <div class="unsupported-card">
+      <div class="unsupported-icon">📄</div>
+      <div class="unsupported-title">${escapeHtml(fileName)}</div>
+      <div class="unsupported-msg">${escapeHtml(message)}</div>
+      <div class="unsupported-meta">${escapeHtml(fileType)} · View only</div>
+    </div>
+  `
 }
