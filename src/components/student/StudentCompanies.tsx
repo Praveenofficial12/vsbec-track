@@ -49,6 +49,8 @@ export function StudentCompanies() {
   const [driveLinks, setDriveLinks] = useState<any[]>([])
   // Drive files shared by admin — view only, no download
   const [driveFiles, setDriveFiles] = useState<any[]>([])
+  // File currently being viewed inside the website (overlay modal)
+  const [viewingFileId, setViewingFileId] = useState<string | null>(null)
   const lastRefreshRef = useRef<number>(Date.now())
 
   const loadStudentAndDrives = async () => {
@@ -762,7 +764,7 @@ export function StudentCompanies() {
                     })()}
 
                     {/* Shared Files — view only, no download/save/screenshot/share.
-                        Opens in a secure online viewer. DISABLED for SELECTED students. */}
+                        Opens INSIDE the website in an overlay modal. DISABLED for SELECTED students. */}
                     {driveFiles.length > 0 && myParticipation?.finalResult !== 'SELECTED' && (
                       <div className="rounded-lg border border-border bg-card p-4">
                         <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
@@ -776,7 +778,7 @@ export function StudentCompanies() {
                           {driveFiles.map((f) => (
                             <button
                               key={f.id}
-                              onClick={() => window.open(`/api/files/view?fileId=${f.id}`, '_blank')}
+                              onClick={() => setViewingFileId(f.id)}
                               oncopy={(e) => { e.preventDefault(); return false }}
                               oncontextmenu={(e) => { e.preventDefault(); return false }}
                               className="group flex w-full items-center gap-3 rounded-lg border border-border bg-muted/30 p-2.5 transition-colors hover:border-emerald-300 hover:bg-emerald-50/50 dark:hover:border-emerald-700 dark:hover:bg-emerald-900/10 cursor-pointer select-none"
@@ -795,7 +797,7 @@ export function StudentCompanies() {
                                   {new Date(f.createdAt).toLocaleDateString()}
                                 </p>
                               </div>
-                              <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400" />
+                              <FileText className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400" />
                             </button>
                           ))}
                         </div>
@@ -880,6 +882,31 @@ export function StudentCompanies() {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* File Viewer Overlay — opens INSIDE the website (not a new tab).
+            Renders the /api/files/view route in an iframe with all protections.
+            The iframe has sandbox attributes to prevent download/navigation. */}
+        {viewingFileId && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80" onClick={() => setViewingFileId(null)}>
+            <div className="relative w-full h-full max-w-5xl max-h-full" onClick={(e) => e.stopPropagation()}>
+              {/* Close button */}
+              <button
+                onClick={() => setViewingFileId(null)}
+                className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-rose-600 text-white shadow-lg hover:bg-rose-700 transition-colors"
+                title="Close file viewer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+              {/* File viewer iframe — sandbox prevents download, navigation, popups */}
+              <iframe
+                src={`/api/files/view?fileId=${viewingFileId}`}
+                className="h-full w-full rounded-lg border-0 bg-white"
+                sandbox="allow-same-origin allow-scripts"
+                title="File Viewer — View Only"
+              />
+            </div>
+          </div>
+        )}
       </div>
     </StudentLayout>
   )

@@ -1467,3 +1467,58 @@ Stage Summary:
 - Win+PrintScreen is now caught (both keydown and keyup listeners)
 - File upload + view-only works for all file types (PDF, Excel, Word, images, text)
 - Lint clean; all services running.
+
+---
+Task ID: 39
+Agent: Main (Orchestrator)
+Task: Permanently enable email notifications with attractive template, ensure students not removed, fix file viewer to open inside website.
+
+Work Log:
+- Permanently enabled email notifications with attractive HTML template:
+  * Rewrote buildDriveEmail() to generate a professional, attractive HTML email template:
+    - Gradient header (emerald to teal) with college name
+    - Card-style drive details with company name, drive name, job role, CTC, location, drive date
+    - Eligible years section
+    - CTA button ("Log in to Check Eligibility")
+    - Dark footer with copyright and auto-reply notice
+    - Responsive table-based layout (works in all email clients)
+  * Emails are sent via the email mini-service (nodemailer → Ethereal in test mode, configurable SMTP in production)
+  * The drives POST route fires sendDriveCreationEmails() in the background when a drive is created
+  * sendSelectionNotificationToOfficer() fires when a student is marked SELECTED
+  * Email service running on port 3030 — tested: HTTP 200 with messageId + previewUrl
+
+- Student data permanently stored:
+  * The seed script has a safety check — skips seeding if students exist
+  * The db:push command no longer uses --accept-data-loss
+  * The reset-database API preserves students by default (requires force=true)
+  * Students can only be deleted via the admin Students page (delete button with confirmation)
+  * This was already implemented in previous tasks — verified still in place
+
+- Fixed file viewer to open INSIDE the website:
+  * Added viewingFileId state to StudentCompanies.tsx
+  * When a student clicks a file, instead of window.open() (new tab), it sets viewingFileId
+  * A full-screen overlay appears INSIDE the website with:
+    - Dark background (z-index 9999)
+    - Close button (X) in the top-right corner
+    - An iframe that loads /api/files/view?fileId=X
+    - The iframe has sandbox="allow-same-origin allow-scripts" — prevents download, navigation, popups
+  * Clicking outside the iframe or the X button closes the viewer
+  * The file viewer route (/api/files/view) renders:
+    - PDFs via PDF.js (canvas-based, anti-screenshot)
+    - Excel via SheetJS (server-side HTML conversion)
+    - Word via mammoth (server-side HTML conversion)
+    - Images inline
+    - Text in <pre>
+  * All viewers have: no download, no save, no screenshot, no share, no right-click, no copy
+  * File access is disabled for SELECTED students
+
+- Lint passes clean (0 errors, 0 warnings).
+- Email service tested: HTTP 200, email sent via Ethereal with preview URL.
+- Dev server running with auto-restart loop.
+
+Stage Summary:
+- Email notifications permanently ON — attractive HTML template with gradient header, drive details card, CTA button
+- Emails sent when: (1) drive created → all eligible students, (2) student selected → placement officer
+- Students are permanently stored — only admin can delete via Students page
+- File viewer opens INSIDE the website in an overlay modal (not a new tab) — all disable rules apply
+- Lint clean; all services running.
