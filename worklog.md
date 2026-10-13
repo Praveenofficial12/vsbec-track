@@ -1617,3 +1617,124 @@ Stage Summary:
 - Files changed:
     - src/app/api/students/company-breakdown/route.ts (rewrote — now returns companies[] for dropdown + students[] for selected company)
     - src/components/admin/AdminStudents.tsx (replaced Company Breakdown card with Company dropdown + Student list; removed ChevronRight/Layers/Target icons no longer used)
+
+---
+Task ID: 12
+Agent: Main (Orchestrator)
+Task: Fix .doc file viewer + implement 3-strike screenshot policy + add admin Restricted Actions page
+
+Work Log:
+- User reported that .doc (legacy binary Word) files were showing "The Word document could not be parsed. It may use an older .doc format or be corrupted." because mammoth only handles .docx (Office Open XML), not .doc (OLE2 binary).
+- User also requested a screenshot policy: 1st attempt → warning, 2nd attempt → warning, 3rd attempt → lock account & force logout, admin must unlock.
+- User requested a new admin "Restricted Actions" page where the admin can see locked students and unlock them.
+
+Changes:
+1. Fixed .doc file support in src/app/api/files/preview/route.ts:
+   - Installed `word-extractor` package (parses legacy .doc binary format).
+   - Split the `docx || doc` branch into two separate branches:
+     - `docx` → still uses mammoth (handles modern .docx)
+     - `doc` → uses WordExtractor to extract plain text, splits into paragraphs, escapes HTML, applies a heuristic for ALL-CAPS headings.
+   - Verified with a real .doc file generated via LibreOffice — content renders correctly (TQM assignment paragraphs).
+
+2. Added screenshot policy schema (prisma/schema.prisma):
+   - New fields on Student: screenshotAttempts (Int, default 0), accountLocked (Boolean, default false), lockedAt (DateTime?), lockedReason (String?).
+   - Added @@index([accountLocked]) for fast lookups.
+   - Ran `bun run db:push` — schema synced.
+
+3. Created /api/students/screenshot-attempt endpoint:
+   - Resolves the student from the session token (Authorization: Bearer header).
+   - Increments screenshotAttempts; returns the new count + action:
+     - Attempt 1 → action='WARNING', message="WARNING 1 of 2..."
+     - Attempt 2 → action='WARNING', message="WARNING 2 of 2... ONE more attempt will LOCK..."
+     - Attempt 3 → action='LOCKED', sets accountLocked=true, lockedAt=now, lockedReason=description, deletes all SessionTracker rows for that student (force-logout on next heartbeat).
+   - Logs every attempt via logUserActivity (SCREENSHOT_ATTEMPT / ACCOUNT_LOCKED).
+
+4. Updated /api/files/view/route.ts HTML:
+   - Reads `token` from query string (passed by the student iframe).
+   - Embedded JS now calls /api/students/screenshot-attempt on every PrintScreen keydown AND keyup (double-trigger protection).
+   - Shows a full-screen overlay with the warning message (⚠️ for warnings, 🔒 for lock).
+   - Posts `STUDENT_LOCKED` message to parent window so the student dashboard can react.
+
+5. Updated StudentCompanies.tsx:
+   - Passes `sessionToken` via the iframe URL (`?token=...`).
+   - Listens for `STUDENT_LOCKED` postMessage from the iframe → closes the file viewer and triggers an immediate heartbeat (which will fail since the session was deleted) → force-logout.
+
+6. Updated /api/auth/student-login/route.ts:
+   - Checks `student.accountLocked` BEFORE creating a new session.
+   - Returns 403 with `{ error: 'Your account is locked...', locked: true, lockedReason }` if locked.
+   - Logs the failed login attempt.
+
+7. Updated src/lib/api.ts:
+   - All api helpers (apiGet, apiPost, apiPut, apiDelete) now attach the full error data + status code to the thrown Error, so the UI can detect `locked: true` etc.
+
+8. Updated StudentLogin.tsx:
+   - Detects `locked` flag in the error → shows a longer-lasting (8s) toast with the locked message.
+
+9. Created /api/admin/restricted-actions endpoint:
+   - GET lists every student who is locked OR has at least 1 screenshot attempt.
+   - Returns summary counts: locked, warned, total.
+   - Supports `?filter=locked|warned|all`.
+
+10. Created /api/admin/restricted-actions/unlock endpoint:
+    - POST with `{ studentId, action: 'unlock' | 'reset-warnings', reason? }`.
+    - `unlock` → clears accountLocked, lockedAt, lockedReason, resets screenshotAttempts=0.
+    - `reset-warnings` → only resets screenshotAttempts=0 (for students with warnings but not locked).
+    - Logs every unlock/reset via logUserActivity (ACCOUNT_UNLOCKED / WARNINGS_RESET).
+
+11. Created AdminRestrictedActions.tsx component:
+    - 3 summary cards (Locked Accounts / Pending Warnings / Total Tracked) with appropriate colors (rose / amber / emerald).
+    - Search + filter dropdown (All / Locked only / Warnings only).
+    - Student cards showing: avatar, name, register number, LOCKED/WARNING badge, screenshot attempts (X/3, remaining), lock timestamp, lock reason, contact info (email, mobile, year, section, CGPA).
+    - Unlock Account button (green) for locked students.
+    - Reset Warnings button (amber outline) for warned students.
+    - Confirmation dialog with optional admin note field.
+    - Empty state when no restricted students.
+
+12. Wired the new view into the app:
+    - Added `admin-restricted-actions` to ViewKey in src/lib/types.ts.
+    - Added "Restricted Actions" button (ShieldAlert icon) in the admin sidebar under the "System" section.
+    - Routed the view in src/app/page.tsx.
+
+Verification (Agent Browser + script-based):
+- .doc file (legacy Word .doc generated via LibreOffice): opens correctly, displays full TQM assignment text, no "could not be parsed" error. ✅
+- .docx file (modern Word .docx): opens correctly with mammoth-rendered headings + paragraphs. ✅
+- Screenshot-attempt API (tested via script that simulates 3 PrintScreen presses):
+  - Attempt 1: returns action='WARNING', remaining=2, message="WARNING 1 of 2..."
+  - Attempt 2: returns action='WARNING', remaining=1, message="WARNING 2 of 2... ONE more attempt will LOCK..."
+  - Attempt 3: returns action='LOCKED', remaining=0, accountLocked=true, lockedAt set, lockedReason stored, all sessions deleted (force-logout)
+  - Login attempt after lock: returns 403 with "Your account is locked. Please contact the placement office to unlock it." ✅
+- Admin Restricted Actions page (verified in browser):
+  - Summary cards show "Locked Accounts: 1, Pending Warnings: 0, Total Tracked: 1"
+  - Student card shows Keerthi Raman (VSB2400) with LOCKED badge, 3/3 attempts, 0 remaining, lock reason, contact info, green "Unlock Account" button
+  - Click Unlock → confirmation dialog with student info + lock reason + optional admin note field
+  - Confirm unlock → success toast "Keerthi Raman (VSB2400) has been unlocked. They can now log in." → page refreshes, Locked Accounts = 0, empty state shown
+  - Unlocked student can now log in successfully (tested via login API) ✅
+- Lint clean (0 errors, 0 warnings). Dev server stable on port 3000.
+
+Stage Summary:
+- .doc (legacy binary Word) files now render inline via word-extractor library — the "could not be parsed" error is fixed.
+- 3-strike screenshot policy is fully implemented:
+  - Attempts 1 & 2 → warning overlay inside the file viewer iframe
+  - Attempt 3 → account locked, session deleted (force-logout), locked reason stored
+  - Locked students cannot log in (403 with clear message)
+- New admin "Restricted Actions" page (ShieldAlert icon in sidebar) lets the admin:
+  - See who is locked and why
+  - See who has pending warnings
+  - Unlock accounts with an optional admin note
+  - Reset warning counters for students who haven't been locked yet
+- Files changed:
+  - prisma/schema.prisma (added screenshotAttempts, accountLocked, lockedAt, lockedReason fields + index)
+  - src/app/api/files/preview/route.ts (added .doc support via word-extractor)
+  - src/app/api/files/view/route.ts (added screenshot-attempt JS that calls the new endpoint)
+  - src/app/api/students/screenshot-attempt/route.ts (new — 3-strike policy endpoint)
+  - src/app/api/auth/student-login/route.ts (reject locked students with 403)
+  - src/app/api/admin/restricted-actions/route.ts (new — list locked/warned students)
+  - src/app/api/admin/restricted-actions/unlock/route.ts (new — unlock / reset-warnings)
+  - src/components/admin/AdminRestrictedActions.tsx (new — full admin UI)
+  - src/components/admin/AdminLayout.tsx (added Restricted Actions nav item)
+  - src/components/auth/StudentLogin.tsx (handle locked error)
+  - src/components/student/StudentCompanies.tsx (pass session token to iframe, listen for STUDENT_LOCKED postMessage)
+  - src/lib/api.ts (attach error data + status to thrown errors)
+  - src/lib/types.ts (added admin-restricted-actions ViewKey)
+  - src/app/page.tsx (route the new view)
+  - package.json (added word-extractor@1.0.4)
