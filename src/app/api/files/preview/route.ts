@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { readFile } from 'fs/promises'
 import path from 'path'
 import mammoth from 'mammoth'
+import WordExtractor from 'word-extractor'
 import * as XLSX from 'xlsx'
 import JSZip from 'jszip'
 
@@ -66,8 +67,8 @@ export async function GET(req: NextRequest) {
           'The Excel file could not be parsed. It may use an unsupported format or be corrupted.'
         )
       }
-    } else if (ext === 'docx' || ext === 'doc') {
-      // Word files: convert to HTML using mammoth.
+    } else if (ext === 'docx') {
+      // Modern Word files (.docx — Office Open XML): convert to HTML using mammoth.
       // mammoth accepts a Node Buffer via the `buffer` option (NOT arrayBuffer).
       try {
         const result = await mammoth.convertToHtml({ buffer: fileBuffer })
@@ -76,8 +77,48 @@ export async function GET(req: NextRequest) {
         console.error('mammoth conversion error:', err)
         contentHtml = renderUnsupportedCard(
           file.fileName,
-          'Word document',
-          'The Word document could not be parsed. It may use an older .doc format or be corrupted.'
+          'Word document (.docx)',
+          'The Word document could not be parsed. It may use an unsupported format or be corrupted.'
+        )
+      }
+    } else if (ext === 'doc') {
+      // Legacy Word files (.doc — OLE2 binary compound document format).
+      // mammoth cannot parse these, so we use `word-extractor` instead,
+      // which extracts plain text + paragraph structure from the binary.
+      try {
+        const we = new WordExtractor()
+        const doc = await we.extract(fileBuffer)
+        const body = doc.getBody() || ''
+        const paragraphs = body
+          .split(/\n\r?|\r/)
+          .map((p) => p.trim())
+          .filter((p) => p.length > 0)
+        if (paragraphs.length === 0) {
+          contentHtml = renderUnsupportedCard(
+            file.fileName,
+            'Word document (.doc)',
+            'The Word document appears to be empty or contains no extractable text.'
+          )
+        } else {
+          const html = paragraphs
+            .map((p) => {
+              // Escape HTML special characters
+              const safe = escapeHtml(p)
+              // Heuristic: lines in ALL CAPS or shorter than 80 chars look like headings.
+              if (p.length < 80 && p === p.toUpperCase() && /[A-Z]/.test(p)) {
+                return `<h2>${safe}</h2>`
+              }
+              return `<p>${safe}</p>`
+            })
+            .join('')
+          contentHtml = `<div class="document-content">${html}</div>`
+        }
+      } catch (err) {
+        console.error('word-extractor error:', err)
+        contentHtml = renderUnsupportedCard(
+          file.fileName,
+          'Word document (.doc)',
+          'The legacy Word document could not be parsed. Please re-save it as .docx and re-upload.'
         )
       }
     } else if (ext === 'pptx' || ext === 'ppt') {

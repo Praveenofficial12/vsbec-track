@@ -77,6 +77,28 @@ export async function POST(req: NextRequest) {
     // student, DELETE the old session and create a new one. This allows the
     // same student to log in on a new window — the old window will be
     // force-logged-out on its next heartbeat (reason: 'replaced').
+
+    // Account lock check — if the admin has locked this student (e.g. after
+    // 3 screenshot attempts), reject the login with a clear message.
+    if (student.accountLocked) {
+      await logUserActivity({
+        userId: student.registerNumber,
+        userType: 'STUDENT',
+        action: 'LOGIN_FAILED',
+        detail: `Account locked — ${student.lockedReason || 'reason not specified'}`,
+        ipAddress: getClientIp(req),
+        userAgent: getUserAgent(req),
+      })
+      return NextResponse.json(
+        {
+          error: 'Your account is locked. Please contact the placement office to unlock it.',
+          locked: true,
+          lockedReason: student.lockedReason,
+        },
+        { status: 403 },
+      )
+    }
+
     const userKey = `STUDENT:${student.registerNumber}`
     await db.sessionTracker.deleteMany({ where: { userKey } }).catch(() => {})
 

@@ -33,6 +33,7 @@ const FINAL_RESULT_OPTIONS = [
 
 export function StudentCompanies() {
   const user = useAppStore((s) => s.user)
+  const sessionToken = useAppStore((s) => s.sessionToken)
   const [companies, setCompanies] = useState<Company[]>([])
   const [drives, setDrives] = useState<Drive[]>([])
   const [student, setStudent] = useState<Student | null>(null)
@@ -75,6 +76,37 @@ export function StudentCompanies() {
   useEffect(() => {
     loadStudentAndDrives()
   }, [user?.id])
+
+  // Listen for "STUDENT_LOCKED" postMessage events from the file viewer
+  // iframe. When the student presses PrintScreen for the 3rd time, the
+  // iframe calls /api/students/screenshot-attempt which locks the account
+  // AND deletes the student's session. The next heartbeat (within 10s)
+  // will then detect the missing session and force-logout the student.
+  // We also close the file viewer overlay immediately so they can't keep
+  // looking at the file.
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      if (!e.data || typeof e.data !== 'object') return
+      if (e.data.type === 'STUDENT_LOCKED') {
+        setViewingFileId(null)
+        // Force the next heartbeat to fire immediately so the lock takes
+        // effect right now (instead of waiting up to 10s).
+        setTimeout(() => {
+          // Trigger a force-logout by issuing a heartbeat that will fail.
+          fetch('/api/auth/session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: sessionToken }),
+          }).then(() => {
+            // The heartbeat hook will pick up the 'invalid' result and
+            // route the student to the login page with a popup.
+          }).catch(() => {})
+        }, 500)
+      }
+    }
+    window.addEventListener('message', handler)
+    return () => window.removeEventListener('message', handler)
+  }, [sessionToken])
 
   // Auto-refresh every 15 seconds so the student can see round updates
   // (from admin or their own self-marks) without manually refreshing.
@@ -897,9 +929,12 @@ export function StudentCompanies() {
               >
                 <X className="h-5 w-5" />
               </button>
-              {/* File viewer iframe — sandbox prevents download, navigation, popups */}
+              {/* File viewer iframe — sandbox prevents download, navigation, popups.
+                  The session token is passed via URL so the iframe can call
+                  /api/students/screenshot-attempt to enforce the 3-strike
+                  screenshot policy. */}
               <iframe
-                src={`/api/files/view?fileId=${viewingFileId}`}
+                src={`/api/files/view?fileId=${viewingFileId}&token=${encodeURIComponent(sessionToken || '')}`}
                 className="h-full w-full rounded-lg border-0 bg-white"
                 sandbox="allow-same-origin allow-scripts"
                 title="File Viewer — View Only"

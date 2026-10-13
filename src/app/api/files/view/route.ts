@@ -29,6 +29,11 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
     const fileId = searchParams.get('fileId')
+    // Session token passed by the student-side iframe caller so the
+    // file viewer can call /api/students/screenshot-attempt to enforce
+    // the 3-strike screenshot policy. Admin-originated views don't pass
+    // a token, in which case screenshot detection is a no-op.
+    const sessionToken = searchParams.get('token') || ''
 
     if (!fileId) {
       return new NextResponse('<html><body><h1>File ID is required</h1></body></html>', {
@@ -183,10 +188,82 @@ export async function GET(req: NextRequest) {
   </div>
   ${embedHtml}
   <script>
+    // Screenshot policy enforcement — only fires when a session token
+    // is present (i.e. a student is viewing the file). The first two
+    // PrintScreen presses produce a warning; the third locks the
+    // account and force-logs-out the student on the next heartbeat.
+    var SESSION_TOKEN = ${JSON.stringify(sessionToken)};
+    var FILE_ID = ${JSON.stringify(fileId)};
+    var FILE_NAME = ${JSON.stringify(fileName)};
+    var LOCKED = false;
+
+    function showScreenshotOverlay(message, locked) {
+      // Build a full-screen overlay so the student can't miss the warning
+      // even if the file viewer iframe is scrolled.
+      var existing = document.getElementById('screenshot-overlay');
+      if (existing) existing.remove();
+      var div = document.createElement('div');
+      div.id = 'screenshot-overlay';
+      div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);color:white;font-family:sans-serif;display:flex;align-items:center;justify-content:center;z-index:99999;padding:24px;';
+      var inner = document.createElement('div');
+      inner.style.cssText = 'max-width:560px;text-align:center;background:#1a1a1a;border:1px solid ' + (locked ? '#f43f5e' : '#f59e0b') + ';border-radius:12px;padding:32px;box-shadow:0 10px 30px rgba(0,0,0,0.5);';
+      var icon = document.createElement('div');
+      icon.style.cssText = 'font-size:48px;margin-bottom:16px;';
+      icon.textContent = locked ? '🔒' : '⚠️';
+      var title = document.createElement('div');
+      title.style.cssText = 'font-size:20px;font-weight:700;margin-bottom:12px;color:' + (locked ? '#f43f5e' : '#f59e0b') + ';';
+      title.textContent = locked ? 'Account Locked' : 'Screenshot Attempt Detected';
+      var msg = document.createElement('p');
+      msg.style.cssText = 'font-size:14px;line-height:1.6;color:#e5e7eb;margin-bottom:8px;';
+      msg.textContent = message;
+      inner.appendChild(icon);
+      inner.appendChild(title);
+      inner.appendChild(msg);
+      if (locked) {
+        var note = document.createElement('p');
+        note.style.cssText = 'font-size:12px;color:#9ca3af;margin-top:16px;';
+        note.textContent = 'You will be logged out. Contact the placement office to unlock your account.';
+        inner.appendChild(note);
+      }
+      div.appendChild(inner);
+      document.body.appendChild(div);
+    }
+
+    function recordScreenshotAttempt() {
+      if (LOCKED || !SESSION_TOKEN) return;
+      // Empty the clipboard immediately to make the screenshot useless
+      try { navigator.clipboard.writeText('').catch(function(){}); } catch(e){}
+      fetch('/api/students/screenshot-attempt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + SESSION_TOKEN,
+        },
+        body: JSON.stringify({ fileId: FILE_ID, fileName: FILE_NAME }),
+      }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.locked) {
+          LOCKED = true;
+          showScreenshotOverlay(data.message || 'Your account has been locked after 3 screenshot attempts.', true);
+          // Try to notify the parent window so it can close the file viewer
+          // and route the user back to the login page.
+          try {
+            window.parent.postMessage({ type: 'STUDENT_LOCKED', message: data.message }, '*');
+          } catch(e) {}
+        } else if (data.action === 'WARNING') {
+          showScreenshotOverlay(data.message || 'Screenshot attempt detected.', false);
+          try {
+            window.parent.postMessage({ type: 'SCREENSHOT_WARNING', message: data.message, attempt: data.attempt }, '*');
+          } catch(e) {}
+        }
+      }).catch(function(err) {
+        console.error('Screenshot attempt record failed:', err);
+      });
+    }
+
     document.addEventListener('keyup', function(e) {
       if (e.key === 'PrintScreen') {
-        navigator.clipboard.writeText('').catch(function(){});
-        alert('Screenshots are disabled for this document.');
+        e.preventDefault();
+        recordScreenshotAttempt();
       }
     });
     document.addEventListener('keydown', function(e) {
@@ -195,6 +272,10 @@ export async function GET(req: NextRequest) {
           (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C'))) {
         e.preventDefault();
         return false;
+      }
+      if (e.key === 'PrintScreen') {
+        e.preventDefault();
+        recordScreenshotAttempt();
       }
     });
   </script>

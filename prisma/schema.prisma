@@ -56,6 +56,13 @@ model Student {
   leetcodeUrl       String?
   githubUrl         String?
 
+  // Screenshot policy — student is allowed 2 warnings; the 3rd attempt
+  // locks the account. Admin must unlock via the Restricted Actions page.
+  screenshotAttempts Int      @default(0)
+  accountLocked      Boolean  @default(false)
+  lockedAt           DateTime?
+  lockedReason       String?
+
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -69,6 +76,7 @@ model Student {
   @@index([year])
   @@index([section])
   @@index([placementStatus])
+  @@index([accountLocked])
 }
 
 model Company {

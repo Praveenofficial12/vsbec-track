@@ -25,6 +25,7 @@ import { AdminDriveDetail } from '@/components/admin/AdminDriveDetail'
 import { AdminAnalytics } from '@/components/admin/AdminAnalytics'
 import { AdminReports } from '@/components/admin/AdminReports'
 import { AdminStudentActivity } from '@/components/admin/AdminStudentActivity'
+import { AdminRestrictedActions } from '@/components/admin/AdminRestrictedActions'
 import { AdminSettings } from '@/components/admin/AdminSettings'
 
 // Views that require an authenticated session. Each visit is logged to the
@@ -37,7 +38,7 @@ const STUDENT_VIEWS = [
 const ADMIN_VIEWS = [
   'admin-dashboard', 'admin-students', 'admin-student-detail', 'admin-companies',
   'admin-company-detail', 'admin-drives', 'admin-drive-detail', 'admin-analytics',
-  'admin-reports', 'admin-student-activity', 'admin-settings',
+  'admin-reports', 'admin-restricted-actions', 'admin-student-activity', 'admin-settings',
 ]
 const AUTHED_VIEWS = new Set([...STUDENT_VIEWS, ...ADMIN_VIEWS])
 
@@ -111,6 +112,7 @@ export default function Home() {
   if (view === 'admin-drive-detail') return <AdminDriveDetail />
   if (view === 'admin-analytics') return <AdminAnalytics />
   if (view === 'admin-reports') return <AdminReports />
+  if (view === 'admin-restricted-actions') return <AdminRestrictedActions />
   if (view === 'admin-student-activity') return <AdminStudentActivity />
   if (view === 'admin-settings') return <AdminSettings />
 

@@ -25,6 +25,7 @@ export type ViewKey =
   | 'admin-analytics'
   | 'admin-reports'
   | 'admin-student-activity'
+  | 'admin-restricted-actions'
   | 'admin-settings'
 
 export interface SessionUser {

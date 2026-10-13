@@ -35,10 +35,18 @@ export function StudentLogin() {
         setView('student-dashboard')
       }
     } catch (err: any) {
-      // 409 = single-session block: this student is already logged in on
-      // another window. The backend returns a clear message we surface
-      // verbatim in the toast/popup.
-      toast.error(err.message || 'Login failed', { duration: 5000 })
+      // The API returns a 403 with a `locked: true` flag when the student's
+      // account has been locked due to the screenshot policy (3 attempts).
+      // We surface a longer-lasting, more prominent toast for that case.
+      const isLocked = err?.data?.locked || /locked/i.test(err.message || '')
+      if (isLocked) {
+        toast.error(
+          err?.data?.error || err.message || 'Your account is locked. Please contact the placement office.',
+          { duration: 8000 },
+        )
+      } else {
+        toast.error(err.message || 'Login failed', { duration: 5000 })
+      }
     } finally {
       setLoading(false)
     }

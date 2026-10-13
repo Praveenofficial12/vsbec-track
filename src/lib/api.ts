@@ -4,7 +4,10 @@ export async function apiGet<T = any>(path: string): Promise<T> {
   const res = await fetch(path)
   if (!res.ok) {
     const error = await res.json().catch(() => ({ error: 'Request failed' }))
-    throw new Error(error.error || `HTTP ${res.status}`)
+    const e = new Error(error.error || `HTTP ${res.status}`) as any
+    e.data = error
+    e.status = res.status
+    throw e
   }
   return res.json()
 }
@@ -17,7 +20,10 @@ export async function apiPost<T = any>(path: string, body: any): Promise<T> {
   })
   if (!res.ok) {
     const error = await res.json().catch(() => ({ error: 'Request failed' }))
-    throw new Error(error.error || `HTTP ${res.status}`)
+    const e = new Error(error.error || `HTTP ${res.status}`) as any
+    e.data = error
+    e.status = res.status
+    throw e
   }
   return res.json()
 }
@@ -30,7 +36,10 @@ export async function apiPut<T = any>(path: string, body: any): Promise<T> {
   })
   if (!res.ok) {
     const error = await res.json().catch(() => ({ error: 'Request failed' }))
-    throw new Error(error.error || `HTTP ${res.status}`)
+    const e = new Error(error.error || `HTTP ${res.status}`) as any
+    e.data = error
+    e.status = res.status
+    throw e
   }
   return res.json()
 }
@@ -39,7 +48,10 @@ export async function apiDelete<T = any>(path: string): Promise<T> {
   const res = await fetch(path, { method: 'DELETE' })
   if (!res.ok) {
     const error = await res.json().catch(() => ({ error: 'Request failed' }))
-    throw new Error(error.error || `HTTP ${res.status}`)
+    const e = new Error(error.error || `HTTP ${res.status}`) as any
+    e.data = error
+    e.status = res.status
+    throw e
   }
   return res.json()
 }
