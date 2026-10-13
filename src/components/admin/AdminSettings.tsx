@@ -19,13 +19,13 @@ import {
   Settings as SettingsIcon, Building2, GraduationCap, Award, Target, Shield, Bell,
   Plus, Pencil, Save, Users, BookOpen, AlertCircle, Power,
   Clock, Activity, Key, Download, Eye, EyeOff, Copy, CheckCircle2, Loader2, RefreshCw,
-  Trash2, AlertTriangle,
+  Trash2, AlertTriangle, ShieldAlert,
 } from 'lucide-react'
 import {
   COLLEGE_NAME, COLLEGE_FULL, COLLEGE_SHORT, COLLEGE_LOCATION, COLLEGE_TAGLINE,
 } from '@/lib/college'
 
-type Rule = { id: string; name: string; maxCompanies: number; blockOnSelection: boolean; minCgpaDefault: number; maxBacklogsDefault: number }
+type Rule = { id: string; name: string; maxCompanies: number; blockOnSelection: boolean; minCgpaDefault: number; maxBacklogsDefault: number; screenshotPolicyEnabled?: boolean; screenshotMaxAttempts?: number }
 type CustomField = { id: string; fieldName: string; fieldType: string; options: string | null; isActive: boolean }
 type DeptRow = { department: string; password: string; studentCount: number }
 type ActivityLogRow = {
@@ -293,6 +293,42 @@ export function AdminSettings() {
                     defaultChecked={rule?.blockOnSelection}
                     onCheckedChange={(checked) => handleRuleUpdate(rule, { blockOnSelection: checked })}
                   />
+                </div>
+                <Separator />
+                {/* Screenshot Policy toggle — when ON, PrintScreen presses
+                    inside the student portal trigger a 3-strike counter
+                    (2 warnings → account lock on the 3rd). When OFF, no
+                    counter is incremented and the student can press
+                    PrintScreen freely. */}
+                <div className="flex items-center justify-between rounded-lg border border-rose-200 bg-gradient-to-br from-rose-50/60 to-amber-50/40 p-4 dark:border-rose-900/50 dark:from-rose-950/30 dark:to-amber-950/20">
+                  <div className="pr-4">
+                    <p className="flex items-center gap-2 font-medium">
+                      <ShieldAlert className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+                      Screenshot Policy (3-strike lock)
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      When enabled, students who press the PrintScreen key get 2 warnings,
+                      then their account is locked on the 3rd attempt. Locked students cannot
+                      log in until you unlock them from the Restricted Actions page.
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <span className={`h-2 w-2 rounded-full ${rule?.screenshotPolicyEnabled ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                        {rule?.screenshotPolicyEnabled ? 'Active' : 'Disabled'}
+                      </span>
+                      <span>· Max attempts: <span className="font-semibold text-foreground">{rule?.screenshotMaxAttempts ?? 3}</span></span>
+                      <span>· Counter resets on unlock</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-center gap-2">
+                    <Switch
+                      defaultChecked={rule?.screenshotPolicyEnabled ?? true}
+                      onCheckedChange={(checked) => handleRuleUpdate(rule, { screenshotPolicyEnabled: checked })}
+                    />
+                    <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                      {rule?.screenshotPolicyEnabled ? 'ON' : 'OFF'}
+                    </span>
+                  </div>
                 </div>
               </CardContent>
             </Card>

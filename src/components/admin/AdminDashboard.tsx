@@ -15,7 +15,7 @@ import {
 } from 'recharts'
 import {
   Users, CheckCircle2, Building2, Target, Award, Activity, TrendingUp,
-  Clock, ChevronRight, BarChart3, IndianRupee, Trophy
+  Clock, ChevronRight, BarChart3, IndianRupee, Trophy, Lock
 } from 'lucide-react'
 import type { AnalyticsData, Drive } from '@/lib/types'
 import { formatDate, STATUS_COLORS } from '@/lib/api'
@@ -32,6 +32,7 @@ export function AdminDashboard() {
   const [drives, setDrives] = useState<Drive[]>([])
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState({ department: 'ALL', year: 'ALL', section: 'ALL' })
+  const [lockedCount, setLockedCount] = useState(0)
 
   useEffect(() => {
     Promise.all([
@@ -42,6 +43,13 @@ export function AdminDashboard() {
       setDrives(d.drives)
     }).finally(() => setLoading(false))
   }, [filters])
+
+  // Fetch locked-students count for the dashboard notification banner.
+  useEffect(() => {
+    apiGet<{ summary: { locked: number } }>('/api/admin/restricted-actions?filter=locked')
+      .then((r) => setLockedCount(r?.summary?.locked || 0))
+      .catch(() => {})
+  }, [])
 
   if (loading || !analytics) {
     return (
@@ -81,6 +89,37 @@ export function AdminDashboard() {
             </Select>
           </div>
         </div>
+
+        {/* Locked accounts notification banner — shows when any student has
+            been locked due to the screenshot policy. Clicking it routes the
+            admin to the Restricted Actions page. */}
+        {lockedCount > 0 && (
+          <div
+            onClick={() => setView('admin-restricted-actions')}
+            className="group flex cursor-pointer items-center gap-3 rounded-xl border border-rose-300 bg-gradient-to-r from-rose-50 to-amber-50 p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-rose-800 dark:from-rose-950/40 dark:to-amber-950/20"
+          >
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400">
+              <Lock className="h-6 w-6" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="flex items-center gap-2 text-sm font-semibold text-rose-700 dark:text-rose-300">
+                {lockedCount} account{lockedCount !== 1 ? 's' : ''} locked — action needed
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-rose-500" />
+                </span>
+              </p>
+              <p className="text-xs text-rose-600 dark:text-rose-400">
+                Student{lockedCount !== 1 ? 's were' : ' was'} locked after 3 screenshot attempts.
+                Click here to review and unlock from the Restricted Actions page.
+              </p>
+            </div>
+            <div className="flex items-center gap-1 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-colors group-hover:bg-rose-700">
+              Review
+              <ChevronRight className="h-3.5 w-3.5" />
+            </div>
+          </div>
+        )}
 
         {/* Stats Grid - 8 cards */}
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

@@ -19,7 +19,10 @@ export async function GET() {
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json()
-    const { ruleId, maxCompanies, blockOnSelection, minCgpaDefault, maxBacklogsDefault } = body
+    const {
+      ruleId, maxCompanies, blockOnSelection, minCgpaDefault, maxBacklogsDefault,
+      screenshotPolicyEnabled, screenshotMaxAttempts,
+    } = body
 
     const rule = await db.placementRule.update({
       where: { id: ruleId },
@@ -28,6 +31,8 @@ export async function PUT(req: NextRequest) {
         blockOnSelection: blockOnSelection !== undefined ? blockOnSelection : undefined,
         minCgpaDefault: minCgpaDefault !== undefined ? parseFloat(minCgpaDefault) : undefined,
         maxBacklogsDefault: maxBacklogsDefault !== undefined ? parseInt(maxBacklogsDefault) : undefined,
+        screenshotPolicyEnabled: screenshotPolicyEnabled !== undefined ? screenshotPolicyEnabled : undefined,
+        screenshotMaxAttempts: screenshotMaxAttempts !== undefined ? parseInt(screenshotMaxAttempts) : undefined,
       },
     })
 

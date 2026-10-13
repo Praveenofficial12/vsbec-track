@@ -294,13 +294,18 @@ model AuditLog {
 }
 
 model PlacementRule {
-  id                  String   @id @default(cuid())
-  name                String
-  maxCompanies        Int      @default(10)
-  blockOnSelection    Boolean  @default(true)
-  minCgpaDefault      Float    @default(6.0)
-  maxBacklogsDefault  Int      @default(2)
-  updatedAt           DateTime @updatedAt
+  id                     String   @id @default(cuid())
+  name                   String
+  maxCompanies           Int      @default(10)
+  blockOnSelection       Boolean  @default(true)
+  minCgpaDefault         Float    @default(6.0)
+  maxBacklogsDefault     Int      @default(2)
+  // Screenshot policy — when true, PrintScreen presses inside the student
+  // portal trigger a 3-strike counter (2 warnings → account lock on the
+  // 3rd). Admin can toggle this off from Settings → Restricted Actions.
+  screenshotPolicyEnabled Boolean @default(true)
+  screenshotMaxAttempts   Int     @default(3)
+  updatedAt              DateTime @updatedAt
 }
 
 model CustomField {

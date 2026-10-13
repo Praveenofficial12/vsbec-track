@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useAppStore } from '@/lib/store'
-import { apiDelete } from '@/lib/api'
+import { apiDelete, apiGet } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -37,6 +37,21 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const sessionToken = useAppStore((s) => s.sessionToken)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  const [lockedCount, setLockedCount] = useState(0)
+
+  // Poll the restricted-actions endpoint every 30s so the admin sees a
+  // live red badge on the "Restricted Actions" nav button whenever a
+  // student gets locked. The first fetch happens immediately on mount.
+  useEffect(() => {
+    const fetchLocked = () => {
+      apiGet<{ summary: { locked: number; warned: number; total: number } }>(
+        '/api/admin/restricted-actions?filter=locked',
+      ).then((r) => setLockedCount(r?.summary?.locked || 0)).catch(() => {})
+    }
+    fetchLocked()
+    const id = setInterval(fetchLocked, 30000)
+    return () => clearInterval(id)
+  }, [view]) // refetch when the admin navigates between pages
 
   // Remove all anti-copy/screenshot restrictions on admin pages.
   // The global script in layout.tsx adds event listeners that block
@@ -136,7 +151,19 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                   >
                     <item.icon className={cn('h-4 w-4 shrink-0 transition-transform group-hover:scale-110', isActive && 'scale-110')} />
                     {item.label}
-                    {isActive && <ChevronRight className="ml-auto h-4 w-4" />}
+                    {/* Locked-students badge on the Restricted Actions button */}
+                    {item.key === 'admin-restricted-actions' && lockedCount > 0 && (
+                      <span
+                        className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-600 px-1.5 text-[10px] font-bold text-white shadow-sm animate-pulse"
+                        title={`${lockedCount} locked account${lockedCount !== 1 ? 's' : ''} need attention`}
+                      >
+                        {lockedCount}
+                      </span>
+                    )}
+                    {isActive && lockedCount === 0 && <ChevronRight className="ml-auto h-4 w-4" />}
+                    {isActive && item.key === 'admin-restricted-actions' && lockedCount > 0 && (
+                      <ChevronRight className="ml-2 h-4 w-4" />
+                    )}
                   </button>
                 )
               })}
