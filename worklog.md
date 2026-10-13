@@ -1575,3 +1575,45 @@ Stage Summary:
   - src/app/api/students/company-breakdown/route.ts (new endpoint)
   - src/components/admin/AdminStudents.tsx (new CompanyBreakdown card UI + fetch hook + types)
   - package.json (added jszip@3.10.0, docx@9.10.0 for test file generation)
+
+---
+Task ID: 11
+Agent: Main (Orchestrator)
+Task: Remove all sample data + replace Company Breakdown card with Company dropdown + Student names list (remove "second modal")
+
+Work Log:
+- User reported that the Company Breakdown card (the "second modal" appearing after clicking a round filter) was too heavy with 8 stat boxes per company. They asked for a simpler interaction:
+    1. Click "X Not Cleared" filter
+    2. The UI asks which company via a dropdown
+    3. After picking a company, show the names of the students who failed that round for that specific company
+- User also asked to remove all sample data (wipe students, companies, drives, participations, round results, certifications, projects, notifications, audit logs, custom fields, placement rules, sessions) — keeping only the admin user.
+
+Changes:
+- Wrote /home/z/my-project/cleanup-db.ts (deleted after running) to cascade-delete every seeded record while preserving the admin user. Ran it twice (once to wipe, then again after re-seeding for verification, then a final wipe).
+- Rewrote /api/students/company-breakdown endpoint:
+    - Without `companyId` query param → returns `companies[]` (companyId, companyName, logoUrl, driveName, matchCount) for populating the dropdown.
+    - With `companyId` query param → also returns `students[]` (id, registerNumber, fullName, collegeEmail, mobile, department, year, section, cgpa, backlogs, placementStatus, driveName, roundName, roundStatus, finalResult) for the selected company.
+    - Same filter params as /api/students (search, department, year, section, placementStatus, skill, strongSkill, minCgpa, maxBacklogs).
+- Rewrote the per-company card in src/components/admin/AdminStudents.tsx:
+    - Removed the entire Company Breakdown card (the 8-stat-grid "second modal").
+    - Added a "Select Company" dropdown (shadcn Select) that lists every company with at least one matching student. Each option shows the company logo, name, drive name and a count badge.
+    - Below the dropdown, when a company is selected, a list of student names appears. Each row shows: index number, avatar, full name, register number + dept + year + section, a "Round: NOT_CLEARED" badge, the final result (if any), and a "View" button that jumps to the full student profile.
+    - Empty state when no companies match: dropdown disabled with placeholder "No companies with 'X Not Cleared' results".
+    - Empty state when no students for the selected company: "No students found" card.
+    - Reset behavior: when the round filter changes, the selected company is cleared and the student list is wiped so the admin starts fresh.
+
+Verification (Agent Browser):
+- Logged in as admin, opened Student Registry.
+- Pre-wipe (with seed data): clicked "Apti Not Cleared" → dropdown populated with Cognizant — CTS GenC 2026 (count 1). Selected it → list showed Bhavani Mehta (VSB2447, CSE, 4th Year, Sec D) with "Aptitude: NOT_CLEARED" + "Final: REJECTED" badges.
+- Clicked "Coding Not Cleared" → dropdown populated with 2 companies (Cognizant, Wipro). Selected Wipro → list showed Madhav Nair with "Coding: NOT_CLEARED".
+- Clicked "Reset" → "by Company" card disappears entirely (filter cleared).
+- After final wipe (empty database): clicked "Apti Not Cleared" → card shows with 0 companies / 0 students, dropdown disabled with "No companies with 'Aptitude Not Cleared' results" placeholder, and the main grid shows "No students found" empty state. No errors.
+- Lint clean (0 errors, 0 warnings). Dev server stable on port 3000.
+
+Stage Summary:
+- Database is empty: 0 students, 0 companies, 0 drives. Admin user preserved.
+- Company Breakdown card (the "second modal" with 8 stat boxes) is removed.
+- New flow: round filter → "Select Company" dropdown → list of student names who failed that round at that company.
+- Files changed:
+    - src/app/api/students/company-breakdown/route.ts (rewrote — now returns companies[] for dropdown + students[] for selected company)
+    - src/components/admin/AdminStudents.tsx (replaced Company Breakdown card with Company dropdown + Student list; removed ChevronRight/Layers/Target icons no longer used)

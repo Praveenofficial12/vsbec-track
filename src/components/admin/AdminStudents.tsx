@@ -19,7 +19,7 @@ import { EmptyState, CardSkeleton } from '@/components/common/States'
 import {
   Users, Search, Download, Filter, Eye, Award, X, RefreshCw, UserCheck,
   Target, CheckCircle2, XCircle, Clock, Briefcase, GraduationCap, MapPin, Mail,
-  Phone, Trash2, AlertTriangle, TrendingUp, Building2, ChevronRight, Layers,
+  Phone, Trash2, AlertTriangle, TrendingUp, Building2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Student } from '@/lib/types'
@@ -59,27 +59,39 @@ interface StudentStats {
   inProgressCount: number
 }
 
-// One row of the per-company breakdown returned by /api/students/company-breakdown.
-interface CompanyBreakdownRow {
+// One company returned by /api/students/company-breakdown (no companyId in request)
+interface CompanyOption {
   companyId: string
   companyName: string
   logoUrl: string | null
   driveName: string
-  attended: number
-  cleared: number
-  selectedCount: number
-  rejectedCount: number
-  onHoldCount: number
-  inProgressCount: number
-  notClearedCount: number
-  studentCount: number
+  matchCount: number
 }
-interface CompanyBreakdown {
-  breakdown: CompanyBreakdownRow[]
+// One student returned when companyId IS supplied in the request.
+interface CompanyStudent {
+  id: string
+  registerNumber: string
+  fullName: string
+  collegeEmail: string
+  mobile: string | null
+  department: string | null
+  year: string | null
+  section: string | null
+  cgpa: number | null
+  backlogs: number | null
+  placementStatus: string
+  driveName: string
+  roundName: string
+  roundStatus: string
+  finalResult: string | null
+}
+interface CompanyBreakdownResponse {
+  companies: CompanyOption[]
+  students: CompanyStudent[]
   totalCompanies: number
-  totalDrives: number
   totalStudents: number
   roundFilter: string | null
+  selectedCompanyId: string | null
 }
 
 export function AdminStudents() {
@@ -97,9 +109,15 @@ export function AdminStudents() {
   const [deleting, setDeleting] = useState(false)
   const [totalCount, setTotalCount] = useState(0)
   const [currentPage, setCurrentPage] = useState(0)
-  const [companyBreakdown, setCompanyBreakdown] = useState<CompanyBreakdownRow[]>([])
-  const [breakdownLoading, setBreakdownLoading] = useState(false)
-  const [breakdownTotals, setBreakdownTotals] = useState<{ companies: number; drives: number; students: number }>({ companies: 0, drives: 0, students: 0 })
+  // Per-company drill-down state — only used when a "X Not Cleared"
+  // round filter is active. The admin first picks a company from the
+  // dropdown, then we show the list of student names who failed that
+  // round at that specific company.
+  const [companyOptions, setCompanyOptions] = useState<CompanyOption[]>([])
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
+  const [companyStudents, setCompanyStudents] = useState<CompanyStudent[]>([])
+  const [companyLoading, setCompanyLoading] = useState(false)
+  const [breakdownTotals, setBreakdownTotals] = useState<{ companies: number; students: number }>({ companies: 0, students: 0 })
   const pageSize = 60
 
   const fetchStudents = useCallback(async () => {
@@ -123,33 +141,78 @@ export function AdminStudents() {
 
   useEffect(() => { fetchStudents() }, [fetchStudents])
 
-  // Fetch per-company breakdown whenever the roundNotCleared filter changes.
-  // We only show the card when the admin is filtering by a specific round
-  // (e.g. "Apti Not Cleared") so the card isn't visible for every query.
-  const fetchBreakdown = useCallback(async () => {
+  // Fetch the list of companies that have at least one student matching
+  // the round filter. We only call this when a round filter is active
+  // (e.g. "Apti Not Cleared"). The response populates the company
+  // dropdown. We deliberately do NOT pass `companyId` here so the API
+  // returns the company list only (no per-student payload).
+  const fetchCompanyOptions = useCallback(async () => {
     if (!filters.roundNotCleared) {
-      setCompanyBreakdown([])
-      setBreakdownTotals({ companies: 0, drives: 0, students: 0 })
+      setCompanyOptions([])
+      setCompanyStudents([])
+      setSelectedCompanyId('')
+      setBreakdownTotals({ companies: 0, students: 0 })
       return
     }
-    setBreakdownLoading(true)
+    setCompanyLoading(true)
     try {
       const params = new URLSearchParams()
       Object.entries(filters).forEach(([k, v]) => {
-        if (v && v !== 'ALL' && v !== '') params.append(k, v)
+        if (v && v !== 'ALL' && v !== '' && k !== 'roundNotCleared') params.append(k, v)
       })
-      const r = await apiGet<CompanyBreakdown>(`/api/students/company-breakdown?${params}`)
-      setCompanyBreakdown(r.breakdown || [])
-      setBreakdownTotals({ companies: r.totalCompanies, drives: r.totalDrives, students: r.totalStudents })
+      params.set('roundNotCleared', filters.roundNotCleared)
+      const r = await apiGet<CompanyBreakdownResponse>(`/api/students/company-breakdown?${params}`)
+      setCompanyOptions(r.companies || [])
+      setBreakdownTotals({ companies: r.totalCompanies, students: r.totalStudents })
+      // Reset the previously selected company if it is no longer in the list.
+      setSelectedCompanyId((prev) => {
+        if (prev && r.companies.some((c) => c.companyId === prev)) return prev
+        setCompanyStudents([])
+        return ''
+      })
     } catch (e) {
-      console.error('Breakdown fetch error:', e)
-      setCompanyBreakdown([])
+      console.error('Company options fetch error:', e)
+      setCompanyOptions([])
     } finally {
-      setBreakdownLoading(false)
+      setCompanyLoading(false)
     }
   }, [filters])
 
-  useEffect(() => { fetchBreakdown() }, [fetchBreakdown])
+  useEffect(() => { fetchCompanyOptions() }, [fetchCompanyOptions])
+
+  // Fetch the student names list for the selected company. Re-runs
+  // whenever the admin changes the dropdown selection.
+  const fetchCompanyStudents = useCallback(async () => {
+    if (!filters.roundNotCleared || !selectedCompanyId) {
+      setCompanyStudents([])
+      return
+    }
+    setCompanyLoading(true)
+    try {
+      const params = new URLSearchParams()
+      Object.entries(filters).forEach(([k, v]) => {
+        if (v && v !== 'ALL' && v !== '' && k !== 'roundNotCleared') params.append(k, v)
+      })
+      params.set('roundNotCleared', filters.roundNotCleared)
+      params.set('companyId', selectedCompanyId)
+      const r = await apiGet<CompanyBreakdownResponse>(`/api/students/company-breakdown?${params}`)
+      setCompanyStudents(r.students || [])
+    } catch (e) {
+      console.error('Company students fetch error:', e)
+      setCompanyStudents([])
+    } finally {
+      setCompanyLoading(false)
+    }
+  }, [filters, selectedCompanyId])
+
+  useEffect(() => { fetchCompanyStudents() }, [fetchCompanyStudents])
+
+  // When the round filter changes, clear the previously selected company
+  // so the dropdown starts fresh.
+  useEffect(() => {
+    setSelectedCompanyId('')
+    setCompanyStudents([])
+  }, [filters.roundNotCleared])
 
   const handleReset = () => setFilters({
     search: '', department: 'ALL', year: 'ALL', section: 'ALL',
@@ -249,11 +312,10 @@ export function AdminStudents() {
           })}
         </div>
 
-        {/* Per-Company Breakdown — only visible when a "X Not Cleared"
-            round filter is active. Shows the admin which companies the
-            filtered students interviewed with and how they fared round by
-            round (attended / cleared / selected / rejected / on-hold /
-            in-progress / not-cleared for the filtered round). */}
+        {/* Per-Company Student Drill-down — only visible when a "X Not
+            Cleared" round filter is active. The admin first picks a
+            company from the dropdown, then we show the list of student
+            names who failed that round at that specific company. */}
         {filters.roundNotCleared && (
           <Card className="border-rose-200 bg-gradient-to-br from-rose-50/60 to-amber-50/40 dark:border-rose-900/50 dark:from-rose-950/20 dark:to-amber-950/10">
             <CardContent className="p-5">
@@ -264,11 +326,10 @@ export function AdminStudents() {
                   </div>
                   <div>
                     <h2 className="text-base font-semibold text-foreground">
-                      Company Breakdown — {filters.roundNotCleared} Not Cleared
+                      {filters.roundNotCleared} Not Cleared — by Company
                     </h2>
                     <p className="text-xs text-muted-foreground">
-                      Per-company performance for the {breakdownTotals.students} students matching this filter.
-                      Click a card to jump to the company's drives.
+                      Pick a company to see the {breakdownTotals.students} student{breakdownTotals.students !== 1 ? 's' : ''} who failed {filters.roundNotCleared}.
                     </p>
                   </div>
                 </div>
@@ -278,117 +339,138 @@ export function AdminStudents() {
                     {breakdownTotals.companies} companies
                   </span>
                   <span className="flex items-center gap-1.5 rounded-full bg-background/80 px-3 py-1.5 font-medium shadow-sm">
-                    <Layers className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                    {breakdownTotals.drives} drives
-                  </span>
-                  <span className="flex items-center gap-1.5 rounded-full bg-background/80 px-3 py-1.5 font-medium shadow-sm">
                     <Users className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
                     {breakdownTotals.students} students
                   </span>
                 </div>
               </div>
 
-              {breakdownLoading ? (
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="h-44 animate-pulse rounded-lg bg-muted/60" />
-                  ))}
-                </div>
-              ) : companyBreakdown.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-rose-200 bg-background/60 p-8 text-center dark:border-rose-900/40">
-                  <Building2 className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
-                  <p className="text-sm font-medium text-foreground">No company data for this filter</p>
-                  <p className="text-xs text-muted-foreground">
-                    The matching students haven't participated in any drives with a {filters.roundNotCleared} round yet.
-                  </p>
-                </div>
-              ) : (
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 max-h-[640px] overflow-y-auto pr-1
-                  [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30
-                  [&::-webkit-scrollbar-track]:bg-transparent">
-                  {companyBreakdown.map((row, idx) => (
-                    <div
-                      key={`${row.companyId}-${idx}`}
-                      className="group rounded-xl border border-border bg-card p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-rose-300 hover:shadow-md dark:hover:border-rose-800"
-                    >
-                      {/* Company header */}
-                      <div className="mb-3 flex items-start gap-2.5">
-                        {row.logoUrl ? (
-                          <img
-                            src={row.logoUrl}
-                            alt={row.companyName}
-                            className="h-9 w-9 shrink-0 rounded-md object-contain ring-1 ring-border bg-white p-0.5"
-                            onError={(e) => {
-                              ;(e.currentTarget as HTMLImageElement).style.display = 'none'
-                            }}
-                          />
-                        ) : (
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-emerald-500 to-teal-600 text-xs font-bold text-white">
-                            {row.companyName.slice(0, 2).toUpperCase()}
-                          </div>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold text-foreground">{row.companyName}</p>
-                          <p className="truncate text-[11px] text-muted-foreground" title={row.driveName}>
-                            {row.driveName}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Student count badge */}
-                      <div className="mb-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                        <Users className="h-3 w-3" />
-                        <span><span className="font-semibold text-foreground">{row.studentCount}</span> students</span>
-                      </div>
-
-                      {/* Stat grid */}
-                      <div className="grid grid-cols-4 gap-1.5">
-                        <div className="rounded-md bg-blue-50 p-1.5 text-center dark:bg-blue-900/20">
-                          <p className="text-sm font-bold text-blue-600 dark:text-blue-400">{row.attended}</p>
-                          <p className="text-[8px] uppercase tracking-wide text-muted-foreground">Attended</p>
-                        </div>
-                        <div className="rounded-md bg-emerald-50 p-1.5 text-center dark:bg-emerald-900/20">
-                          <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{row.cleared}</p>
-                          <p className="text-[8px] uppercase tracking-wide text-muted-foreground">Cleared</p>
-                        </div>
-                        <div className="rounded-md bg-rose-50 p-1.5 text-center dark:bg-rose-900/20 ring-1 ring-rose-300 dark:ring-rose-800">
-                          <p className="text-sm font-bold text-rose-600 dark:text-rose-400">{row.notClearedCount}</p>
-                          <p className="text-[8px] uppercase tracking-wide text-muted-foreground">Not Cleared</p>
-                        </div>
-                        <div className="rounded-md bg-amber-50 p-1.5 text-center dark:bg-amber-900/20">
-                          <p className="text-sm font-bold text-amber-600 dark:text-amber-400">{row.selectedCount}</p>
-                          <p className="text-[8px] uppercase tracking-wide text-muted-foreground">Selected</p>
-                        </div>
-                        <div className="rounded-md bg-rose-50/70 p-1.5 text-center dark:bg-rose-900/10">
-                          <p className="text-sm font-bold text-rose-500 dark:text-rose-300">{row.rejectedCount}</p>
-                          <p className="text-[8px] uppercase tracking-wide text-muted-foreground">Rejected</p>
-                        </div>
-                        <div className="rounded-md bg-violet-50 p-1.5 text-center dark:bg-violet-900/20">
-                          <p className="text-sm font-bold text-violet-600 dark:text-violet-400">{row.onHoldCount}</p>
-                          <p className="text-[8px] uppercase tracking-wide text-muted-foreground">On Hold</p>
-                        </div>
-                        <div className="rounded-md bg-sky-50 p-1.5 text-center dark:bg-sky-900/20">
-                          <p className="text-sm font-bold text-sky-600 dark:text-sky-400">{row.inProgressCount}</p>
-                          <p className="text-[8px] uppercase tracking-wide text-muted-foreground">In Prog</p>
-                        </div>
-                        <div className="rounded-md bg-slate-50 p-1.5 text-center dark:bg-slate-800/40">
-                          <p className="text-sm font-bold text-slate-600 dark:text-slate-300">
-                            {row.attended > 0 ? Math.round((row.selectedCount / row.attended) * 100) : 0}%
-                          </p>
-                          <p className="text-[8px] uppercase tracking-wide text-muted-foreground">Success</p>
-                        </div>
-                      </div>
-
-                      {/* Footer hint */}
-                      <div className="mt-3 flex items-center justify-between border-t border-border pt-2 text-[10px] text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Target className="h-3 w-3" />
-                          {row.cleared} of {row.cleared + row.notClearedCount} rounds cleared
+              {/* Company dropdown */}
+              <div className="mb-4">
+                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Select Company
+                </label>
+                <Select
+                  value={selectedCompanyId}
+                  onValueChange={(v) => setSelectedCompanyId(v)}
+                  disabled={companyLoading || companyOptions.length === 0}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue
+                      placeholder={companyLoading ? 'Loading companies…' : companyOptions.length === 0 ? `No companies with "${filters.roundNotCleared} Not Cleared" results` : 'Choose a company…'}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companyOptions.map((c) => (
+                      <SelectItem key={c.companyId} value={c.companyId}>
+                        <span className="flex items-center gap-2">
+                          {c.logoUrl ? (
+                            <img
+                              src={c.logoUrl}
+                              alt=""
+                              className="h-4 w-4 rounded object-contain"
+                              onError={(e) => { ;(e.currentTarget as HTMLImageElement).style.visibility = 'hidden' }}
+                            />
+                          ) : null}
+                          <span className="font-medium">{c.companyName}</span>
+                          <span className="text-muted-foreground">— {c.driveName}</span>
+                          <Badge variant="outline" className="ml-1 text-[10px]">{c.matchCount}</Badge>
                         </span>
-                        <ChevronRight className="h-3 w-3 opacity-50 transition-transform group-hover:translate-x-0.5" />
-                      </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Student names list — only shown after a company is selected */}
+              {selectedCompanyId && (
+                <div>
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      Students who failed {filters.roundNotCleared}
+                    </p>
+                    {companyStudents.length > 0 && (
+                      <span className="text-[11px] text-muted-foreground">
+                        {companyStudents.length} student{companyStudents.length !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
+
+                  {companyLoading ? (
+                    <div className="space-y-2">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="h-14 animate-pulse rounded-lg bg-muted/60" />
+                      ))}
                     </div>
-                  ))}
+                  ) : companyStudents.length === 0 ? (
+                    <div className="rounded-lg border border-dashed border-rose-200 bg-background/60 p-6 text-center dark:border-rose-900/40">
+                      <Users className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
+                      <p className="text-sm font-medium text-foreground">No students found</p>
+                      <p className="text-xs text-muted-foreground">
+                        No students matching this filter for the selected company.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="max-h-[460px] overflow-y-auto rounded-lg border border-border bg-background/60
+                      [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30
+                      [&::-webkit-scrollbar-track]:bg-transparent">
+                      <ul className="divide-y divide-border">
+                        {companyStudents.map((s, idx) => (
+                          <li
+                            key={s.id}
+                            className="group flex items-center gap-3 p-3 transition-colors hover:bg-accent/40"
+                          >
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rose-100 text-xs font-bold text-rose-600 dark:bg-rose-900/30 dark:text-rose-400">
+                              {idx + 1}
+                            </div>
+                            <Avatar className="h-9 w-9 ring-1 ring-border">
+                              <AvatarFallback className={`${avatarColor(s.fullName)} text-xs font-semibold text-white`}>
+                                {initials(s.fullName)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold text-foreground">{s.fullName}</p>
+                              <p className="truncate text-xs text-muted-foreground">
+                                {s.registerNumber}
+                                {s.department && <span className="ml-1">· {s.department}</span>}
+                                {s.year && <span className="ml-1">· {s.year}</span>}
+                                {s.section && <span className="ml-1">· Sec {s.section}</span>}
+                              </p>
+                            </div>
+                            <div className="hidden shrink-0 flex-col items-end gap-1 sm:flex">
+                              <Badge variant="outline" className="border-rose-300 bg-rose-50 text-[10px] text-rose-700 dark:border-rose-800 dark:bg-rose-900/30 dark:text-rose-300">
+                                <XCircle className="mr-0.5 h-2.5 w-2.5" />
+                                {s.roundName}: {s.roundStatus.replace(/_/g, ' ')}
+                              </Badge>
+                              {s.finalResult && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  Final: <span className="font-medium">{s.finalResult.replace(/_/g, ' ')}</span>
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex shrink-0 items-center gap-1">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 gap-1 text-xs"
+                                      onClick={() => handleView(s.id)}
+                                    >
+                                      <Eye className="h-3.5 w-3.5" />
+                                      <span className="hidden sm:inline">View</span>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>View full student profile</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
