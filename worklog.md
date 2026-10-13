@@ -1738,3 +1738,65 @@ Stage Summary:
   - src/lib/types.ts (added admin-restricted-actions ViewKey)
   - src/app/page.tsx (route the new view)
   - package.json (added word-extractor@1.0.4)
+
+---
+Task ID: 13
+Agent: Main (Orchestrator)
+Task: Wipe all sample data + verify full screenshot policy + Restricted Actions flow on clean DB
+
+Work Log:
+- User requested: remove all sample data, verify screenshot policy (1st & 2nd warning, 3rd locks + logout, admin unlocks), make the full website work without errors.
+- Wrote and ran a database cleanup script that cascade-deleted every seeded record:
+  - 60 students, 8 companies, 7 drives, 35 rounds, 46 participations, 148 round results
+  - 4 drive files, 125 certifications, 132 projects, 120 notifications
+  - All audit logs, all activity logs, all session trackers, all custom fields, all placement rules
+  - Admin user preserved (Vsbec@2027 / admin@123)
+- Removed leftover test files from public/uploads/drives/ (sample.doc, sample.docx, and two leftover upload folders from earlier testing).
+- Final DB state: 0 students, 0 companies, 0 drives, 0 files, 0 sessions, 1 admin.
+
+- Verified all code is intact:
+  - src/app/api/students/screenshot-attempt/route.ts (3-strike policy endpoint)
+  - src/app/api/admin/restricted-actions/route.ts (GET locked/warned students)
+  - src/app/api/admin/restricted-actions/unlock/route.ts (POST unlock / reset-warnings)
+  - src/components/admin/AdminRestrictedActions.tsx (admin UI with Unlock buttons)
+  - src/app/api/files/preview/route.ts (.doc support via word-extractor)
+  - src/app/api/files/view/route.ts (screenshot-attempt JS embedded in file viewer)
+  - src/app/api/auth/student-login/route.ts (accountLocked check returning 403)
+  - src/components/student/StudentCompanies.tsx (passes sessionToken to iframe, listens for STUDENT_LOCKED postMessage)
+  - src/components/admin/AdminLayout.tsx (Restricted Actions nav item with ShieldAlert icon)
+  - src/app/page.tsx (routes admin-restricted-actions view)
+  - src/lib/types.ts (admin-restricted-actions ViewKey)
+  - src/lib/api.ts (attaches error data + status to thrown errors)
+
+- Ran end-to-end test on the clean database:
+  1. Created a test student (VSBTEST)
+  2. Logged in successfully, got session token
+  3. Screenshot attempt 1 → WARNING ("1 of 2"), attempts=1
+  4. Screenshot attempt 2 → WARNING ("2 of 2... ONE more will LOCK"), attempts=2
+  5. Screenshot attempt 3 → LOCKED, accountLocked=true, lockedAt set, lockedReason stored, sessions deleted
+  6. Login attempt after lock → 403 with "Your account is locked. Please contact the placement office to unlock it."
+  7. Admin Restricted Actions API shows the locked student with full details
+  8. Admin unlock → success message "Test Student (VSBTEST) has been unlocked. They can now log in."
+  9. Login after unlock → 200 success, student can log in again
+  10. Cleaned up test student — DB back to 0 students
+
+- Verified via Agent Browser on the empty database:
+  - Landing page loads cleanly (HTTP 200)
+  - Admin login works (Vsbec@2027 / admin@123)
+  - Dashboard shows "Total Students: 0, Total Companies: 0"
+  - "Restricted Actions" button visible in sidebar
+  - Restricted Actions page loads with 3 summary cards (all showing 0) and empty state "No restricted students — No students have triggered the screenshot policy. Everything looks clean."
+  - API endpoints respond correctly (invalid token → 401, no token → 401, restricted-actions → empty list with 0/0/0 summary)
+
+- Lint clean (0 errors, 0 warnings). Dev server stable on port 3000.
+
+Stage Summary:
+- Database is completely empty: 0 students, 0 companies, 0 drives, 0 files, 0 sessions, 1 admin preserved.
+- The screenshot policy works end-to-end:
+  - Attempts 1 & 2 → warning overlay with countdown
+  - Attempt 3 → account locked, sessions deleted (force-logout), locked reason stored
+  - Locked students cannot log in (403 with clear message)
+  - Admin can unlock via the Restricted Actions page
+- The .doc (legacy Word) file viewer works via word-extractor.
+- The admin "Restricted Actions" page is fully functional with summary cards, locked student list, unlock dialog with optional admin note, and empty state.
+- The website loads cleanly with no errors on the empty database.
