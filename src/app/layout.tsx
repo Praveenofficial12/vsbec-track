@@ -59,8 +59,13 @@ export const viewport: Viewport = {
 // in, so this global script can call the API from any page.
 const antiCaptureScript = `
 <script>
+// Defer the entire anti-capture script to run AFTER React hydration
+// to prevent "client-side exception" errors caused by DOM modifications
+// that conflict with React's virtual DOM.
 (function() {
   'use strict';
+
+  function initAntiCapture() {
 
   // ─── Screenshot Policy State ──────────────────────────────────────
   // These are read from /api/students/screenshot-attempt (GET) on mount
@@ -576,6 +581,16 @@ const antiCaptureScript = `
   printStyle.textContent = '@media print { body { display: none !important; } }';
   document.head.appendChild(printStyle);
 
+  } // end of initAntiCapture
+
+  // Run after DOM is ready. Use setTimeout(0) as a fallback if DOMContentLoaded
+  // already fired (e.g. if the script was injected after the document was parsed).
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAntiCapture);
+  } else {
+    // DOM already parsed — run on the next tick so React has time to hydrate
+    setTimeout(initAntiCapture, 0);
+  }
 })();
 </script>
 `;
@@ -596,7 +611,11 @@ export default function RootLayout({
         {children}
         <RadixToaster />
         <SonnerToaster position="top-center" richColors closeButton duration={5000} />
-        <span dangerouslySetInnerHTML={{ __html: antiCaptureScript }} />
+        {/* Anti-capture script — rendered as a raw <script> tag (not inside
+            a span with dangerouslySetInnerHTML) so it executes reliably.
+            The script defers all DOM modifications to after DOMContentLoaded
+            to avoid React hydration mismatches. */}
+        <script dangerouslySetInnerHTML={{ __html: antiCaptureScript }} />
       </body>
     </html>
   );

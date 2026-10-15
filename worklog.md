@@ -2355,3 +2355,47 @@ Stage Summary:
 - Lint clean. Dev server stable.
 - Files changed:
   - src/lib/store.ts (added version + migrate to persist config)
+
+---
+Task ID: 24
+Agent: Main (Orchestrator)
+Task: Fix 'Application error: a client-side exception' on admin drive page - caused by anti-capture script modifying DOM before React hydration
+
+Work Log:
+- User reported: "Application error: a client-side exception has occurred" on the admin drive manage page. Also reported screenshot restriction and account locking not working.
+- Investigation:
+  - The server-side render works fine (curl returns HTTP 200 with valid HTML)
+  - The build succeeds (no compilation errors)
+  - The "client-side exception" happens when React tries to hydrate in the browser
+  - Root cause: the anti-capture script in layout.tsx was injected via `<span dangerouslySetInnerHTML>` and ran immediately on page load, modifying the DOM (adding style elements, overlay divs, event listeners) BEFORE React hydrated. When React tried to hydrate, it found extra DOM nodes it didn't create → hydration mismatch → "client-side exception".
+
+Fix:
+1. Changed the script injection from `<span dangerouslySetInnerHTML>` to `<script dangerouslySetInnerHTML>` — a raw script tag executes more reliably and doesn't create a visible DOM node that React tries to manage.
+
+2. Wrapped the entire anti-capture script in an `initAntiCapture()` function that runs AFTER React hydration:
+   - If the document is still loading: `document.addEventListener('DOMContentLoaded', initAntiCapture)`
+   - If the document is already parsed: `setTimeout(initAntiCapture, 0)` — runs on the next tick so React has time to hydrate
+   - This prevents ALL DOM modifications from happening during the hydration window, eliminating the hydration mismatch.
+
+3. Verified the screenshot locking system still works:
+   - Attempt 1 → WARNING (1/3) ✅
+   - Attempt 2 → WARNING (2/3, "FINAL warning") ✅
+   - Attempt 3 → LOCKED (3/3, "Please call the admin to unlock the account") ✅
+   - Login after lock → 403 ✅
+   - Admin unlock → can login ✅
+
+4. Verified all APIs work:
+   - Drives API returns TCS drive with 5 rounds ✅
+   - Restricted Actions API returns 0 locked, 0 warned ✅
+   - Settings API returns screenshotPolicyEnabled=true, maxAttempts=3 ✅
+
+5. Lint clean (0 errors, 0 warnings) ✅
+
+Stage Summary:
+- Fixed the "client-side exception" error by deferring the anti-capture script to run after React hydration (using DOMContentLoaded or setTimeout(0)).
+- The screenshot restriction and account locking system works correctly: 3 attempts → warn → warn → lock → 403 on login → admin unlock.
+- The admin can toggle the screenshot policy on/off from Settings → Placement Rules.
+- The admin sees locked students in the Restricted Actions page and can unlock them.
+- The drive management page works with test data (TCS drive with 5 rounds).
+- Files changed:
+  - src/app/layout.tsx (wrapped script in initAntiCapture + DOMContentLoaded, changed span to script tag)
