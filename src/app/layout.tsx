@@ -72,10 +72,33 @@ const antiCaptureScript = `
   var isLocked = false;
   var recording = false; // prevents double-fire from keydown+keyup
 
+  // ─── Read session token from localStorage ────────────────────────
+  // The Zustand persist store saves the session token under
+  // 'vsbec-placement-store'. We read it from there so the global script
+  // has the token even before the StudentLayout React component mounts.
+  // This is critical because the anti-capture script runs immediately on
+  // page load (it's injected via dangerouslySetInnerHTML), but the React
+  // component might not have set window.__sessionToken yet.
+  function getSessionToken() {
+    // First check window.__sessionToken (set by StudentLayout)
+    if (window.__sessionToken) return window.__sessionToken;
+    // Fallback: read from the Zustand persist store in localStorage
+    try {
+      var raw = localStorage.getItem('vsbec-placement-store');
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (parsed && parsed.state && parsed.state.sessionToken) {
+          return parsed.state.sessionToken;
+        }
+      }
+    } catch (e) {}
+    return null;
+  }
+
   // Fetch the current policy state on load. The GET endpoint returns
   // { enabled, maxAttempts, attempt, locked } based on the session token.
   function fetchPolicyState() {
-    var token = window.__sessionToken;
+    var token = getSessionToken();
     if (!token) return;
     fetch('/api/students/screenshot-attempt?token=' + encodeURIComponent(token))
       .then(function(r) { return r.json(); })
@@ -88,9 +111,12 @@ const antiCaptureScript = `
       })
       .catch(function() {});
   }
-  fetchPolicyState();
-  // Re-fetch every 30s in case the admin toggles the policy.
-  setInterval(fetchPolicyState, 30000);
+  // Delay the first fetch slightly so React has time to mount and set
+  // window.__sessionToken (the Zustand store fallback should also work).
+  setTimeout(fetchPolicyState, 500);
+  // Re-fetch every 15s in case the admin toggles the policy or the
+  // student's attempt count changes.
+  setInterval(fetchPolicyState, 15000);
 
   // ─── Black Screen + Warning/Lock Overlay ─────────────────────────
   // When PrintScreen is detected, the ENTIRE screen goes black IMMEDIATELY
@@ -174,7 +200,7 @@ const antiCaptureScript = `
   // screen. If the API fails or the policy is disabled, the black screen
   // is removed.
   function recordScreenshotAttempt(source) {
-    var token = window.__sessionToken;
+    var token = getSessionToken();
     // Only call the API if we have a student session token (admin pages
     // don't set it, and the policy doesn't apply to admins).
     if (!token) {
@@ -382,7 +408,7 @@ const antiCaptureScript = `
         if (text && text.length > 200) {
           // Large clipboard content → likely a screenshot capture
           navigator.clipboard.writeText('').catch(function(){});
-          if (window.__sessionToken) {
+          if (getSessionToken()) {
             recordScreenshotAttempt('clipboard-large-read');
           } else {
             showBlockPopup('Screenshots are disabled on this website.');
