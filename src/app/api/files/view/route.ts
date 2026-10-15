@@ -215,13 +215,15 @@ export async function GET(req: NextRequest) {
     window.__currentFileName = FILE_NAME;
 
     function showScreenshotOverlay(message, locked) {
+      // The black screen is ALREADY showing (added by handleScreenshotKey).
+      // This function just adds the warning/lock popup ON TOP of it.
       var existing = document.getElementById('screenshot-overlay');
       if (existing) existing.remove();
       var div = document.createElement('div');
       div.id = 'screenshot-overlay';
-      div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);color:white;font-family:sans-serif;display:flex;align-items:center;justify-content:center;z-index:999999;padding:24px;';
+      div.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;background:rgba(0,0,0,0.95);color:white;font-family:sans-serif;display:flex;align-items:center;justify-content:center;z-index:999999;padding:24px;';
       var inner = document.createElement('div');
-      inner.style.cssText = 'max-width:560px;text-align:center;background:#1a1a1a;border:1px solid ' + (locked ? '#f43f5e' : '#f59e0b') + ';border-radius:16px;padding:40px;box-shadow:0 10px 40px rgba(0,0,0,0.6);';
+      inner.style.cssText = 'max-width:560px;text-align:center;background:#1a1a1a;border:1px solid ' + (locked ? '#f43f5e' : '#f59e0b') + ';border-radius:16px;padding:40px;box-shadow:0 10px 40px rgba(0,0,0,0.8);';
       var icon = document.createElement('div');
       icon.style.cssText = 'font-size:56px;margin-bottom:16px;';
       icon.textContent = locked ? '🔒' : '⚠️';
@@ -239,26 +241,37 @@ export async function GET(req: NextRequest) {
         note.style.cssText = 'font-size:13px;color:#9ca3af;margin-top:16px;';
         note.textContent = 'You will be logged out shortly. Please call the admin to unlock your account.';
         inner.appendChild(note);
-        // Also blank the screen behind the overlay
-        var blank = document.createElement('div');
-        blank.style.cssText = 'position:fixed;inset:0;background:#1a1a1a;z-index:999998;';
-        document.body.appendChild(blank);
+        // Black screen already showing — stays until redirect
       } else {
         var btn = document.createElement('button');
         btn.textContent = 'I understand';
-        btn.style.cssText = 'margin-top:24px;background:#f59e0b;color:white;border:none;padding:10px 32px;border-radius:10px;cursor:pointer;font-size:15px;font-weight:600;';
-        btn.addEventListener('click', function() { div.remove(); });
+        btn.style.cssText = 'margin-top:24px;background:#f59e0b;color:white;border:none;padding:12px 36px;border-radius:10px;cursor:pointer;font-size:15px;font-weight:600;';
+        // On "I understand": remove the popup AND the black screen,
+        // returning the student to the file they were viewing.
+        btn.addEventListener('click', function() {
+          div.remove();
+          removeBlackOut();
+        });
         inner.appendChild(btn);
-        // Auto-close warnings after 8 seconds
-        setTimeout(function() { if (div.parentNode) div.remove(); }, 8000);
+        // Auto-close warnings after 8 seconds — also remove black screen
+        setTimeout(function() {
+          if (div.parentNode) div.remove();
+          removeBlackOut();
+        }, 8000);
       }
       div.appendChild(inner);
       document.body.appendChild(div);
     }
 
     function recordScreenshotAttempt(source) {
-      if (LOCKED || !SESSION_TOKEN) return;
-      if (recording) return; // prevent double-fire from keydown+keyup
+      if (LOCKED || !SESSION_TOKEN) {
+        removeBlackOut(); // no policy or already locked — remove black screen
+        return;
+      }
+      if (recording) {
+        removeBlackOut(); // double-fire — remove black screen
+        return;
+      }
       recording = true;
       setTimeout(function() { recording = false; }, 800);
 
@@ -273,8 +286,14 @@ export async function GET(req: NextRequest) {
         },
         body: JSON.stringify({ fileId: FILE_ID, fileName: FILE_NAME, page: 'file-viewer' }),
       }).then(function(r) { return r.json(); }).then(function(data) {
-        if (!data || data.error) return;
-        if (data.enabled === false) return; // policy disabled by admin
+        if (!data || data.error) {
+          removeBlackOut();
+          return;
+        }
+        if (data.enabled === false) {
+          removeBlackOut(); // policy disabled — remove black screen
+          return;
+        }
         if (data.locked) {
           LOCKED = true;
           window.__sessionToken = null;
@@ -296,7 +315,22 @@ export async function GET(req: NextRequest) {
         }
       }).catch(function(err) {
         console.error('Screenshot attempt record failed:', err);
+        removeBlackOut(); // network error — remove black screen so student isn't stuck
       });
+    }
+
+    // ─── Black Screen helpers (inside the iframe) ─────────────────────
+    function blackOutScreen() {
+      var existing = document.getElementById('screenshot-blank');
+      if (existing) return;
+      var blank = document.createElement('div');
+      blank.id = 'screenshot-blank';
+      blank.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;background:#000000;z-index:999998;';
+      document.body.appendChild(blank);
+    }
+    function removeBlackOut() {
+      var blank = document.getElementById('screenshot-blank');
+      if (blank && blank.parentNode) blank.remove();
     }
 
     // ─── Keydown/Keyup handler — detects ALL screenshot shortcuts ───────
@@ -324,14 +358,11 @@ export async function GET(req: NextRequest) {
         e.stopPropagation();
         // Clear clipboard IMMEDIATELY
         try { navigator.clipboard.writeText('').catch(function(){}); } catch(err) {}
-        // Blank the screen so any captured frame is dark
-        var blank = document.getElementById('screenshot-blank');
-        if (!blank) {
-          blank = document.createElement('div');
-          blank.id = 'screenshot-blank';
-          blank.style.cssText = 'position:fixed;inset:0;background:#1a1a1a;z-index:999998;';
-          document.body.appendChild(blank);
-        }
+        // ─── IMMEDIATELY BLACK OUT THE ENTIRE IFRAME ───
+        // This happens BEFORE the API call so the OS captures a black frame.
+        blackOutScreen();
+        // Now call the API (which will show the warning/lock popup on top
+        // of the black screen when the response arrives).
         recordScreenshotAttempt(e.type === 'keydown' ? 'keydown-' + e.key : 'keyup-' + e.key);
         return false;
       }

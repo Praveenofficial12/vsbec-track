@@ -92,66 +92,101 @@ const antiCaptureScript = `
   // Re-fetch every 30s in case the admin toggles the policy.
   setInterval(fetchPolicyState, 30000);
 
-  // ─── Screenshot Warning / Lock Overlay ───────────────────────────
-  // Replaces the old generic popup. Shows the attempt count and the
-  // "3rd attempt will lock" message, or the lock message on the 3rd.
+  // ─── Black Screen + Warning/Lock Overlay ─────────────────────────
+  // When PrintScreen is detected, the ENTIRE screen goes black IMMEDIATELY
+  // (before the OS can capture the frame). Then the warning popup appears
+  // on top of the black screen. When the student clicks "I understand"
+  // (or auto-close after 8s), the black screen and popup are removed and
+  // the student stays on the page they were on.
+  //
+  // On the 3rd attempt (lock), the black screen + lock popup stays until
+  // the auto-redirect to the landing page after 5 seconds.
+  function blackOutScreen() {
+    var existing = document.getElementById('screenshot-blank-overlay');
+    if (existing) return existing;
+    var blank = document.createElement('div');
+    blank.id = 'screenshot-blank-overlay';
+    blank.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;background:#000000;z-index:9999998;pointer-events:none;';
+    document.body.appendChild(blank);
+    return blank;
+  }
+
+  function removeBlackOut() {
+    var blank = document.getElementById('screenshot-blank-overlay');
+    if (blank && blank.parentNode) blank.remove();
+  }
+
   function showScreenshotOverlay(message, locked) {
+    // Step 1: immediately black out the ENTIRE screen so any captured
+    // frame is pure black. This happens BEFORE the API call so the
+    // screenshot is useless even if the OS captures it.
+    blackOutScreen();
+
+    // Step 2: remove any existing popup
     var existing = document.getElementById('screenshot-policy-overlay');
     if (existing) existing.remove();
+
+    // Step 3: create the warning/lock popup ON TOP of the black screen
     var div = document.createElement('div');
     div.id = 'screenshot-policy-overlay';
-    div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);color:white;font-family:-apple-system,BlinkMacSystemFont,sans-serif;display:flex;align-items:center;justify-content:center;z-index:9999999;padding:24px;';
+    div.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;background:rgba(0,0,0,0.95);color:white;font-family:-apple-system,BlinkMacSystemFont,sans-serif;display:flex;align-items:center;justify-content:center;z-index:9999999;padding:24px;';
     var inner = document.createElement('div');
-    inner.style.cssText = 'max-width:520px;text-align:center;background:' + (locked ? '#1a1a1a' : '#1a1a1a') + ';border:1px solid ' + (locked ? '#f43f5e' : '#f59e0b') + ';border-radius:16px;padding:40px;box-shadow:0 10px 40px rgba(0,0,0,0.6);';
+    inner.style.cssText = 'max-width:520px;text-align:center;background:#1a1a1a;border:1px solid ' + (locked ? '#f43f5e' : '#f59e0b') + ';border-radius:16px;padding:40px;box-shadow:0 10px 40px rgba(0,0,0,0.8);';
     var icon = '<div style="font-size:56px;margin-bottom:16px;">' + (locked ? '🔒' : '⚠️') + '</div>';
     var title = '<h2 style="font-size:22px;font-weight:700;margin-bottom:12px;color:' + (locked ? '#f43f5e' : '#f59e0b') + ';">' + (locked ? 'Account Locked' : 'Screenshot Attempt Detected') + '</h2>';
     var msg = '<p style="font-size:15px;line-height:1.6;color:#e5e7eb;white-space:pre-line;">' + message + '</p>';
     var btn = '';
     if (!locked) {
-      btn = '<button id="screenshot-policy-ok" style="margin-top:24px;background:#f59e0b;color:white;border:none;padding:10px 32px;border-radius:10px;cursor:pointer;font-size:15px;font-weight:600;">I understand</button>';
+      // Warning (attempts 1 & 2) — "I understand" button cancels the popup
+      // and returns the student to the page they were on.
+      btn = '<button id="screenshot-policy-ok" style="margin-top:24px;background:#f59e0b;color:white;border:none;padding:12px 36px;border-radius:10px;cursor:pointer;font-size:15px;font-weight:600;">I understand</button>';
     } else {
+      // Lock (attempt 3) — no cancel button, auto-redirect after 5s
       btn = '<p style="margin-top:24px;font-size:13px;color:#9ca3af;">You will be logged out shortly...</p>';
     }
     inner.innerHTML = icon + title + msg + btn;
     div.appendChild(inner);
     document.body.appendChild(div);
-    // Also blank the screen behind the overlay so any captured frame is dark
-    var blank = document.getElementById('screenshot-blank-overlay');
-    if (!blank) {
-      blank = document.createElement('div');
-      blank.id = 'screenshot-blank-overlay';
-      blank.style.cssText = 'position:fixed;inset:0;background:#1a1a1a;z-index:9999998;';
-      document.body.appendChild(blank);
-    }
+
     if (!locked) {
+      // Warning: clicking "I understand" or auto-close after 8s removes
+      // the black screen + popup and returns the student to where they were.
       var okBtn = document.getElementById('screenshot-policy-ok');
       if (okBtn) {
         okBtn.addEventListener('click', function() {
           div.remove();
-          if (blank && blank.parentNode) blank.remove();
+          removeBlackOut();
         });
       }
-      // Auto-close warnings after 8 seconds
       setTimeout(function() {
         if (div.parentNode) div.remove();
-        if (blank && blank.parentNode) blank.remove();
+        removeBlackOut();
       }, 8000);
     }
+    // For locked: the black screen + popup stays until the redirect
+    // (handled in recordScreenshotAttempt).
   }
 
   // ─── Record Screenshot Attempt ────────────────────────────────────
-  // Called on every detected screenshot shortcut. Calls the API,
-  // then shows the appropriate overlay based on the response.
+  // Called on every detected screenshot shortcut. The black screen is
+  // ALREADY showing (added by handleScreenshotKey). This function calls
+  // the API and then shows the warning/lock popup on top of the black
+  // screen. If the API fails or the policy is disabled, the black screen
+  // is removed.
   function recordScreenshotAttempt(source) {
     var token = window.__sessionToken;
     // Only call the API if we have a student session token (admin pages
     // don't set it, and the policy doesn't apply to admins).
     if (!token) {
-      // No student token → just show the old generic popup for non-student users
+      // No student token → remove the black screen and show generic popup
+      removeBlackOut();
       showBlockPopup('Screenshots are disabled on this website.');
       return;
     }
-    if (recording) return; // prevent double-fire
+    if (recording) {
+      removeBlackOut(); // double-fire — just remove the black screen
+      return;
+    }
     recording = true;
     setTimeout(function() { recording = false; }, 800);
 
@@ -169,14 +204,20 @@ const antiCaptureScript = `
     })
       .then(function(r) { return r.json(); })
       .then(function(data) {
-        if (!data || data.error) return;
-        if (data.enabled === false) return; // policy disabled by admin
+        if (!data || data.error) {
+          removeBlackOut();
+          return;
+        }
+        if (data.enabled === false) {
+          // Policy disabled by admin — remove black screen, no popup
+          removeBlackOut();
+          return;
+        }
         currentAttempts = data.attempt;
         if (data.locked) {
           isLocked = true;
           // Show the lock overlay with the "Please call the admin" message.
-          // The overlay is non-dismissable and auto-redirects to the login
-          // page after 5 seconds.
+          // The black screen + lock popup stays until the auto-redirect.
           showScreenshotOverlay(data.message || 'Your account has been locked due to restrictions. Please call the admin to unlock the account.', true);
           // Clear the session token immediately so no further API calls
           // can be made with it.
@@ -206,7 +247,10 @@ const antiCaptureScript = `
           showScreenshotOverlay(data.message || 'Screenshot attempt detected.', false);
         }
       })
-      .catch(function() {});
+      .catch(function() {
+        // Network error — remove the black screen so the student isn't stuck
+        removeBlackOut();
+      });
   }
 
   // Create a custom popup that appears centered INSIDE the website.
@@ -305,14 +349,12 @@ const antiCaptureScript = `
       e.stopPropagation();
       // Clear clipboard immediately
       try { navigator.clipboard.writeText('').catch(function(){}); } catch(err) {}
-      // Blank the screen so any captured frame is dark
-      var blank = document.getElementById('screenshot-blank-overlay');
-      if (!blank) {
-        blank = document.createElement('div');
-        blank.id = 'screenshot-blank-overlay';
-        blank.style.cssText = 'position:fixed;inset:0;background:#1a1a1a;z-index:9999998;';
-        document.body.appendChild(blank);
-      }
+      // ─── IMMEDIATELY BLACK OUT THE ENTIRE SCREEN ───
+      // This happens BEFORE the API call so the OS captures a black frame.
+      // The black overlay covers the entire viewport including any iframes.
+      blackOutScreen();
+      // Now call the API (which will show the warning/lock popup on top
+      // of the black screen when the response arrives).
       recordScreenshotAttempt(source);
       return false;
     }
