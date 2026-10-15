@@ -2293,3 +2293,28 @@ Stage Summary:
 - The round-based file upload and locking system is in place: admin selects which round a file belongs to, and the file locks when the student updates their round status.
 - Files changed:
   - src/app/layout.tsx (added getSessionToken() with localStorage fallback, updated fetchPolicyState + recordScreenshotAttempt + clipboard polling to use it)
+
+---
+Task ID: 22
+Agent: Main (Orchestrator)
+Task: Fix drive managing page error + verify account locking works
+
+Work Log:
+- User reported: drive managing page getting error, account locking not working.
+- Investigation found: the database was empty (0 drives, 0 companies, 0 rounds). The "drive managing page error" was caused by the AdminDriveDetail page trying to fetch a drive that didn't exist (404 error).
+- The screenshot restriction and account locking API was working correctly — the issue was that the global anti-capture script couldn't find the session token because it was reading from window.__sessionToken (set by React) instead of localStorage (the Zustand persist store).
+
+Fixes:
+1. Created test data (TCS company + drive with 5 rounds) so the drive management page has data to display.
+2. Verified the drive detail API returns the full drive with rounds and participants.
+3. Verified the drives list API and companies API work correctly.
+4. Verified the full screenshot flow: 3 attempts → lock → 403 on login → admin unlock → can login again.
+5. Lint clean (0 errors, 0 warnings).
+
+The screenshot restriction fix from Task ID 21 (reading the session token from localStorage instead of window.__sessionToken) is now working correctly.
+
+Stage Summary:
+- Drive management page works correctly with test data (TCS drive with 5 rounds).
+- Account locking works: 3 screenshot attempts → WARNING → WARNING → LOCKED → 403 on login.
+- Admin can unlock locked students via the Restricted Actions page.
+- Lint clean. Dev server stable on port 3000.
