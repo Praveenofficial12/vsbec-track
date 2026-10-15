@@ -66,7 +66,37 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'vsbec-placement-store',
+      version: 2,
       partialize: (state) => ({ user: state.user, sessionToken: state.sessionToken, view: state.view, theme: state.theme }),
+      // Migrate old persisted state that might have incompatible fields.
+      // If the persisted state has an unknown view value, reset to 'landing'.
+      migrate: (persisted: any, version: number) => {
+        if (!persisted) return {}
+        const validViews = ['landing', 'student-login', 'admin-login', 'student-register',
+          'student-dashboard', 'student-profile', 'student-skills', 'student-companies',
+          'student-drives', 'student-history', 'student-notifications', 'student-settings',
+          'admin-dashboard', 'admin-students', 'admin-student-detail', 'admin-companies',
+          'admin-company-detail', 'admin-drives', 'admin-drive-detail', 'admin-analytics',
+          'admin-reports', 'admin-restricted-actions', 'admin-student-activity', 'admin-settings']
+        const migrated: any = {}
+        if (persisted.user && typeof persisted.user === 'object') {
+          migrated.user = persisted.user
+        }
+        if (persisted.sessionToken && typeof persisted.sessionToken === 'string') {
+          migrated.sessionToken = persisted.sessionToken
+        }
+        if (persisted.view && validViews.includes(persisted.view)) {
+          migrated.view = persisted.view
+        } else {
+          migrated.view = 'landing'
+        }
+        if (persisted.theme === 'light' || persisted.theme === 'dark') {
+          migrated.theme = persisted.theme
+        } else {
+          migrated.theme = 'light'
+        }
+        return migrated
+      },
     }
   )
 )
