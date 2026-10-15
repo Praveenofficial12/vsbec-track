@@ -35,6 +35,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const formData = await req.formData()
     const file = formData.get('file') as File | null
     const description = formData.get('description') as string | null
+    const roundName = formData.get('roundName') as string | null
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // Public URL path for serving the file
     const publicPath = `/uploads/drives/${id}/${uniqueName}`
 
-    // Create the DriveFile record
+    // Create the DriveFile record with the round association
     const driveFile = await db.driveFile.create({
       data: {
         driveId: id,
@@ -71,6 +72,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         fileSize: file.size,
         mimeType: file.type || 'application/octet-stream',
         description: description || null,
+        roundName: roundName || null,
       },
     })
 

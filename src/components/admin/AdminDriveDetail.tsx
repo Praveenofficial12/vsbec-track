@@ -39,6 +39,8 @@ interface DriveFile {
   description: string | null
   uploadedBy: string
   createdAt: string
+  roundName: string | null
+  locked: boolean
 }
 
 function formatFileSize(bytes: number): string {
@@ -80,6 +82,7 @@ export function AdminDriveDetail() {
   const [driveFiles, setDriveFiles] = useState<DriveFile[]>([])
   const [uploading, setUploading] = useState(false)
   const [fileDescription, setFileDescription] = useState('')
+  const [fileRound, setFileRound] = useState('') // which round this file belongs to
   const [deletingFile, setDeletingFile] = useState<string | null>(null)
   // Admin file viewer overlay — opens the /api/files/view route in an
   // iframe so the admin can preview the file inside the website without
@@ -746,6 +749,7 @@ export function AdminDriveDetail() {
                           const formData = new FormData()
                           formData.append('file', file)
                           formData.append('description', fileDescription)
+                          formData.append('roundName', fileRound || '')
                           const res = await fetch(`/api/drives/${driveId}/files`, {
                             method: 'POST',
                             body: formData,
@@ -756,6 +760,7 @@ export function AdminDriveDetail() {
                           }
                           toast.success(`${file.name} uploaded — students can view it online (view only)`)
                           setFileDescription('')
+                          setFileRound('')
                           await refreshFiles()
                         } catch (err: any) {
                           toast.error(err.message || 'Failed to upload file')
@@ -773,6 +778,19 @@ export function AdminDriveDetail() {
                         onChange={(e) => setFileDescription(e.target.value)}
                         className="flex-1"
                       />
+                      <Select value={fileRound} onValueChange={setFileRound}>
+                        <SelectTrigger className="w-full sm:w-48">
+                          <SelectValue placeholder="General (no round)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">General (no round)</SelectItem>
+                          <SelectItem value="Aptitude">Aptitude</SelectItem>
+                          <SelectItem value="Coding">Coding</SelectItem>
+                          <SelectItem value="GD">GD</SelectItem>
+                          <SelectItem value="Technical HR">Technical HR</SelectItem>
+                          <SelectItem value="General HR">General HR</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <Button
                         type="button"
                         variant="outline"
@@ -812,9 +830,22 @@ export function AdminDriveDetail() {
                               {f.description && (
                                 <p className="truncate text-xs text-muted-foreground">{f.description}</p>
                               )}
-                              <p className="text-[10px] text-muted-foreground">
-                                {formatFileSize(f.fileSize)} · {new Date(f.createdAt).toLocaleString()}
-                              </p>
+                              <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                                <p className="text-[10px] text-muted-foreground">
+                                  {formatFileSize(f.fileSize)} · {new Date(f.createdAt).toLocaleDateString()}
+                                </p>
+                                {f.roundName && (
+                                  <Badge variant="outline" className="ml-1 border-violet-300 bg-violet-50 text-[9px] text-violet-700 dark:border-violet-800 dark:bg-violet-900/30 dark:text-violet-300">
+                                    {f.roundName}
+                                  </Badge>
+                                )}
+                                {f.locked && (
+                                  <Badge variant="outline" className="ml-1 border-rose-300 bg-rose-50 text-[9px] text-rose-700 dark:border-rose-800 dark:bg-rose-900/30 dark:text-rose-300">
+                                    <Lock className="mr-0.5 h-2 w-2" />
+                                    Locked
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                             {/* View button — opens the file in an inline iframe overlay */}
                             <button

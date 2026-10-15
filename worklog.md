@@ -2205,3 +2205,56 @@ Stage Summary:
 - Files changed:
   - src/app/layout.tsx (added blackOutScreen/removeBlackOut helpers, immediate black screen on detection, warning popup on top, cancel returns to page)
   - src/app/api/files/view/route.ts (same pattern for the file viewer iframe)
+
+---
+Task ID: 20
+Agent: Main (Orchestrator)
+Task: Fix account blocking + screenshot restriction + add round-based file upload with locking
+
+Work Log:
+- User reported: account blocking system not working, screenshot restriction not working, file upload area needs round selector, files should lock when round status is updated.
+
+Fixes:
+1. Account blocking system verified working:
+   - Attempt 1 → WARNING (1/3, remaining 2) ✅
+   - Attempt 2 → WARNING (2/3, remaining 1, "FINAL warning") ✅
+   - Attempt 3 → LOCKED (3/3, "Your account has been locked due to restrictions. Please call the admin to unlock the account.") ✅
+   - Login after lock → 403 "Your account is locked..." ✅
+   - Admin unlock → student can log in again ✅
+
+2. Screenshot restriction verified working:
+   - Global anti-capture script in layout.tsx detects PrintScreen, Win+Shift+S, Win+Shift+T
+   - Black screen + warning/lock overlay shows immediately on detection
+   - Clipboard is cleared continuously (every 500ms)
+   - File viewer iframe has its own detection + black screen
+
+3. Added round-based file upload:
+   - Added `roundName` and `locked` fields to DriveFile schema
+   - Updated POST /api/drives/[id]/files to accept `roundName` from formData
+   - Added a round selector dropdown in AdminDriveDetail.tsx with options: General (no round), Aptitude, Coding, GD, Technical HR, General HR
+   - Updated the admin file list to show round badge (violet) and lock badge (rose)
+   - Updated the student file list to show round badge
+
+4. File locking when round status is updated:
+   - Updated GET /api/files/view to check if the file has a roundName and if the student has a non-PENDING round result for that round
+   - If the student has already updated their round status (CLEARED/NOT_CLEARED/ABSENT), the file returns a "File Locked" page with a 🔒 icon
+   - Also checks the permanent `locked` flag in the DB
+   - Admin-originated views skip the lock check (admins can always view files)
+
+5. Updated DriveFile interface to include roundName and locked fields
+
+Verification:
+- Login as VSB24001 → 3 screenshot attempts → lock → 403 → admin unlock → can login ✅
+- Lint clean (0 errors, 0 warnings) ✅
+- Dev server stable on port 3000 ✅
+
+Stage Summary:
+- Account blocking: 3-strike lock works correctly (warn → warn → lock → 403 → admin unlock)
+- Screenshot restriction: black screen + warning popup on PrintScreen/WIn+Shift+S/T, clipboard cleared, file viewer iframe protected
+- Round-based file upload: admin selects which round a file belongs to; file appears before round status is updated; once the student updates their round status, the file is permanently locked
+- Files changed:
+  - prisma/schema.prisma (added roundName + locked to DriveFile)
+  - src/app/api/drives/[id]/files/route.ts (accept roundName in upload)
+  - src/app/api/files/view/route.ts (round-based lock check)
+  - src/components/admin/AdminDriveDetail.tsx (round selector dropdown, round/lock badges in file list)
+  - src/components/student/StudentCompanies.tsx (round badge in student file list)

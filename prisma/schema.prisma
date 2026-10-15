@@ -153,6 +153,12 @@ model DriveFile {
   description String?  // optional admin caption
   uploadedBy  String   @default("Vsbec@2027") // admin email
   createdAt   DateTime @default(now())
+  // Which round this file belongs to (e.g. "Aptitude", "Coding", "GD",
+  // "Technical HR", "General HR"). When the student's round result for
+  // this round is set (CLEARED / NOT_CLEARED / ABSENT), the file is
+  // permanently locked — it can no longer be viewed.
+  roundName   String?  // null = general announcement (not round-specific)
+  locked      Boolean  @default(false) // permanently locked when round status is updated
 
   drive       Drive    @relation(fields: [driveId], references: [id])
 

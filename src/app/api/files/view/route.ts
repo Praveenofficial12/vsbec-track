@@ -44,13 +44,65 @@ export async function GET(req: NextRequest) {
 
     const file = await db.driveFile.findUnique({
       where: { id: fileId },
-      select: { id: true, fileName: true, filePath: true, mimeType: true, driveId: true, fileSize: true },
+      select: { id: true, fileName: true, filePath: true, mimeType: true, driveId: true, fileSize: true, roundName: true, locked: true },
     })
 
     if (!file) {
       return new NextResponse(
         `<html><body style="background:#1a1a1a;color:white;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;"><h2>File not found</h2><p>This file may have been deleted by the admin.</p></div></body></html>`,
         { status: 404, headers: { 'Content-Type': 'text/html' } },
+      )
+    }
+
+    // ─── Round-based file lock check ──────────────────────────────────
+    // If the file is permanently locked (locked=true in DB) OR the file
+    // belongs to a round and the student has already updated their round
+    // status for that round, the file can no longer be viewed.
+    // Admin-originated views (no session token) skip this check.
+    if (sessionToken && file.roundName) {
+      // Check if the student has a round result for this round
+      const session = await db.sessionTracker.findFirst({
+        where: { token: sessionToken },
+        select: { userKey: true },
+      })
+      if (session) {
+        const registerNumber = session.userKey.replace(/^STUDENT:/, '')
+        const student = await db.student.findFirst({
+          where: { registerNumber },
+          select: { id: true },
+        })
+        if (student) {
+          const participation = await db.driveParticipation.findFirst({
+            where: { driveId: file.driveId, studentId: student.id },
+            select: { id: true },
+          })
+          if (participation) {
+            const roundResult = await db.roundResult.findFirst({
+              where: {
+                participationId: participation.id,
+                round: { roundName: file.roundName },
+              },
+              select: { status: true },
+            })
+            // If the round result exists and is NOT PENDING (i.e. it's
+            // CLEARED, NOT_CLEARED, or ABSENT), the file is permanently
+            // locked for this student.
+            if (roundResult && roundResult.status !== 'PENDING') {
+              return new NextResponse(
+                `<html><body style="background:#1a1a1a;color:white;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;"><div style="font-size:64px;margin-bottom:16px;">🔒</div><h2>File Locked</h2><p>This file is no longer available because you have already updated your status for the <strong>${file.roundName}</strong> round.</p></div></body></html>`,
+                { status: 403, headers: { 'Content-Type': 'text/html' } },
+              )
+            }
+          }
+        }
+      }
+    }
+
+    // Also check the permanent `locked` flag in the DB
+    if (file.locked) {
+      return new NextResponse(
+        `<html><body style="background:#1a1a1a;color:white;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;"><div style="font-size:64px;margin-bottom:16px;">🔒</div><h2>File Locked</h2><p>This file has been permanently locked by the admin.</p></div></body></html>`,
+        { status: 403, headers: { 'Content-Type': 'text/html' } },
       )
     }
 

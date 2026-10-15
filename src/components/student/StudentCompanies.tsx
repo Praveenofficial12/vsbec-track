@@ -830,9 +830,16 @@ export function StudentCompanies() {
                                 {f.description && (
                                   <p className="truncate text-xs text-muted-foreground">{f.description}</p>
                                 )}
-                                <p className="text-[10px] text-muted-foreground">
-                                  {new Date(f.createdAt).toLocaleDateString()}
-                                </p>
+                                <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                                  <p className="text-[10px] text-muted-foreground">
+                                    {new Date(f.createdAt).toLocaleDateString()}
+                                  </p>
+                                  {f.roundName && (
+                                    <Badge variant="outline" className="border-violet-300 bg-violet-50 text-[9px] text-violet-700 dark:border-violet-800 dark:bg-violet-900/30 dark:text-violet-300">
+                                      {f.roundName}
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
                               <FileText className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400" />
                             </button>
