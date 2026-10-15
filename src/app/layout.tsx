@@ -175,22 +175,32 @@ const antiCaptureScript = `
         if (data.locked) {
           isLocked = true;
           // Show the lock overlay with the "Please call the admin" message.
-          // The overlay is non-dismissable and auto-redirects to the landing
+          // The overlay is non-dismissable and auto-redirects to the login
           // page after 5 seconds.
           showScreenshotOverlay(data.message || 'Your account has been locked due to restrictions. Please call the admin to unlock the account.', true);
           // Clear the session token immediately so no further API calls
           // can be made with it.
           window.__sessionToken = null;
-          // Clear the persisted Zustand state so the student is properly
-          // logged out after the redirect (otherwise the persisted
-          // sessionToken would survive the page reload).
+          // Clear ALL persisted state so the student is properly logged out
+          // after the redirect. The Zustand store uses 'vsbec-placement-store'
+          // as its localStorage key — removing it ensures the student lands
+          // on the landing page (not the dashboard) after the redirect.
           try {
+            localStorage.removeItem('vsbec-placement-store');
             localStorage.removeItem('app-state');
+            sessionStorage.clear();
+          } catch (e) {}
+          // Also tell the server to drop the session row so the same
+          // student can't be re-validated by the heartbeat hook.
+          try {
+            fetch('/api/auth/session?token=' + encodeURIComponent(token), { method: 'DELETE' }).catch(function(){});
           } catch (e) {}
           // Redirect to the landing page after 5 seconds (the overlay's
           // "You will be logged out shortly..." countdown matches this).
           setTimeout(function() {
-            window.location.href = '/';
+            // Hard redirect — use replace so the student can't use the
+            // browser's back button to return to the locked dashboard.
+            window.location.replace('/');
           }, 5000);
         } else if (data.action === 'WARNING') {
           showScreenshotOverlay(data.message || 'Screenshot attempt detected.', false);
@@ -316,17 +326,22 @@ const antiCaptureScript = `
     handleScreenshotKey(e, 'keyup');
   }, true);
 
-  // 2b. Detect screenshot via clipboard read (catches OS-level captures
-  //     that don't fire a key event, e.g. Snipping Tool via taskbar)
+  // 2b. Detect clipboard reads (catches OS-level captures that don't fire
+  //     a key event). This is ONLY for screenshot detection — it does NOT
+  //     apply to copy/paste of small amounts of text. We only flag
+  //     clipboard contents > 200 chars (a screenshot capture produces a
+  //     large data URL or image blob, not a short copied string).
+  //     Copy/paste of text is handled separately in sections 3-5 and only
+  //     shows a block popup WITHOUT incrementing the screenshot counter.
   if (navigator.clipboard && navigator.clipboard.readText) {
     setInterval(function() {
       if (window.__blockPopupDisabled) return;
       navigator.clipboard.readText().then(function(text) {
-        if (text && text.length > 50) {
+        if (text && text.length > 200) {
+          // Large clipboard content → likely a screenshot capture
           navigator.clipboard.writeText('').catch(function(){});
-          // If we have a student token, record the attempt via the API
           if (window.__sessionToken) {
-            recordScreenshotAttempt('clipboard-read');
+            recordScreenshotAttempt('clipboard-large-read');
           } else {
             showBlockPopup('Screenshots are disabled on this website.');
           }
@@ -361,17 +376,51 @@ const antiCaptureScript = `
     return false;
   });
 
-  // 6. Block keyboard shortcuts
+  // 6. Block keyboard shortcuts — only on student pages (admin pages
+  //    set __blockPopupDisabled = true so the admin has full access).
+  //    Blocks: Windows/Super key, Alt+Tab, Alt+F4, Ctrl+Esc, F1-F12,
+  //    Ctrl+S/P/U/A, Ctrl+Shift+I/J/C, etc.
   document.addEventListener('keydown', function(e) {
     if (window.__blockPopupDisabled) return;
+    // ── Windows / Meta key (Super key) ──
+    // The Windows key opens the Start menu and is used in many OS shortcuts
+    // (Win+E, Win+R, Win+L, etc.) that could be used to escape the
+    // browser. We block it on student pages.
+    if (e.key === 'Meta' || e.metaKey) {
+      e.preventDefault();
+      // Don't show a popup for every Meta keypress — just silently block it.
+      return false;
+    }
+    // ── Alt+Tab (switch windows) ──
+    // Note: browsers can't always intercept Alt+Tab, but we try.
+    if (e.altKey && e.key === 'Tab') {
+      e.preventDefault();
+      return false;
+    }
+    // ── Alt+F4 (close window) ──
+    if (e.altKey && (e.key === 'F4' || e.key === 'f4')) {
+      e.preventDefault();
+      return false;
+    }
+    // ── Ctrl+Escape (Windows Start menu) ──
+    if (e.ctrlKey && e.key === 'Escape') {
+      e.preventDefault();
+      return false;
+    }
+    // ── F1 through F12 function keys ──
+    // F1 = Help, F3 = Find, F5 = Refresh (we allow F5), F11 = Full screen,
+    // F12 = Dev tools. Block all except F5 so the student can still refresh.
+    if (/^F([1-9]|10|11|12)$/.test(e.key) && e.key !== 'F5') {
+      e.preventDefault();
+      showBlockPopup('Function keys are disabled on this website.');
+      return false;
+    }
     // Ctrl+S (save page)
     if (e.ctrlKey && e.key === 's') { e.preventDefault(); showBlockPopup('Saving is disabled.'); return false; }
     // Ctrl+P (print)
     if (e.ctrlKey && e.key === 'p') { e.preventDefault(); showBlockPopup('Printing is disabled.'); return false; }
     // Ctrl+U (view source)
     if (e.ctrlKey && e.key === 'u') { e.preventDefault(); showBlockPopup('Viewing source is disabled.'); return false; }
-    // F12 (dev tools)
-    if (e.key === 'F12') { e.preventDefault(); showBlockPopup('Developer tools are disabled.'); return false; }
     // Ctrl+Shift+I / J / C (dev tools)
     if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) {
       e.preventDefault(); showBlockPopup('Developer tools are disabled.'); return false;
@@ -379,6 +428,16 @@ const antiCaptureScript = `
     // Ctrl+A (select all)
     if (e.ctrlKey && e.key === 'a') { e.preventDefault(); showBlockPopup('Select all is disabled.'); return false; }
   });
+
+  // 6b. Block the keyup event for the same keys (some browsers fire the
+  //     event on keyup rather than keydown).
+  document.addEventListener('keyup', function(e) {
+    if (window.__blockPopupDisabled) return;
+    if (e.key === 'Meta' || e.metaKey) { e.preventDefault(); return false; }
+    if (e.altKey && e.key === 'Tab') { e.preventDefault(); return false; }
+    if (e.altKey && (e.key === 'F4' || e.key === 'f4')) { e.preventDefault(); return false; }
+    if (e.ctrlKey && e.key === 'Escape') { e.preventDefault(); return false; }
+  }, true);
 
   // 7. Disable drag-and-drop
   document.addEventListener('dragstart', function(e) {

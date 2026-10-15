@@ -181,7 +181,7 @@ export async function GET(req: NextRequest) {
     .badge { font-size: 11px; opacity: 0.7; white-space: nowrap; flex-shrink: 0; }
   </style>
 </head>
-<body oncontextmenu="return false" onkeydown="if(event.key==='PrintScreen'||event.key==='F12'||(event.ctrlKey&&event.shiftKey&&(event.key==='I'||event.key==='J'||event.key==='C'))||(event.ctrlKey&&event.key==='u')||(event.ctrlKey&&(event.key==='p'||event.key==='s'))) return false">
+<body oncontextmenu="return false" oncopy="return false" oncut="return false" ondragstart="return false" onselectstart="return false" onkeydown="if(event.key==='PrintScreen'||event.key==='F12'||event.key==='Meta'||event.metaKey||(event.ctrlKey&&event.shiftKey&&(event.key==='I'||event.key==='J'||event.key==='C'))||(event.ctrlKey&&event.key==='u')||(event.ctrlKey&&event.key==='c')||(event.ctrlKey&&event.key==='a')||(event.ctrlKey&&(event.key==='p'||event.key==='s'))) return false" style="user-select:none;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;">
   <div class="toolbar">
     <span class="filename">${fileName}</span>
     <span class="badge">View only — download disabled</span>
