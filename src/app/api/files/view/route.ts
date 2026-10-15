@@ -188,79 +188,106 @@ export async function GET(req: NextRequest) {
   </div>
   ${embedHtml}
   <script>
-    // Screenshot policy enforcement — only fires when a session token
-    // is present (i.e. a student is viewing the file). The first two
-    // PrintScreen presses produce a warning; the third locks the
-    // account and force-logs-out the student on the next heartbeat.
+    // ─── Screenshot Policy Enforcement (inside the file viewer iframe) ────
+    // This script runs INSIDE the iframe. It detects PrintScreen, Win+Shift+S,
+    // Win+Shift+T, and clipboard captures, then calls the screenshot-attempt
+    // API (3-strike policy: 2 warnings → lock on 3rd).
+    //
+    // The PARENT window (StudentLayout) also has its own listener, but when
+    // the iframe has focus, the parent's keydown event might NOT fire. So
+    // we need BOTH: the iframe's listener (catches events when iframe has
+    // focus) AND the parent's listener (catches events when the parent has
+    // focus). The API call is idempotent — the server debounces by 800ms
+    // via the screenshotAttempts counter.
     var SESSION_TOKEN = ${JSON.stringify(sessionToken)};
     var FILE_ID = ${JSON.stringify(fileId)};
     var FILE_NAME = ${JSON.stringify(fileName)};
     var LOCKED = false;
+    var recording = false;
 
     // Expose the session token on window.__sessionToken so the global
     // anti-capture script (from layout.tsx) can pick it up and call the
     // screenshot-attempt API. This ensures the SAME detection logic runs
-    // inside the iframe as on the main student pages (PrintScreen,
-    // Win+Shift+S, Win+Shift+T, clipboard polling).
+    // inside the iframe as on the main student pages.
     if (SESSION_TOKEN) {
       window.__sessionToken = SESSION_TOKEN;
     }
-    // Also tell the global script which file is being viewed so the
-    // audit log records the file name.
     window.__currentFileName = FILE_NAME;
 
     function showScreenshotOverlay(message, locked) {
-      // Build a full-screen overlay so the student can't miss the warning
-      // even if the file viewer iframe is scrolled.
       var existing = document.getElementById('screenshot-overlay');
       if (existing) existing.remove();
       var div = document.createElement('div');
       div.id = 'screenshot-overlay';
-      div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);color:white;font-family:sans-serif;display:flex;align-items:center;justify-content:center;z-index:99999;padding:24px;';
+      div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);color:white;font-family:sans-serif;display:flex;align-items:center;justify-content:center;z-index:999999;padding:24px;';
       var inner = document.createElement('div');
-      inner.style.cssText = 'max-width:560px;text-align:center;background:#1a1a1a;border:1px solid ' + (locked ? '#f43f5e' : '#f59e0b') + ';border-radius:12px;padding:32px;box-shadow:0 10px 30px rgba(0,0,0,0.5);';
+      inner.style.cssText = 'max-width:560px;text-align:center;background:#1a1a1a;border:1px solid ' + (locked ? '#f43f5e' : '#f59e0b') + ';border-radius:16px;padding:40px;box-shadow:0 10px 40px rgba(0,0,0,0.6);';
       var icon = document.createElement('div');
-      icon.style.cssText = 'font-size:48px;margin-bottom:16px;';
+      icon.style.cssText = 'font-size:56px;margin-bottom:16px;';
       icon.textContent = locked ? '🔒' : '⚠️';
       var title = document.createElement('div');
-      title.style.cssText = 'font-size:20px;font-weight:700;margin-bottom:12px;color:' + (locked ? '#f43f5e' : '#f59e0b') + ';';
+      title.style.cssText = 'font-size:22px;font-weight:700;margin-bottom:12px;color:' + (locked ? '#f43f5e' : '#f59e0b') + ';';
       title.textContent = locked ? 'Account Locked' : 'Screenshot Attempt Detected';
       var msg = document.createElement('p');
-      msg.style.cssText = 'font-size:14px;line-height:1.6;color:#e5e7eb;margin-bottom:8px;';
+      msg.style.cssText = 'font-size:15px;line-height:1.6;color:#e5e7eb;white-space:pre-line;margin-bottom:8px;';
       msg.textContent = message;
       inner.appendChild(icon);
       inner.appendChild(title);
       inner.appendChild(msg);
       if (locked) {
         var note = document.createElement('p');
-        note.style.cssText = 'font-size:12px;color:#9ca3af;margin-top:16px;';
-        note.textContent = 'You will be logged out. Contact the placement office to unlock your account.';
+        note.style.cssText = 'font-size:13px;color:#9ca3af;margin-top:16px;';
+        note.textContent = 'You will be logged out shortly. Please call the admin to unlock your account.';
         inner.appendChild(note);
+        // Also blank the screen behind the overlay
+        var blank = document.createElement('div');
+        blank.style.cssText = 'position:fixed;inset:0;background:#1a1a1a;z-index:999998;';
+        document.body.appendChild(blank);
+      } else {
+        var btn = document.createElement('button');
+        btn.textContent = 'I understand';
+        btn.style.cssText = 'margin-top:24px;background:#f59e0b;color:white;border:none;padding:10px 32px;border-radius:10px;cursor:pointer;font-size:15px;font-weight:600;';
+        btn.addEventListener('click', function() { div.remove(); });
+        inner.appendChild(btn);
+        // Auto-close warnings after 8 seconds
+        setTimeout(function() { if (div.parentNode) div.remove(); }, 8000);
       }
       div.appendChild(inner);
       document.body.appendChild(div);
     }
 
-    function recordScreenshotAttempt() {
+    function recordScreenshotAttempt(source) {
       if (LOCKED || !SESSION_TOKEN) return;
+      if (recording) return; // prevent double-fire from keydown+keyup
+      recording = true;
+      setTimeout(function() { recording = false; }, 800);
+
       // Empty the clipboard immediately to make the screenshot useless
-      try { navigator.clipboard.writeText('').catch(function(){}); } catch(e){}
+      try { navigator.clipboard.writeText('').catch(function(){}); } catch(e) {}
+
       fetch('/api/students/screenshot-attempt', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + SESSION_TOKEN,
         },
-        body: JSON.stringify({ fileId: FILE_ID, fileName: FILE_NAME }),
+        body: JSON.stringify({ fileId: FILE_ID, fileName: FILE_NAME, page: 'file-viewer' }),
       }).then(function(r) { return r.json(); }).then(function(data) {
+        if (!data || data.error) return;
+        if (data.enabled === false) return; // policy disabled by admin
         if (data.locked) {
           LOCKED = true;
-          showScreenshotOverlay(data.message || 'Your account has been locked after 3 screenshot attempts.', true);
-          // Try to notify the parent window so it can close the file viewer
-          // and route the user back to the login page.
+          window.__sessionToken = null;
+          showScreenshotOverlay(data.message || 'Your account has been locked due to restrictions. Please call the admin to unlock the account.', true);
+          // Notify the parent window so it can close the file viewer
+          // and redirect the student to the login page.
           try {
             window.parent.postMessage({ type: 'STUDENT_LOCKED', message: data.message }, '*');
           } catch(e) {}
+          // Also clear the parent's session and redirect
+          setTimeout(function() {
+            try { window.parent.postMessage({ type: 'FORCE_LOGOUT' }, '*'); } catch(e) {}
+          }, 5000);
         } else if (data.action === 'WARNING') {
           showScreenshotOverlay(data.message || 'Screenshot attempt detected.', false);
           try {
@@ -272,24 +299,104 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    document.addEventListener('keyup', function(e) {
-      if (e.key === 'PrintScreen') {
-        e.preventDefault();
-        recordScreenshotAttempt();
+    // ─── Keydown/Keyup handler — detects ALL screenshot shortcuts ───────
+    // - PrintScreen (plain, Win+PrintScreen, Ctrl+PrintScreen)
+    // - Win+Shift+S (Snipping Tool)
+    // - Win+Shift+T (Text Extractor)
+    // - Meta key alone (Windows key) — blocked
+    function handleScreenshotKey(e) {
+      if (!SESSION_TOKEN) return; // admin view — no policy
+      var isScreenshotKey = false;
+      // Standard PrintScreen
+      if (e.key === 'PrintScreen' || e.code === 'PrintScreen' || e.keyCode === 44) {
+        isScreenshotKey = true;
       }
-    });
-    document.addEventListener('keydown', function(e) {
-      if ((e.ctrlKey && (e.key === 's' || e.key === 'p' || e.key === 'u')) ||
-          e.key === 'F12' ||
-          (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C'))) {
+      // Win+Shift+S (Snipping Tool) — metaKey is the Windows key
+      if (e.metaKey && e.shiftKey && (e.key === 'S' || e.key === 's')) {
+        isScreenshotKey = true;
+      }
+      // Win+Shift+T (Text Extractor)
+      if (e.metaKey && e.shiftKey && (e.key === 'T' || e.key === 't')) {
+        isScreenshotKey = true;
+      }
+      if (isScreenshotKey) {
         e.preventDefault();
+        e.stopPropagation();
+        // Clear clipboard IMMEDIATELY
+        try { navigator.clipboard.writeText('').catch(function(){}); } catch(err) {}
+        // Blank the screen so any captured frame is dark
+        var blank = document.getElementById('screenshot-blank');
+        if (!blank) {
+          blank = document.createElement('div');
+          blank.id = 'screenshot-blank';
+          blank.style.cssText = 'position:fixed;inset:0;background:#1a1a1a;z-index:999998;';
+          document.body.appendChild(blank);
+        }
+        recordScreenshotAttempt(e.type === 'keydown' ? 'keydown-' + e.key : 'keyup-' + e.key);
         return false;
       }
-      if (e.key === 'PrintScreen') {
-        e.preventDefault();
-        recordScreenshotAttempt();
+    }
+
+    // Listen on BOTH keydown AND keyup (capture phase) so we catch the
+    // event regardless of which element inside the iframe has focus.
+    document.addEventListener('keydown', handleScreenshotKey, true);
+    document.addEventListener('keyup', handleScreenshotKey, true);
+
+    // ─── Clipboard polling — catches OS-level captures ──────────────────
+    // Some screenshot tools (Snipping Tool via taskbar) don't fire a key
+    // event. Poll the clipboard every 1 second; if it contains a large
+    // data blob (>200 chars), treat it as a screenshot capture.
+    if (SESSION_TOKEN && navigator.clipboard && navigator.clipboard.readText) {
+      setInterval(function() {
+        navigator.clipboard.readText().then(function(text) {
+          if (text && text.length > 200) {
+            navigator.clipboard.writeText('').catch(function(){});
+            recordScreenshotAttempt('clipboard-large-read');
+          }
+        }).catch(function(){});
+      }, 1000);
+    }
+
+    // ─── Blur/visibility handler — blanks the screen when the tab loses focus ──
+    // This prevents the student from using Alt+Tab to switch to another app
+    // and taking a screenshot there. When the tab regains focus, we check
+    // the clipboard for screenshot content.
+    document.addEventListener('visibilitychange', function() {
+      if (document.hidden) {
+        // Tab lost focus — blank the screen
+        var blank = document.getElementById('visibility-blank');
+        if (!blank) {
+          blank = document.createElement('div');
+          blank.id = 'visibility-blank';
+          blank.style.cssText = 'position:fixed;inset:0;background:#1a1a1a;z-index:999997;display:flex;align-items:center;justify-content:center;color:white;font-family:sans-serif;font-size:18px;';
+          blank.textContent = '🔒 Content hidden — return to the portal to continue';
+          document.body.appendChild(blank);
+        }
+      } else {
+        // Tab regained focus — check clipboard for screenshot content
+        var blank = document.getElementById('visibility-blank');
+        if (blank && blank.parentNode) blank.remove();
+        // Check if the clipboard now contains a screenshot
+        if (SESSION_TOKEN && navigator.clipboard && navigator.clipboard.readText) {
+          navigator.clipboard.readText().then(function(text) {
+            if (text && text.length > 200) {
+              navigator.clipboard.writeText('').catch(function(){});
+              recordScreenshotAttempt('visibility-clipboard-read');
+            }
+          }).catch(function(){});
+        }
       }
     });
+
+    // ─── Continuous clipboard clearing ──────────────────────────────────
+    // Clear the clipboard every 500ms so any screenshot capture is
+    // immediately overwritten with empty content. This is the most
+    // reliable way to prevent screenshots from being usable.
+    if (SESSION_TOKEN) {
+      setInterval(function() {
+        try { navigator.clipboard.writeText('').catch(function(){}); } catch(e) {}
+      }, 500);
+    }
   </script>
 </body>
 </html>`

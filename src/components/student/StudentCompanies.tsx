@@ -77,30 +77,35 @@ export function StudentCompanies() {
     loadStudentAndDrives()
   }, [user?.id])
 
-  // Listen for "STUDENT_LOCKED" postMessage events from the file viewer
-  // iframe. When the student presses PrintScreen for the 3rd time, the
-  // iframe calls /api/students/screenshot-attempt which locks the account
-  // AND deletes the student's session. The next heartbeat (within 10s)
-  // will then detect the missing session and force-logout the student.
-  // We also close the file viewer overlay immediately so they can't keep
-  // looking at the file.
+  // Listen for "STUDENT_LOCKED" and "FORCE_LOGOUT" postMessage events from
+  // the file viewer iframe. When the student presses PrintScreen for the
+  // 3rd time, the iframe calls /api/students/screenshot-attempt which locks
+  // the account AND deletes the student's session.
+  // We close the file viewer overlay immediately and clear the local
+  // state so the student is redirected to the landing page.
   useEffect(() => {
     const handler = (e: MessageEvent) => {
       if (!e.data || typeof e.data !== 'object') return
       if (e.data.type === 'STUDENT_LOCKED') {
         setViewingFileId(null)
-        // Force the next heartbeat to fire immediately so the lock takes
-        // effect right now (instead of waiting up to 10s).
+      }
+      if (e.data.type === 'FORCE_LOGOUT') {
+        // The iframe detected a lock — clear ALL persisted state and
+        // hard-redirect to the landing page. We can't rely on the heartbeat
+        // hook here because it might take 10s to fire.
+        setViewingFileId(null)
+        try {
+          localStorage.removeItem('vsbec-placement-store')
+          localStorage.removeItem('app-state')
+          sessionStorage.clear()
+        } catch {}
+        // Delete the server-side session
+        if (sessionToken) {
+          fetch(`/api/auth/session?token=${encodeURIComponent(sessionToken)}`, { method: 'DELETE' }).catch(() => {})
+        }
+        // Hard redirect — use replace so the student can't use the back button
         setTimeout(() => {
-          // Trigger a force-logout by issuing a heartbeat that will fail.
-          fetch('/api/auth/session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: sessionToken }),
-          }).then(() => {
-            // The heartbeat hook will pick up the 'invalid' result and
-            // route the student to the login page with a popup.
-          }).catch(() => {})
+          window.location.replace('/')
         }, 500)
       }
     }
