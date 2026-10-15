@@ -47,15 +47,145 @@ export const viewport: Viewport = {
 // This runs on EVERY page of the website and blocks:
 //   - Right-click context menu → shows popup
 //   - Copy / Paste → shows popup
-//   - PrintScreen (screenshot) → shows popup + clears clipboard
+//   - PrintScreen + Win+PrintScreen + Win+Shift+S + Win+Shift+T → calls the
+//     screenshot-attempt API (3-strike policy: 2 warnings → lock on 3rd)
 //   - Screen recording → shows popup
 //   - Ctrl+S, Ctrl+P, Ctrl+U, F12, Ctrl+Shift+I/J/C → blocked
 //   - Text selection, drag-and-drop
 //   - Visibility change (blurs content when tab loses focus)
+//
+// The screenshot-attempt API call requires a student session token. The
+// StudentLayout component sets window.__sessionToken when the student logs
+// in, so this global script can call the API from any page.
 const antiCaptureScript = `
 <script>
 (function() {
   'use strict';
+
+  // ─── Screenshot Policy State ──────────────────────────────────────
+  // These are read from /api/students/screenshot-attempt (GET) on mount
+  // and updated after each attempt. The global script uses them to decide
+  // whether to show the warning/lock overlay or do nothing (policy off).
+  var policyEnabled = true;
+  var maxAttempts = 3;
+  var currentAttempts = 0;
+  var isLocked = false;
+  var recording = false; // prevents double-fire from keydown+keyup
+
+  // Fetch the current policy state on load. The GET endpoint returns
+  // { enabled, maxAttempts, attempt, locked } based on the session token.
+  function fetchPolicyState() {
+    var token = window.__sessionToken;
+    if (!token) return;
+    fetch('/api/students/screenshot-attempt?token=' + encodeURIComponent(token))
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!data || data.error) return;
+        policyEnabled = data.enabled !== false;
+        maxAttempts = data.maxAttempts || 3;
+        currentAttempts = data.attempt || 0;
+        isLocked = data.locked === true;
+      })
+      .catch(function() {});
+  }
+  fetchPolicyState();
+  // Re-fetch every 30s in case the admin toggles the policy.
+  setInterval(fetchPolicyState, 30000);
+
+  // ─── Screenshot Warning / Lock Overlay ───────────────────────────
+  // Replaces the old generic popup. Shows the attempt count and the
+  // "3rd attempt will lock" message, or the lock message on the 3rd.
+  function showScreenshotOverlay(message, locked) {
+    var existing = document.getElementById('screenshot-policy-overlay');
+    if (existing) existing.remove();
+    var div = document.createElement('div');
+    div.id = 'screenshot-policy-overlay';
+    div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);color:white;font-family:-apple-system,BlinkMacSystemFont,sans-serif;display:flex;align-items:center;justify-content:center;z-index:9999999;padding:24px;';
+    var inner = document.createElement('div');
+    inner.style.cssText = 'max-width:520px;text-align:center;background:' + (locked ? '#1a1a1a' : '#1a1a1a') + ';border:1px solid ' + (locked ? '#f43f5e' : '#f59e0b') + ';border-radius:16px;padding:40px;box-shadow:0 10px 40px rgba(0,0,0,0.6);';
+    var icon = '<div style="font-size:56px;margin-bottom:16px;">' + (locked ? '🔒' : '⚠️') + '</div>';
+    var title = '<h2 style="font-size:22px;font-weight:700;margin-bottom:12px;color:' + (locked ? '#f43f5e' : '#f59e0b') + ';">' + (locked ? 'Account Locked' : 'Screenshot Attempt Detected') + '</h2>';
+    var msg = '<p style="font-size:15px;line-height:1.6;color:#e5e7eb;white-space:pre-line;">' + message + '</p>';
+    var btn = '';
+    if (!locked) {
+      btn = '<button id="screenshot-policy-ok" style="margin-top:24px;background:#f59e0b;color:white;border:none;padding:10px 32px;border-radius:10px;cursor:pointer;font-size:15px;font-weight:600;">I understand</button>';
+    } else {
+      btn = '<p style="margin-top:24px;font-size:13px;color:#9ca3af;">You will be logged out shortly...</p>';
+    }
+    inner.innerHTML = icon + title + msg + btn;
+    div.appendChild(inner);
+    document.body.appendChild(div);
+    // Also blank the screen behind the overlay so any captured frame is dark
+    var blank = document.getElementById('screenshot-blank-overlay');
+    if (!blank) {
+      blank = document.createElement('div');
+      blank.id = 'screenshot-blank-overlay';
+      blank.style.cssText = 'position:fixed;inset:0;background:#1a1a1a;z-index:9999998;';
+      document.body.appendChild(blank);
+    }
+    if (!locked) {
+      var okBtn = document.getElementById('screenshot-policy-ok');
+      if (okBtn) {
+        okBtn.addEventListener('click', function() {
+          div.remove();
+          if (blank && blank.parentNode) blank.remove();
+        });
+      }
+      // Auto-close warnings after 8 seconds
+      setTimeout(function() {
+        if (div.parentNode) div.remove();
+        if (blank && blank.parentNode) blank.remove();
+      }, 8000);
+    }
+  }
+
+  // ─── Record Screenshot Attempt ────────────────────────────────────
+  // Called on every detected screenshot shortcut. Calls the API,
+  // then shows the appropriate overlay based on the response.
+  function recordScreenshotAttempt(source) {
+    var token = window.__sessionToken;
+    // Only call the API if we have a student session token (admin pages
+    // don't set it, and the policy doesn't apply to admins).
+    if (!token) {
+      // No student token → just show the old generic popup for non-student users
+      showBlockPopup('Screenshots are disabled on this website.');
+      return;
+    }
+    if (recording) return; // prevent double-fire
+    recording = true;
+    setTimeout(function() { recording = false; }, 800);
+
+    // Clear clipboard immediately
+    try { navigator.clipboard.writeText('').catch(function(){}); } catch(e) {}
+
+    fetch('/api/students/screenshot-attempt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({
+        fileId: 'student-portal',
+        fileName: source || 'screenshot',
+        page: window.location.pathname,
+      }),
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!data || data.error) return;
+        if (data.enabled === false) return; // policy disabled by admin
+        currentAttempts = data.attempt;
+        if (data.locked) {
+          isLocked = true;
+          showScreenshotOverlay(data.message || 'Your account has been locked due to restrictions. Please call the admin to unlock the account.', true);
+          // Force-logout after 5 seconds
+          setTimeout(function() {
+            window.__sessionToken = null;
+            window.location.href = '/';
+          }, 5000);
+        } else if (data.action === 'WARNING') {
+          showScreenshotOverlay(data.message || 'Screenshot attempt detected.', false);
+        }
+      })
+      .catch(function() {});
+  }
 
   // Create a custom popup that appears centered INSIDE the website.
   // On OK click or auto-close, the website returns to normal (overlay removed).
@@ -123,57 +253,74 @@ const antiCaptureScript = `
     return false;
   });
 
-  // 2. Block PrintScreen (screenshot) — handles Win+PrintScreen, Ctrl+PrintScreen,
-  //    and plain PrintScreen. Blanks screen + popup, auto-restore on OK.
-  document.addEventListener('keyup', function(e) {
-    if (window.__blockPopupDisabled) return;
+  // 2. Block ALL screenshot shortcuts:
+  //    - PrintScreen (plain)
+  //    - Win+PrintScreen (Windows captures to file)
+  //    - Win+Shift+S (Snipping Tool / Snip & Sketch)
+  //    - Win+Shift+T (Text Extractor / PowerToys)
+  //    - Ctrl+PrintScreen
+  //
+  // We listen on BOTH keydown AND keyup because different browsers and OS
+  // combos deliver the event at different phases. The recording flag
+  // prevents double-counting within 800ms.
+  function handleScreenshotKey(e, source) {
+    if (window.__blockPopupDisabled) return; // admin pages
+    var isScreenshotKey = false;
+    // Standard PrintScreen (key, code, or keyCode 44)
     if (e.key === 'PrintScreen' || e.code === 'PrintScreen' || e.keyCode === 44) {
+      isScreenshotKey = true;
+    }
+    // Win+Shift+S (Snipping Tool) — metaKey is the Windows key on some browsers
+    if (e.metaKey && e.shiftKey && (e.key === 'S' || e.key === 's')) {
+      isScreenshotKey = true;
+    }
+    // Win+Shift+T (Text Extractor)
+    if (e.metaKey && e.shiftKey && (e.key === 'T' || e.key === 't')) {
+      isScreenshotKey = true;
+    }
+    if (isScreenshotKey) {
+      e.preventDefault();
+      e.stopPropagation();
       // Clear clipboard immediately
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText('').catch(function(){});
+      try { navigator.clipboard.writeText('').catch(function(){}); } catch(err) {}
+      // Blank the screen so any captured frame is dark
+      var blank = document.getElementById('screenshot-blank-overlay');
+      if (!blank) {
+        blank = document.createElement('div');
+        blank.id = 'screenshot-blank-overlay';
+        blank.style.cssText = 'position:fixed;inset:0;background:#1a1a1a;z-index:9999998;';
+        document.body.appendChild(blank);
       }
-      // Temporarily blank the screen (removed when popup closes)
-      var existing = document.getElementById('screenshot-blank-overlay');
-      if (!existing) {
-        var blankOverlay = document.createElement('div');
-        blankOverlay.id = 'screenshot-blank-overlay';
-        blankOverlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#1a1a1a;z-index:9999998;';
-        document.body.appendChild(blankOverlay);
-      }
-      // Show popup — clicking OK or auto-close will remove the blank overlay
-      showBlockPopup('Screenshots are disabled on this website. Click OK to return.');
+      recordScreenshotAttempt(source);
+      return false;
     }
-  });
+  }
 
-  // Also catch keydown for Win+PrintScreen (some browsers send it on keydown)
   document.addEventListener('keydown', function(e) {
-    if (window.__blockPopupDisabled) return;
-    if (window.__blockPopupDisabled) return;
-    if (e.key === 'PrintScreen' || e.code === 'PrintScreen' || e.keyCode === 44) {
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText('').catch(function(){});
-      }
-      var existing = document.getElementById('screenshot-blank-overlay');
-      if (!existing) {
-        var blankOverlay = document.createElement('div');
-        blankOverlay.id = 'screenshot-blank-overlay';
-        blankOverlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#1a1a1a;z-index:9999998;';
-        document.body.appendChild(blankOverlay);
-      }
-      showBlockPopup('Screenshots are disabled on this website. Click OK to return.');
-    }
-  });
+    handleScreenshotKey(e, 'keydown');
+  }, true);
 
-  // 2b. Detect screenshot via clipboard read
+  document.addEventListener('keyup', function(e) {
+    handleScreenshotKey(e, 'keyup');
+  }, true);
+
+  // 2b. Detect screenshot via clipboard read (catches OS-level captures
+  //     that don't fire a key event, e.g. Snipping Tool via taskbar)
   if (navigator.clipboard && navigator.clipboard.readText) {
     setInterval(function() {
+      if (window.__blockPopupDisabled) return;
       navigator.clipboard.readText().then(function(text) {
         if (text && text.length > 50) {
           navigator.clipboard.writeText('').catch(function(){});
-          showBlockPopup('Screenshots are disabled on this website. Click OK to return.');
+          // If we have a student token, record the attempt via the API
+          if (window.__sessionToken) {
+            recordScreenshotAttempt('clipboard-read');
+          } else {
+            showBlockPopup('Screenshots are disabled on this website.');
+          }
         }
       }).catch(function(){});
-    }, 1000);
+    }, 2000);
   }
 
   // 3. Block copy (Ctrl+C) → show popup
@@ -219,14 +366,6 @@ const antiCaptureScript = `
     }
     // Ctrl+A (select all)
     if (e.ctrlKey && e.key === 'a') { e.preventDefault(); showBlockPopup('Select all is disabled.'); return false; }
-    // Ctrl+C (copy) on non-input
-    if (e.ctrlKey && e.key === 'c' && !e.target.matches('input, textarea, [contenteditable]')) {
-      e.preventDefault(); showBlockPopup('Copying is disabled.'); return false;
-    }
-    // Ctrl+V (paste) on non-input
-    if (e.ctrlKey && e.key === 'v' && !e.target.matches('input, textarea, [contenteditable]')) {
-      e.preventDefault(); showBlockPopup('Pasting is disabled.'); return false;
-    }
   });
 
   // 7. Disable drag-and-drop
