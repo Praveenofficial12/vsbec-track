@@ -197,6 +197,18 @@ export async function GET(req: NextRequest) {
     var FILE_NAME = ${JSON.stringify(fileName)};
     var LOCKED = false;
 
+    // Expose the session token on window.__sessionToken so the global
+    // anti-capture script (from layout.tsx) can pick it up and call the
+    // screenshot-attempt API. This ensures the SAME detection logic runs
+    // inside the iframe as on the main student pages (PrintScreen,
+    // Win+Shift+S, Win+Shift+T, clipboard polling).
+    if (SESSION_TOKEN) {
+      window.__sessionToken = SESSION_TOKEN;
+    }
+    // Also tell the global script which file is being viewed so the
+    // audit log records the file name.
+    window.__currentFileName = FILE_NAME;
+
     function showScreenshotOverlay(message, locked) {
       // Build a full-screen overlay so the student can't miss the warning
       // even if the file viewer iframe is scrolled.

@@ -1956,3 +1956,59 @@ Stage Summary:
 - Files changed:
   - src/app/layout.tsx (rewrote the global anti-capture script — added screenshot-attempt API call, Win+Shift+S/T detection, warning/lock overlay)
   - src/components/student/StudentLayout.tsx (removed duplicate listener + overlays; added window.__sessionToken setter)
+
+---
+Task ID: 16
+Agent: Main (Orchestrator)
+Task: Fix student lock redirect + admin file viewer + create one test student
+
+Work Log:
+- User reported: after the lock popup shows, the student isn't being redirected to the landing page properly. Also wanted the admin to be able to preview files (Word/PDF/Excel) inside the website, and the anti-capture to work in the file viewer too. Also wanted ONE test student account created.
+
+Fixes:
+1. Fixed the student lock redirect flow in src/app/layout.tsx:
+   - The global anti-capture script now clears `localStorage.removeItem('app-state')` before redirecting to '/'. This removes the persisted Zustand state (user, sessionToken, view) so the student is properly logged out after the redirect — previously the persisted session survived the page reload and the student landed on the dashboard instead of the landing page.
+   - The lock overlay shows the message: "Your account has been locked due to restrictions. Please call the admin to unlock the account." with a "You will be logged out shortly..." countdown.
+   - After 5 seconds, `window.location.href = '/'` redirects to the landing page.
+   - The session token is cleared from `window.__sessionToken` immediately so no further API calls can be made.
+
+2. Added admin file viewer to src/components/admin/AdminDriveDetail.tsx:
+   - Added a "View" (Eye icon) button next to each uploaded file in the drive detail page.
+   - Clicking it opens a full-screen overlay with an iframe that loads `/api/files/view?fileId=<id>`.
+   - Admin-originated views don't pass a session token, so the screenshot policy doesn't apply to admins.
+   - The iframe is sandboxed (`allow-same-origin allow-scripts`) to prevent download/navigation.
+   - A red close button (X) in the top-right corner closes the overlay.
+   - This means admins can now preview Word (.doc/.docx), PDF, Excel (.xlsx), PowerPoint (.pptx), images, and text files directly inside the website — no external viewers, no downloads.
+
+3. Updated src/app/api/files/view/route.ts:
+   - The file viewer HTML now sets `window.__sessionToken = SESSION_TOKEN` and `window.__currentFileName = FILE_NAME` inside the iframe.
+   - This allows the global anti-capture script (from layout.tsx) to run inside the iframe with the student's token, so PrintScreen / Win+Shift+S / Win+Shift+T detection works inside the file viewer too.
+   - The anti-capture script's `fetchPolicyState()` and `recordScreenshotAttempt()` functions now work inside the iframe because they read `window.__sessionToken`.
+
+4. Created ONE test student account:
+   - Register Number: VSB24001
+   - Name: Praveen Kumar
+   - Email: praveen@vsbec.edu.in
+   - Department: CSE
+   - Password: cse#109 (CSE department password)
+   - Mobile: +919876543210
+
+Verification (API-level):
+- Login as VSB24001 → success, token returned ✅
+- Screenshot attempt 1 → WARNING, attempt=1/3, remaining=2, "Screenshot attempt 1 of 3 detected. Attempts remaining before lock: 2." ✅
+- Screenshot attempt 2 → WARNING, attempt=2/3, remaining=1, "WARNING: This is your FINAL warning. ONE more attempt will LOCK..." ✅
+- Screenshot attempt 3 → LOCKED, attempt=3/3, remaining=0, "Your account has been locked due to restrictions. Please call the admin to unlock the account." ✅
+- Login after lock → 403, "Your account is locked. Please contact the placement office to unlock it." ✅
+- Admin unlock → success, student can log in again ✅
+- Lint clean (0 errors, 0 warnings) ✅
+- Dev server stable on port 3000 ✅
+
+Stage Summary:
+- Student lock redirect: the lock overlay shows for 5 seconds with the "Please call the admin to unlock the account" message, then the student is redirected to the landing page with the persisted session state cleared.
+- Admin file viewer: admins can now click the Eye icon on any uploaded file to preview it inside the website (Word/PDF/Excel/PPT/images/text all supported via the /api/files/view route).
+- Anti-capture in file viewer: the global anti-capture script now runs inside the file viewer iframe with the student's session token, so PrintScreen / Win+Shift+S / Win+Shift+T detection works there too.
+- One test student created: VSB24001 / Praveen Kumar / cse#109.
+- Files changed:
+  - src/app/layout.tsx (clear localStorage on lock, redirect to landing page)
+  - src/app/api/files/view/route.ts (set window.__sessionToken inside the iframe)
+  - src/components/admin/AdminDriveDetail.tsx (added View button + file viewer overlay)

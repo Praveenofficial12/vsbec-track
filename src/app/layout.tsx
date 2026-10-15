@@ -174,10 +174,22 @@ const antiCaptureScript = `
         currentAttempts = data.attempt;
         if (data.locked) {
           isLocked = true;
+          // Show the lock overlay with the "Please call the admin" message.
+          // The overlay is non-dismissable and auto-redirects to the landing
+          // page after 5 seconds.
           showScreenshotOverlay(data.message || 'Your account has been locked due to restrictions. Please call the admin to unlock the account.', true);
-          // Force-logout after 5 seconds
+          // Clear the session token immediately so no further API calls
+          // can be made with it.
+          window.__sessionToken = null;
+          // Clear the persisted Zustand state so the student is properly
+          // logged out after the redirect (otherwise the persisted
+          // sessionToken would survive the page reload).
+          try {
+            localStorage.removeItem('app-state');
+          } catch (e) {}
+          // Redirect to the landing page after 5 seconds (the overlay's
+          // "You will be logged out shortly..." countdown matches this).
           setTimeout(function() {
-            window.__sessionToken = null;
             window.location.href = '/';
           }, 5000);
         } else if (data.action === 'WARNING') {

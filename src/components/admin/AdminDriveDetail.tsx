@@ -24,6 +24,7 @@ import {
   CheckCircle2, XCircle, Clock, Award, Activity, AlertCircle, ListChecks,
   Trophy, Loader2, Download, IndianRupee, Trash2, RotateCcw, PartyPopper, Bell, Save, Lock,
   UploadCloud, FileText, File as FileIcon, Paperclip, ExternalLink, ChevronUp, ChevronDown,
+  Eye, X,
 } from 'lucide-react'
 import type { Drive, DriveParticipation, Student } from '@/lib/types'
 
@@ -80,6 +81,11 @@ export function AdminDriveDetail() {
   const [uploading, setUploading] = useState(false)
   const [fileDescription, setFileDescription] = useState('')
   const [deletingFile, setDeletingFile] = useState<string | null>(null)
+  // Admin file viewer overlay — opens the /api/files/view route in an
+  // iframe so the admin can preview the file inside the website without
+  // downloading it. Admin-originated views don't pass a session token,
+  // so the screenshot policy doesn't apply to admins.
+  const [viewingFileId, setViewingFileId] = useState<string | null>(null)
   // Drive links (shared in the announcement area)
   const [driveLinks, setDriveLinks] = useState<any[]>([])
   const [linkTitle, setLinkTitle] = useState('')
@@ -810,6 +816,14 @@ export function AdminDriveDetail() {
                                 {formatFileSize(f.fileSize)} · {new Date(f.createdAt).toLocaleString()}
                               </p>
                             </div>
+                            {/* View button — opens the file in an inline iframe overlay */}
+                            <button
+                              onClick={() => setViewingFileId(f.id)}
+                              className="flex h-7 w-7 items-center justify-center rounded-md text-emerald-600 transition-colors hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-900/20"
+                              title="Preview file"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                            </button>
                             <button
                               onClick={async () => {
                                 if (!driveId) return
@@ -1509,6 +1523,36 @@ export function AdminDriveDetail() {
           </div>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Admin File Viewer Overlay — opens the file in an inline iframe.
+          Admin-originated views don't pass a session token, so the
+          screenshot policy doesn't apply. The iframe is sandboxed to
+          prevent download/navigation. */}
+      {viewingFileId && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80"
+          onClick={() => setViewingFileId(null)}
+        >
+          <div
+            className="relative h-full w-full max-w-5xl max-h-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setViewingFileId(null)}
+              className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-rose-600 text-white shadow-lg transition-colors hover:bg-rose-700"
+              title="Close file viewer"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <iframe
+              src={`/api/files/view?fileId=${viewingFileId}`}
+              className="h-full w-full rounded-lg border-0 bg-white"
+              sandbox="allow-same-origin allow-scripts"
+              title="File Viewer — Admin Preview"
+            />
+          </div>
+        </div>
+      )}
     </AdminLayout>
   )
 }
