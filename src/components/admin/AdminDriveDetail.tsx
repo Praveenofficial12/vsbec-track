@@ -82,7 +82,7 @@ export function AdminDriveDetail() {
   const [driveFiles, setDriveFiles] = useState<DriveFile[]>([])
   const [uploading, setUploading] = useState(false)
   const [fileDescription, setFileDescription] = useState('')
-  const [fileRound, setFileRound] = useState('') // which round this file belongs to
+  const [fileRound, setFileRound] = useState('general') // which round this file belongs to ('general' = no round)
   const [deletingFile, setDeletingFile] = useState<string | null>(null)
   // Admin file viewer overlay — opens the /api/files/view route in an
   // iframe so the admin can preview the file inside the website without
@@ -749,7 +749,7 @@ export function AdminDriveDetail() {
                           const formData = new FormData()
                           formData.append('file', file)
                           formData.append('description', fileDescription)
-                          formData.append('roundName', fileRound || '')
+                          formData.append('roundName', fileRound === 'general' ? '' : fileRound)
                           const res = await fetch(`/api/drives/${driveId}/files`, {
                             method: 'POST',
                             body: formData,
@@ -760,7 +760,7 @@ export function AdminDriveDetail() {
                           }
                           toast.success(`${file.name} uploaded — students can view it online (view only)`)
                           setFileDescription('')
-                          setFileRound('')
+                          setFileRound('general')
                           await refreshFiles()
                         } catch (err: any) {
                           toast.error(err.message || 'Failed to upload file')
@@ -783,7 +783,7 @@ export function AdminDriveDetail() {
                           <SelectValue placeholder="General (no round)" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">General (no round)</SelectItem>
+                          <SelectItem value="general">General (no round)</SelectItem>
                           <SelectItem value="Aptitude">Aptitude</SelectItem>
                           <SelectItem value="Coding">Coding</SelectItem>
                           <SelectItem value="GD">GD</SelectItem>
