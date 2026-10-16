@@ -52,9 +52,9 @@ export function useSessionHeartbeat() {
         { duration: 5000 },
       )
     } else if (reason === 'expired') {
-      toast.error('Your session has expired (6 hour limit). Please log in again.', { duration: 5000 })
+      toast.error('Your session has expired. Please log in again.', { duration: 5000 })
     } else {
-      toast.error('Your session is no longer valid. Please log in again.', { duration: 5000 })
+      toast.error('Your session has expired. Please log in again.', { duration: 5000 })
     }
     setShownWarning(true)
     setTimeout(() => { logoutInProgress.current = false }, 2000)
@@ -90,10 +90,11 @@ export function useSessionHeartbeat() {
             const beatRes = await apiPost('/api/auth/session', { token: sessionToken })
             if (cancelled) return
             if (beatRes?.ok === false) {
-              // Only force-logout if replaced by another tab — for expired
-              // or invalid, the server might be restarting (dev refresh).
+              // Heartbeat failed — the session is truly gone.
               if (beatRes.reason === 'replaced') {
                 forceLogout('replaced')
+              } else {
+                forceLogout('invalid')
               }
             }
             // Heartbeat succeeded — session is now valid, stay logged in.
@@ -125,15 +126,18 @@ export function useSessionHeartbeat() {
         .then((res: any) => {
           if (cancelled) return
           if (res?.ok === false) {
-            // Session replaced or invalid — force logout with popup.
+            // Session replaced, expired, or invalid — force logout with popup.
             const reason = res.reason as 'replaced' | 'expired' | 'invalid'
             if (reason === 'replaced') {
               forceLogout('replaced')
             } else if (reason === 'expired') {
               forceLogout('expired')
+            } else {
+              // 'invalid' — the session row was deleted (e.g. by the
+              // screenshot lock, or the 2-minute heartbeat grace period
+              // expired, or the admin deleted it). Force logout.
+              forceLogout('invalid')
             }
-            // For 'invalid' on heartbeat, don't force logout immediately —
-            // could be a transient DB issue. The next heartbeat will retry.
           }
         })
         .catch(() => { /* network error — ignore, retry next interval */ })
