@@ -58,7 +58,6 @@ export const viewport: Viewport = {
 // StudentLayout component sets window.__sessionToken when the student logs
 // in, so this global script can call the API from any page.
 const antiCaptureScript = `
-<script>
 // Defer the entire anti-capture script to run AFTER React hydration
 // to prevent "client-side exception" errors caused by DOM modifications
 // that conflict with React's virtual DOM.
@@ -592,7 +591,6 @@ const antiCaptureScript = `
     setTimeout(initAntiCapture, 0);
   }
 })();
-</script>
 `;
 
 export default function RootLayout({
