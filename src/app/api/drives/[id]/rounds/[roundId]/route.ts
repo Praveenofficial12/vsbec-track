@@ -25,6 +25,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         startTime: body.startTime || null,
         endTime: body.endTime || null,
         status: body.status,
+        statusUnlocked: body.statusUnlocked !== undefined ? body.statusUnlocked : undefined,
       },
     })
 

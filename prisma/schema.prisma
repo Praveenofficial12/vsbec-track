@@ -191,6 +191,12 @@ model Round {
   startTime   String?
   endTime     String?
   status      String   @default("UPCOMING") // UPCOMING | ONGOING | COMPLETED
+  // When false, students CANNOT update their round status for this round.
+  // The admin unlocks a round (e.g. "Coding") only after they are ready
+  // for students to self-report their results. When a round is locked,
+  // the student sees a "Locked by admin" message instead of the status
+  // dropdown.
+  statusUnlocked Boolean @default(false)
   createdAt   DateTime @default(now())
 
   drive       Drive    @relation(fields: [driveId], references: [id])

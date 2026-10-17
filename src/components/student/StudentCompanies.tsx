@@ -677,11 +677,16 @@ export function StudentCompanies() {
                           // once selected, the student cannot change any round status.
                           const driveClosed = myParticipation?.finalResult === 'REJECTED' || previousRoundFailed
                           const finalLocked = myParticipation?.finalResult === 'SELECTED'
+                          // Admin must unlock the round before students can update their status.
+                          // If round.statusUnlocked is false (or undefined for old data),
+                          // the student sees "Locked by admin" and cannot change the dropdown.
+                          const roundUnlocked = (round as any).statusUnlocked === true
 
                           return (
                             <div key={round.id} className={`flex flex-wrap items-center gap-3 rounded-lg border p-3 ${
                               driveClosed ? 'border-rose-200 bg-rose-50/50 dark:border-rose-800 dark:bg-rose-900/10' :
                               finalLocked ? 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-700 dark:bg-emerald-900/10' :
+                              !roundUnlocked ? 'border-amber-200 bg-amber-50/30 dark:border-amber-800 dark:bg-amber-900/10' :
                               previousRoundsCleared ? 'border-border bg-card' : 'border-border bg-muted/30 opacity-70'
                             }`}>
                               <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
@@ -703,13 +708,20 @@ export function StudentCompanies() {
                                 {finalLocked && (
                                   <p className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">Locked — final result is SELECTED</p>
                                 )}
-                                {!previousRoundsCleared && !driveClosed && !finalLocked && (
+                                {!roundUnlocked && !driveClosed && !finalLocked && (
+                                  <p className="text-[10px] font-medium text-amber-600 dark:text-amber-400">🔒 Locked by admin — wait for the admin to unlock this round</p>
+                                )}
+                                {roundUnlocked && !previousRoundsCleared && !driveClosed && !finalLocked && (
                                   <p className="text-[10px] text-muted-foreground">Locked — clear previous rounds first</p>
                                 )}
                               </div>
                               {driveClosed || finalLocked ? (
                                 <Badge variant="outline" className={`${STATUS_COLORS[status] || STATUS_COLORS.PENDING} text-xs`}>
                                   {status ? status.replace(/_/g, ' ') : 'Locked'}
+                                </Badge>
+                              ) : !roundUnlocked ? (
+                                <Badge variant="outline" className="border-amber-300 bg-amber-50 text-xs text-amber-700 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                                  🔒 Locked
                                 </Badge>
                               ) : previousRoundsCleared ? (
                                 <Select

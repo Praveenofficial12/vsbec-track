@@ -22,7 +22,7 @@ import { toast } from 'sonner'
 import {
   ArrowLeft, Calendar, Briefcase, MapPin, Users, Building2, Target,
   CheckCircle2, XCircle, Clock, Award, Activity, AlertCircle, ListChecks,
-  Trophy, Loader2, Download, IndianRupee, Trash2, RotateCcw, PartyPopper, Bell, Save, Lock,
+  Trophy, Loader2, Download, IndianRupee, Trash2, RotateCcw, PartyPopper, Bell, Save, Lock, Unlock,
   UploadCloud, FileText, File as FileIcon, Paperclip, ExternalLink, ChevronUp, ChevronDown,
   Eye, X,
 } from 'lucide-react'
@@ -1189,8 +1189,18 @@ export function AdminDriveDetail() {
                             <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                               <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {formatDate(round.date)}</span>
                               <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {round.startTime || '—'} - {round.endTime || '—'}</span>
+                              {/* Round status lock indicator */}
+                              {round.statusUnlocked ? (
+                                <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-[9px] text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+                                  <Unlock className="mr-0.5 h-2.5 w-2.5" /> Unlocked
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="border-rose-300 bg-rose-50 text-[9px] text-rose-700 dark:border-rose-800 dark:bg-rose-900/30 dark:text-rose-300">
+                                  <Lock className="mr-0.5 h-2.5 w-2.5" /> Locked
+                                </Badge>
+                              )}
                             </div>
-                            {/* Action buttons: Move Up/Down + Edit + Download cleared students + Delete */}
+                            {/* Action buttons: Move Up/Down + Edit + Lock/Unlock + Download cleared students + Delete */}
                             <div className="mt-3 flex flex-wrap gap-2">
                               <Button
                                 size="sm"
@@ -1214,6 +1224,39 @@ export function AdminDriveDetail() {
                               </Button>
                               <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => startEditRound(round)}>
                                 <Save className="h-3 w-3" /> Edit
+                              </Button>
+                              {/* Lock/Unlock round status button — when locked,
+                                  students cannot update their round status.
+                                  When unlocked, students can self-report. */}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className={`h-7 gap-1 text-xs ${round.statusUnlocked
+                                  ? 'border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-amber-900/20'
+                                  : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-900/20'
+                                }`}
+                                onClick={async () => {
+                                  try {
+                                    const newState = !round.statusUnlocked
+                                    await apiPut(`/api/drives/${driveId}/rounds/${round.id}`, {
+                                      roundName: round.roundName,
+                                      description: round.description || '',
+                                      date: round.date || '',
+                                      startTime: round.startTime || '',
+                                      endTime: round.endTime || '',
+                                      status: round.status,
+                                      statusUnlocked: newState,
+                                    })
+                                    toast.success(`${round.roundName} round ${newState ? 'unlocked' : 'locked'} — students ${newState ? 'can' : 'cannot'} update their status`)
+                                    await refreshDrive()
+                                  } catch (e: any) {
+                                    toast.error(e.message || 'Failed to toggle round lock')
+                                  }
+                                }}
+                                title={round.statusUnlocked ? 'Lock round (prevent students from updating status)' : 'Unlock round (allow students to update status)'}
+                              >
+                                {round.statusUnlocked ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
+                                {round.statusUnlocked ? 'Lock' : 'Unlock'}
                               </Button>
                               <Button
                                 size="sm"

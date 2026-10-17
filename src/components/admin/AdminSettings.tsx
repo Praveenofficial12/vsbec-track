@@ -304,11 +304,11 @@ export function AdminSettings() {
                   <div className="pr-4">
                     <p className="flex items-center gap-2 font-medium">
                       <ShieldAlert className="h-4 w-4 text-rose-600 dark:text-rose-400" />
-                      Screenshot Policy (3-strike lock)
+                      Screenshot Policy
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      When enabled, students who press the PrintScreen key get 2 warnings,
-                      then their account is locked on the 3rd attempt. Locked students cannot
+                      When enabled, students who press the PrintScreen key get warnings,
+                      then their account is locked after the max attempts. Locked students cannot
                       log in until you unlock them from the Restricted Actions page.
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
@@ -316,7 +316,6 @@ export function AdminSettings() {
                         <span className={`h-2 w-2 rounded-full ${rule?.screenshotPolicyEnabled ? 'bg-emerald-500' : 'bg-slate-400'}`} />
                         {rule?.screenshotPolicyEnabled ? 'Active' : 'Disabled'}
                       </span>
-                      <span>· Max attempts: <span className="font-semibold text-foreground">{rule?.screenshotMaxAttempts ?? 3}</span></span>
                       <span>· Counter resets on unlock</span>
                     </div>
                   </div>
@@ -329,6 +328,26 @@ export function AdminSettings() {
                       {rule?.screenshotPolicyEnabled ? 'ON' : 'OFF'}
                     </span>
                   </div>
+                </div>
+                {/* Custom max attempts input — admin can set any number (1-10) */}
+                <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-4">
+                  <div>
+                    <p className="font-medium">Max Screenshot Attempts</p>
+                    <p className="text-xs text-muted-foreground">Number of attempts before the account is locked (1-10)</p>
+                  </div>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={10}
+                    defaultValue={rule?.screenshotMaxAttempts ?? 3}
+                    onBlur={(e) => {
+                      const val = parseInt(e.target.value)
+                      const clamped = Math.max(1, Math.min(10, isNaN(val) ? 3 : val))
+                      if (clamped !== val) e.target.value = String(clamped)
+                      handleRuleUpdate(rule, { screenshotMaxAttempts: clamped })
+                    }}
+                    className="w-20 text-center"
+                  />
                 </div>
               </CardContent>
             </Card>
