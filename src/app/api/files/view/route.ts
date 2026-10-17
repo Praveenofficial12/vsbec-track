@@ -54,13 +54,22 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    // ─── Round-based file lock check ──────────────────────────────────
-    // If the file is permanently locked (locked=true in DB) OR the file
-    // belongs to a round and the student has already updated their round
-    // status for that round, the file can no longer be viewed.
+    // ─── Round-based file visibility check ────────────────────────────
+    // Files attached to a round are only visible to students who have
+    // CLEARED the PREVIOUS round. For example:
+    //   - Round 1 (Aptitude) files → visible to all attending students
+    //     (no previous round to clear)
+    //   - Round 2 (Coding) files → only visible if the student CLEARED
+    //     Round 1 (Aptitude)
+    //   - Round 3 (GD) files → only visible if the student CLEARED
+    //     Round 2 (Coding)
+    //   - etc.
+    //
+    // Once the student updates their status for the current round (CLEARED /
+    // NOT_CLEARED / ABSENT), the files for THAT round are permanently locked.
+    //
     // Admin-originated views (no session token) skip this check.
     if (sessionToken && file.roundName) {
-      // Check if the student has a round result for this round
       const session = await db.sessionTracker.findFirst({
         where: { token: sessionToken },
         select: { userKey: true },
@@ -77,21 +86,57 @@ export async function GET(req: NextRequest) {
             select: { id: true },
           })
           if (participation) {
-            const roundResult = await db.roundResult.findFirst({
-              where: {
-                participationId: participation.id,
-                round: { roundName: file.roundName },
-              },
-              select: { status: true },
+            // Get the drive's rounds in order to find the previous round
+            const driveRounds = await db.round.findMany({
+              where: { driveId: file.driveId },
+              orderBy: { roundNumber: 'asc' },
+              select: { id: true, roundNumber: true, roundName: true },
             })
-            // If the round result exists and is NOT PENDING (i.e. it's
-            // CLEARED, NOT_CLEARED, or ABSENT), the file is permanently
-            // locked for this student.
-            if (roundResult && roundResult.status !== 'PENDING') {
-              return new NextResponse(
-                `<html><body style="background:#1a1a1a;color:white;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;"><div style="font-size:64px;margin-bottom:16px;">🔒</div><h2>File Locked</h2><p>This file is no longer available because you have already updated your status for the <strong>${file.roundName}</strong> round.</p></div></body></html>`,
-                { status: 403, headers: { 'Content-Type': 'text/html' } },
-              )
+            const currentRoundIdx = driveRounds.findIndex(r => r.roundName === file.roundName)
+            const currentRound = currentRoundIdx >= 0 ? driveRounds[currentRoundIdx] : null
+
+            if (currentRound) {
+              // Check if the student has a round result for the CURRENT round
+              const currentRoundResult = await db.roundResult.findFirst({
+                where: {
+                  participationId: participation.id,
+                  roundId: currentRound.id,
+                },
+                select: { status: true },
+              })
+
+              // If the student has already updated their status for this
+              // round (CLEARED / NOT_CLEARED / ABSENT), the file is
+              // permanently locked.
+              if (currentRoundResult && currentRoundResult.status !== 'PENDING') {
+                return new NextResponse(
+                  `<html><body style="background:#1a1a1a;color:white;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;"><div style="font-size:64px;margin-bottom:16px;">🔒</div><h2>File Locked</h2><p>This file is no longer available because you have already updated your status for the <strong>${file.roundName}</strong> round.</p></div></body></html>`,
+                  { status: 403, headers: { 'Content-Type': 'text/html' } },
+                )
+              }
+
+              // If this is NOT the first round, check if the student has
+              // CLEARED the PREVIOUS round. If not, the file is locked
+              // (they haven't earned access yet).
+              if (currentRoundIdx > 0) {
+                const previousRound = driveRounds[currentRoundIdx - 1]
+                const previousRoundResult = await db.roundResult.findFirst({
+                  where: {
+                    participationId: participation.id,
+                    roundId: previousRound.id,
+                  },
+                  select: { status: true },
+                })
+
+                // If the previous round result is NOT CLEARED, the file
+                // for the current round is locked.
+                if (!previousRoundResult || previousRoundResult.status !== 'CLEARED') {
+                  return new NextResponse(
+                    `<html><body style="background:#1a1a1a;color:white;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;"><div style="font-size:64px;margin-bottom:16px;">🔒</div><h2>File Locked</h2><p>This file is for the <strong>${file.roundName}</strong> round. It will be unlocked once you clear the <strong>${previousRound.roundName}</strong> round.</p></div></body></html>`,
+                    { status: 403, headers: { 'Content-Type': 'text/html' } },
+                  )
+                }
+              }
             }
           }
         }
