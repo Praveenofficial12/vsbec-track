@@ -96,3 +96,29 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to fetch activity logs' }, { status: 500 })
   }
 }
+
+// DELETE: Delete a single activity log or all logs.
+// Query params:
+//   id=all  → delete ALL activity logs
+//   id=<id> → delete a single log entry
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url)
+    const id = searchParams.get('id')
+
+    if (!id) {
+      return NextResponse.json({ error: 'id is required (use "all" to delete all)' }, { status: 400 })
+    }
+
+    if (id === 'all') {
+      const result = await db.userActivityLog.deleteMany({})
+      return NextResponse.json({ success: true, deleted: result.count })
+    }
+
+    await db.userActivityLog.delete({ where: { id } })
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Delete activity log error:', error)
+    return NextResponse.json({ error: 'Failed to delete activity log' }, { status: 500 })
+  }
+}

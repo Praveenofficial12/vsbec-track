@@ -151,6 +151,32 @@ export function AdminDrives() {
       setForm({ ...EMPTY_FORM })
       setLogoPreview(null)
       fetchDrives()
+      // Ask the admin whether to send email notifications to eligible students
+      setTimeout(() => {
+        if (confirm('Send email notification to all eligible registered students about this new drive?')) {
+          toast.promise(
+            fetch('/api/email-proxy?XTransformPort=3030', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                type: 'drive_notification',
+                driveId: res.id,
+                driveName: res.drive?.driveName || form.driveName,
+                companyName: res.drive?.company?.name || form.companyName,
+                jobRole: form.jobRole,
+                ctc: form.ctc,
+                location: form.location,
+                driveDate: form.driveDate,
+              }),
+            }).then(r => r.json()),
+            {
+              loading: 'Sending email notifications...',
+              success: (data: any) => `Emails sent to ${data.notifiedCount || 0} eligible students`,
+              error: 'Failed to send emails — in-app notifications were still created',
+            }
+          )
+        }
+      }, 500)
     } catch (e: any) {
       toast.error(e.message || 'Failed to create drive')
     } finally {

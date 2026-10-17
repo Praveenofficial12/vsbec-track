@@ -10,8 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { EmptyState, CardSkeleton } from '@/components/common/States'
 import { StatCard } from '@/components/common/StatCard'
-import { apiGet, avatarColor, initials, formatDate } from '@/lib/api'
-import { Search, Download, Filter, RefreshCw, Users, LogIn, LogOut, UserPlus, Eye, Activity, XCircle } from 'lucide-react'
+import { apiGet, apiDelete, avatarColor, initials, formatDate } from '@/lib/api'
+import { Search, Download, Filter, RefreshCw, Users, LogIn, LogOut, UserPlus, Eye, Activity, XCircle, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 const ACTIONS = [
@@ -119,7 +119,7 @@ export function AdminStudentActivity() {
             </h1>
             <p className="text-sm text-muted-foreground">Track student login, registration, and browsing activity</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={fetchLogs}>
               <RefreshCw className="mr-2 h-3.5 w-3.5" />
               Refresh
@@ -127,6 +127,26 @@ export function AdminStudentActivity() {
             <Button variant="outline" size="sm" onClick={handleExport} disabled={logs.length === 0}>
               <Download className="mr-2 h-3.5 w-3.5" />
               Export CSV
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-400 dark:hover:bg-rose-900/20"
+              onClick={async () => {
+                if (confirm('Delete ALL activity logs? This cannot be undone.')) {
+                  try {
+                    const r = await apiDelete('/api/admin/activity-logs?id=all')
+                    toast.success(`Deleted ${r.deleted} logs`)
+                    fetchLogs()
+                  } catch (e: any) {
+                    toast.error(e.message || 'Failed to delete logs')
+                  }
+                }
+              }}
+              disabled={logs.length === 0}
+            >
+              <Trash2 className="mr-2 h-3.5 w-3.5" />
+              Clear All
             </Button>
           </div>
         </div>
@@ -188,6 +208,7 @@ export function AdminStudentActivity() {
                       <TableHead className="hidden md:table-cell">Detail</TableHead>
                       <TableHead className="hidden lg:table-cell">IP Address</TableHead>
                       <TableHead>Time</TableHead>
+                      <TableHead className="w-10"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -222,6 +243,23 @@ export function AdminStudentActivity() {
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {formatDate(log.timestamp)}
+                        </TableCell>
+                        <TableCell>
+                          <button
+                            onClick={async () => {
+                              try {
+                                await apiDelete(`/api/admin/activity-logs?id=${log.id}`)
+                                toast.success('Log deleted')
+                                fetchLogs()
+                              } catch (e: any) {
+                                toast.error(e.message || 'Failed to delete log')
+                              }
+                            }}
+                            className="flex h-6 w-6 items-center justify-center rounded text-rose-600 transition-colors hover:bg-rose-50 dark:hover:bg-rose-900/20"
+                            title="Delete log"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
                         </TableCell>
                       </TableRow>
                     ))}
