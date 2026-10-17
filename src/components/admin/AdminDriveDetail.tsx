@@ -784,11 +784,11 @@ export function AdminDriveDetail() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="general">General (no round)</SelectItem>
-                          <SelectItem value="Aptitude">Aptitude</SelectItem>
-                          <SelectItem value="Coding">Coding</SelectItem>
-                          <SelectItem value="GD">GD</SelectItem>
-                          <SelectItem value="Technical HR">Technical HR</SelectItem>
-                          <SelectItem value="General HR">General HR</SelectItem>
+                          {(drive.rounds || []).map((round) => (
+                            <SelectItem key={round.id} value={round.roundName}>
+                              {round.roundName}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <Button
