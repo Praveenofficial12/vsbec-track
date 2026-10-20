@@ -1,11 +1,13 @@
 'use client'
+import { useState } from 'react'
 import { useAppStore } from '@/lib/store'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import {
   GraduationCap, Users, Building2, TrendingUp, BarChart3, Trophy,
   Shield, Sparkles, ArrowRight, CheckCircle2, Bell, FileText, Target,
-  BookOpen, Award, Zap, ChevronRight, Layers, MapPin,
+  BookOpen, Award, Zap, ChevronRight, Layers, MapPin, Menu,
 } from 'lucide-react'
 import {
   COLLEGE_NAME, COLLEGE_LOCATION, COLLEGE_TAGLINE, COLLEGE_IMAGES, COLLEGE_LOGO,
@@ -48,6 +50,9 @@ const CAMPUS_IMAGES = [
 
 export function LandingPage() {
   const setView = useAppStore((s) => s.setView)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
+
+  const navItems = ['Features', 'Workflow', 'Analytics', 'Roles', 'Campus']
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -62,8 +67,9 @@ export function LandingPage() {
             </div>
           </div>
 
+          {/* Desktop nav */}
           <nav className="hidden items-center gap-1 md:flex">
-            {['Features', 'Workflow', 'Analytics', 'Roles', 'Campus'].map((item) => (
+            {navItems.map((item) => (
               <a
                 key={item}
                 href={`#${item.toLowerCase()}`}
@@ -74,13 +80,45 @@ export function LandingPage() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setView('student-login')} className="hidden sm:inline-flex">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setView('student-login')} className="text-xs sm:text-sm">
               Student Login
             </Button>
             <Button size="sm" onClick={() => setView('admin-login')} className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700">
-              Admin Portal
+              <span className="hidden sm:inline">Admin Portal</span>
+              <span className="sm:hidden">Admin</span>
             </Button>
+            {/* Mobile nav menu */}
+            <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+              <SheetTrigger asChild>
+                <button className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md hover:bg-accent md:hidden" aria-label="Open navigation menu">
+                  <Menu className="h-5 w-5" />
+                </button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-72 p-0">
+                <div className="flex flex-col gap-1 p-4">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Navigation</p>
+                  {navItems.map((item) => (
+                    <a
+                      key={item}
+                      href={`#${item.toLowerCase()}`}
+                      onClick={() => setMobileNavOpen(false)}
+                      className="rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    >
+                      {item}
+                    </a>
+                  ))}
+                  <div className="mt-4 border-t border-border pt-4">
+                    <Button variant="outline" size="sm" className="w-full" onClick={() => { setMobileNavOpen(false); setView('student-login') }}>
+                      Student Login
+                    </Button>
+                    <Button size="sm" className="mt-2 w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700" onClick={() => { setMobileNavOpen(false); setView('admin-login') }}>
+                      Admin Portal
+                    </Button>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </header>
@@ -99,13 +137,13 @@ export function LandingPage() {
         <div className="animate-spin-slow pointer-events-none absolute -right-24 top-10 h-72 w-72 rounded-full border-2 border-dashed border-emerald-300/40 dark:border-emerald-700/40" />
         <div className="animate-spin-slow pointer-events-none absolute -left-16 bottom-10 h-48 w-48 rounded-full border border-dashed border-teal-300/30 dark:border-teal-700/30" />
 
-        <div className="relative mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
+        <div className="relative mx-auto max-w-7xl px-4 py-12 px-4 sm:px-6 lg:px-8 sm:py-20 lg:py-28">
           <div className="mx-auto max-w-3xl text-center">
             <div className="animate-bounce-in mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50/80 px-4 py-1.5 text-xs font-medium text-emerald-700 backdrop-blur dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
               <Sparkles className="h-3.5 w-3.5" />
               {COLLEGE_TAGLINE}
             </div>
-            <h1 className="text-balance text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+            <h1 className="text-balance text-3xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
               <span className="animate-gradient-text">{COLLEGE_NAME}</span>
             </h1>
             <p className="animate-fade-in-up mt-3 text-base font-medium text-emerald-700 dark:text-emerald-400">
@@ -145,7 +183,7 @@ export function LandingPage() {
               >
                 <CardContent className="p-5">
                   <stat.icon className="mb-3 h-6 w-6 text-emerald-600" />
-                  <p className="text-3xl font-bold tracking-tight text-foreground">{stat.value}</p>
+                  <p className="text-2xl font-bold tracking-tight text-foreground">{stat.value}</p>
                   <p className="mt-1 text-xs text-muted-foreground">{stat.label}</p>
                 </CardContent>
               </Card>
@@ -159,10 +197,10 @@ export function LandingPage() {
 
       {/* Campus Showcase */}
       <section id="campus" className="border-t border-border bg-background">
-        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-12 px-4 sm:px-6 lg:px-8 sm:py-20">
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-sm font-semibold uppercase tracking-wider text-emerald-600">Campus Showcase</p>
-            <h2 className="animate-gradient-text mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+            <h2 className="animate-gradient-text mt-2 text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
               V.S.B. Engineering College, Karur
             </h2>
             <p className="mt-4 text-muted-foreground">
@@ -201,10 +239,10 @@ export function LandingPage() {
 
       {/* Features Section */}
       <section id="features" className="border-t border-border bg-background">
-        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-12 px-4 sm:px-6 lg:px-8 sm:py-20">
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-sm font-semibold uppercase tracking-wider text-emerald-600">Features</p>
-            <h2 className="animate-gradient-text mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Everything your placement cell needs</h2>
+            <h2 className="animate-gradient-text mt-2 text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">Everything your placement cell needs</h2>
             <p className="mt-4 text-muted-foreground">A complete toolkit to manage the entire placement lifecycle — from student registration to final selection.</p>
           </div>
 
@@ -231,7 +269,7 @@ export function LandingPage() {
 
       {/* Workflow Section */}
       <section id="workflow" className="border-t border-border bg-muted/30">
-        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-12 px-4 sm:px-6 lg:px-8 sm:py-20">
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-sm font-semibold uppercase tracking-wider text-emerald-600">Workflow</p>
             <h2 className="mt-2 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">A seamless placement process</h2>
@@ -270,7 +308,7 @@ export function LandingPage() {
 
       {/* Analytics Preview Section */}
       <section id="analytics" className="border-t border-border bg-background">
-        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-12 px-4 sm:px-6 lg:px-8 sm:py-20">
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-sm font-semibold uppercase tracking-wider text-emerald-600">Analytics</p>
             <h2 className="mt-2 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Insights that drive decisions</h2>
@@ -313,7 +351,7 @@ export function LandingPage() {
 
       {/* Roles Section */}
       <section id="roles" className="border-t border-border bg-muted/30">
-        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-12 px-4 sm:px-6 lg:px-8 sm:py-20">
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-sm font-semibold uppercase tracking-wider text-emerald-600">Roles</p>
             <h2 className="mt-2 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Two roles, one powerful system</h2>
@@ -327,7 +365,7 @@ export function LandingPage() {
                 <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-soft">
                   <GraduationCap className="h-7 w-7" />
                 </div>
-                <h3 className="text-2xl font-bold text-foreground">Student Portal</h3>
+                <h3 className="text-xl font-bold text-foreground sm:text-2xl">Student Portal</h3>
                 <p className="mt-2 text-muted-foreground">Register once, maintain your profile, and participate in placement drives.</p>
                 <ul className="mt-6 space-y-3">
                   {[
@@ -356,7 +394,7 @@ export function LandingPage() {
                 <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-soft">
                   <Shield className="h-7 w-7" />
                 </div>
-                <h3 className="text-2xl font-bold text-foreground">Admin / Staff Portal</h3>
+                <h3 className="text-xl font-bold text-foreground sm:text-2xl">Admin / Staff Portal</h3>
                 <p className="mt-2 text-muted-foreground">Complete control center for managing placements, drives, and analytics.</p>
                 <ul className="mt-6 space-y-3">
                   {[
@@ -391,9 +429,9 @@ export function LandingPage() {
           loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-800/95 via-teal-800/90 to-emerald-900/95" />
-        <div className="relative mx-auto max-w-4xl px-4 py-16 text-center sm:px-6 lg:px-8">
+        <div className="relative mx-auto max-w-4xl px-4 py-12 text-center sm:px-6 lg:px-8 sm:py-16">
           <Zap className="mx-auto mb-4 h-10 w-10 animate-bounce-in" />
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Ready to streamline your placements?</h2>
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">Ready to streamline your placements?</h2>
           <p className="mt-3 text-emerald-50/90">Join the V.S.B. Engineering College, Karur Placement Portal today and transform how your college manages placements.</p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button size="lg" variant="secondary" onClick={() => setView('student-register')} className="h-12 w-full bg-white text-emerald-700 hover:bg-emerald-50 sm:h-10 sm:w-auto">
