@@ -17,6 +17,7 @@ import {
 import { apiPost } from '@/lib/api'
 import { DEPARTMENTS, validateDepartmentPassword } from '@/lib/department-auth'
 import { COLLEGE_NAME, COLLEGE_LOCATION, COLLEGE_IMAGES } from '@/lib/college'
+import { Footer } from '@/components/common/Footer'
 
 // 105+ skills covering languages, frameworks, databases, cloud, soft skills etc.
 const ALL_SKILLS = [
@@ -562,12 +563,12 @@ export function StudentRegister() {
                 {step === 1 ? 'Login instead' : 'Previous'}
               </Button>
               {step < 4 ? (
-                <Button onClick={handleNext} className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700">
+                <Button onClick={handleNext} className="h-12 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 sm:h-10">
                   Next
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               ) : (
-                <Button onClick={handleSubmit} disabled={loading} className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700">
+                <Button onClick={handleSubmit} disabled={loading} className="h-12 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 sm:h-10">
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -582,6 +583,8 @@ export function StudentRegister() {
           </CardContent>
         </Card>
       </div>
+
+      <Footer />
     </div>
   )
 }

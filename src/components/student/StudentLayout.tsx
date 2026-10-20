@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { COLLEGE_LOGO } from '@/lib/college'
 import type { ViewKey } from '@/lib/types'
+import { Footer } from '@/components/common/Footer'
 
 const NAV_ITEMS: { key: ViewKey; label: string; icon: any }[] = [
   { key: 'student-dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -145,7 +146,7 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
         <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur sm:px-6">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
-              <button className="rounded-md p-2 hover:bg-accent lg:hidden">
+              <button className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md hover:bg-accent lg:hidden" aria-label="Open navigation menu">
                 <Menu className="h-5 w-5" />
               </button>
             </SheetTrigger>
@@ -193,8 +194,9 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto scrollbar-thin">
-          {children}
+        <main className="flex flex-1 flex-col overflow-y-auto scrollbar-thin">
+          <div className="min-h-0 flex-1">{children}</div>
+          <Footer />
         </main>
       </div>
 

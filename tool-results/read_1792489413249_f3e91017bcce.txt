@@ -1,0 +1,588 @@
+     1→'use client'
+     2→import { useMemo, useState } from 'react'
+     3→import { useAppStore } from '@/lib/store'
+     4→import { Button } from '@/components/ui/button'
+     5→import { Card, CardContent } from '@/components/ui/card'
+     6→import { Input } from '@/components/ui/input'
+     7→import { Label } from '@/components/ui/label'
+     8→import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+     9→import { Badge } from '@/components/ui/badge'
+    10→import { Progress } from '@/components/ui/progress'
+    11→import { Separator } from '@/components/ui/separator'
+    12→import { toast } from 'sonner'
+    13→import {
+    14→  ArrowLeft, ArrowRight, GraduationCap, Loader2, User, BookOpen, Target, Award,
+    15→  CheckCircle2, X, Search, ShieldCheck, ShieldAlert, Key, MapPin, Linkedin, Github, BookMarked,
+    16→} from 'lucide-react'
+    17→import { apiPost } from '@/lib/api'
+    18→import { DEPARTMENTS, validateDepartmentPassword } from '@/lib/department-auth'
+    19→import { COLLEGE_NAME, COLLEGE_LOCATION, COLLEGE_IMAGES } from '@/lib/college'
+    20→
+    21→// 105+ skills covering languages, frameworks, databases, cloud, soft skills etc.
+    22→const ALL_SKILLS = [
+    23→  // Languages
+    24→  'Java', 'Python', 'C', 'C++', 'C#', 'JavaScript', 'TypeScript', 'Go', 'Rust', 'Kotlin',
+    25→  'Swift', 'Ruby', 'PHP', 'Scala', 'Perl', 'R', 'MATLAB', 'Dart', 'Lua', 'Haskell',
+    26→  // Web front-end
+    27→  'HTML', 'CSS', 'React', 'Angular', 'Vue', 'Next.js', 'Svelte', 'Tailwind CSS', 'Bootstrap',
+    28→  'jQuery', 'Redux', 'Sass', 'Material UI', 'Chakra UI', 'Storybook',
+    29→  // Back-end frameworks
+    30→  'Node.js', 'Express.js', 'Spring Boot', 'Django', 'Flask', 'FastAPI', 'Ruby on Rails',
+    31→  'ASP.NET', 'Laravel', 'NestJS', 'GraphQL', 'REST APIs', 'gRPC', 'WebSockets',
+    32→  // Mobile
+    33→  'Android', 'iOS', 'React Native', 'Flutter', 'Xamarin',
+    34→  // Databases
+    35→  'SQL', 'MySQL', 'PostgreSQL', 'MongoDB', 'Redis', 'SQLite', 'Oracle', 'Microsoft SQL Server',
+    36→  'Cassandra', 'DynamoDB', 'Elasticsearch', 'Firebase Firestore', 'Supabase',
+    37→  // Cloud / DevOps
+    38→  'Cloud', 'AWS', 'Azure', 'Google Cloud', 'Docker', 'Kubernetes', 'Terraform', 'CI/CD',
+    39→  'Jenkins', 'GitHub Actions', 'GitLab CI', 'Linux', 'Bash Scripting', 'Ansible',
+    40→  // Data / ML / AI
+    41→  'Machine Learning', 'Deep Learning', 'Artificial Intelligence', 'Data Science', 'NLP',
+    42→  'Computer Vision', 'TensorFlow', 'PyTorch', 'Keras', 'scikit-learn', 'Pandas', 'NumPy',
+    43→  'Matplotlib', 'Seaborn', 'Tableau', 'Power BI', 'Big Data', 'Hadoop', 'Spark', 'Kafka',
+    44→  // Testing / QA
+    45→  'Testing', 'Selenium', 'Cypress', 'JUnit', 'TestNG', 'Jest', 'Mocha', 'Playwright', 'Postman',
+    46→  // Security
+    47→  'Cyber Security', 'Penetration Testing', 'OWASP', 'Cryptography', 'Network Security',
+    48→  // Soft / Design / Other
+    49→  'UI/UX', 'Figma', 'Adobe XD', 'Design Thinking', 'Agile', 'Scrum', 'Project Management',
+    50→  'Communication', 'Leadership', 'Problem Solving', 'Data Structures', 'Algorithms',
+    51→  'Operating Systems', 'Computer Networks', 'DBMS', 'OOP', 'System Design',
+    52→  'Microservices', 'Event-Driven Architecture', 'Git', 'GitHub', 'GitLab', 'Bitbucket',
+    53→]
+    54→
+    55→const YEARS = ['I', 'II', 'III', 'IV']
+    56→const SECTIONS = ['A', 'B', 'C', 'D']
+    57→const GENDERS = ['Male', 'Female', 'Other']
+    58→
+    59→const STEPS = [
+    60→  { id: 1, name: 'Personal', icon: User },
+    61→  { id: 2, name: 'Academic', icon: BookOpen },
+    62→  { id: 3, name: 'Placement', icon: Target },
+    63→  { id: 4, name: 'Skills', icon: Award },
+    64→]
+    65→
+    66→export function StudentRegister() {
+    67→  const setView = useAppStore((s) => s.setView)
+    68→  const [step, setStep] = useState(1)
+    69→  const [loading, setLoading] = useState(false)
+    70→  const [skillSearch, setSkillSearch] = useState('')
+    71→  const [form, setForm] = useState({
+    72→    fullName: '', registerNumber: '', collegeEmail: '', personalEmail: '', mobile: '', dateOfBirth: '', gender: '',
+    73→    department: '', departmentPassword: '',
+    74→    degree: 'B.E.', year: '', section: '', semester: '', batch: '2022-2026', cgpa: '',
+    75→    tenthPercentage: '', twelfthPercentage: '', backlogs: '0', historyOfArrears: '0', graduationYear: '2026',
+    76→    preferredRole: '', preferredDomain: '', interestedTechs: '', preferredLocation: '',
+    77→    linkedinUrl: '', leetcodeUrl: '', githubUrl: '', resumeUrl: '',
+    78→    skills: [] as string[], strongSkills: [] as string[],
+    79→  })
+    80→
+    81→  const updateForm = (key: string, value: any) => setForm((f) => ({ ...f, [key]: value }))
+    82→  const toggleSkill = (skill: string, key: 'skills' | 'strongSkills') => {
+    83→    setForm((f) => {
+    84→      const arr = f[key]
+    85→      const updated = arr.includes(skill) ? arr.filter((s) => s !== skill) : [...arr, skill]
+    86→      if (key === 'skills') {
+    87→        const newStrong = updated.length === 0 ? [] : f.strongSkills.filter((s) => updated.includes(s))
+    88→        return { ...f, [key]: updated, strongSkills: newStrong }
+    89→      }
+    90→      return { ...f, [key]: updated }
+    91→    })
+    92→  }
+    93→
+    94→  // Real-time department password validation
+    95→  const deptPasswordValid = useMemo(() => {
+    96→    if (!form.department || !form.departmentPassword) return null
+    97→    return validateDepartmentPassword(form.department, form.departmentPassword)
+    98→  }, [form.department, form.departmentPassword])
+    99→
+   100→  const completion = Math.min(
+   101→    ((form.fullName ? 1 : 0) + (form.registerNumber ? 1 : 0) + (form.collegeEmail ? 1 : 0) + (form.department ? 1 : 0) +
+   102→     (form.year ? 1 : 0) + (form.section ? 1 : 0) + (form.cgpa ? 1 : 0) + (form.skills.length > 0 ? 1 : 0)) / 8 * 100,
+   103→    100
+   104→  )
+   105→
+   106→  const validateStep = () => {
+   107→    if (step === 1) {
+   108→      if (!form.fullName || !form.registerNumber || !form.collegeEmail || !form.personalEmail || !form.mobile || !form.dateOfBirth || !form.gender) {
+   109→        toast.error('Please fill in all personal fields (name, register number, emails, mobile, DOB, gender)')
+   110→        return false
+   111→      }
+   112→      if (!form.department) {
+   113→        toast.error('Please select your department')
+   114→        return false
+   115→      }
+   116→      if (!form.departmentPassword) {
+   117→        toast.error('Please enter your department security password')
+   118→        return false
+   119→      }
+   120→      if (!validateDepartmentPassword(form.department, form.departmentPassword)) {
+   121→        toast.error('Invalid department password — please check with your placement coordinator')
+   122→        return false
+   123→      }
+   124→    }
+   125→    if (step === 2) {
+   126→      if (!form.department || !form.year || !form.section || !form.cgpa || !form.tenthPercentage || !form.twelfthPercentage || !form.semester || !form.batch) {
+   127→        toast.error('Please fill in all academic fields (year, section, semester, batch, CGPA, 10th %, 12th %)')
+   128→        return false
+   129→      }
+   130→    }
+   131→    if (step === 3) {
+   132→      if (!form.preferredRole || !form.preferredDomain || !form.preferredLocation) {
+   133→        toast.error('Please fill in all placement preference fields')
+   134→        return false
+   135→      }
+   136→      if (!form.linkedinUrl || !form.resumeUrl) {
+   137→        toast.error('LinkedIn URL and Resume link are required')
+   138→        return false
+   139→      }
+   140→    }
+   141→    return true
+   142→  }
+   143→
+   144→  const handleNext = () => {
+   145→    if (validateStep()) setStep((s) => Math.min(s + 1, 4))
+   146→  }
+   147→
+   148→  const handleSubmit = async () => {
+   149→    if (form.skills.length === 0) {
+   150→      toast.error('Please select at least one skill')
+   151→      return
+   152→    }
+   153→    setLoading(true)
+   154→    try {
+   155→      const payload = {
+   156→        ...form,
+   157→        skills: form.skills.join(', '),
+   158→        strongSkills: form.strongSkills.join(', '),
+   159→        cgpa: parseFloat(form.cgpa),
+   160→        tenthPercentage: form.tenthPercentage ? parseFloat(form.tenthPercentage) : null,
+   161→        twelfthPercentage: form.twelfthPercentage ? parseFloat(form.twelfthPercentage) : null,
+   162→        backlogs: parseInt(form.backlogs) || 0,
+   163→        historyOfArrears: parseInt(form.historyOfArrears) || 0,
+   164→        resumeUrl: form.resumeUrl,
+   165→      }
+   166→      const res = await apiPost('/api/auth/student-register', payload)
+   167→      if (res.success) {
+   168→        toast.success('Registration successful! Please login to continue.')
+   169→        setView('student-login')
+   170→      }
+   171→    } catch (err: any) {
+   172→      toast.error(err.message || 'Registration failed')
+   173→    } finally {
+   174→      setLoading(false)
+   175→    }
+   176→  }
+   177→
+   178→  const filteredSkills = useMemo(() => {
+   179→    const q = skillSearch.trim().toLowerCase()
+   180→    if (!q) return ALL_SKILLS
+   181→    return ALL_SKILLS.filter((s) => s.toLowerCase().includes(q))
+   182→  }, [skillSearch])
+   183→
+   184→  return (
+   185→    <div className="relative flex min-h-screen flex-col overflow-hidden bg-muted/30">
+   186→      {/* Animated background: college entrance gate image at low opacity */}
+   187→      <div className="pointer-events-none absolute inset-0">
+   188→        <img
+   189→          src={COLLEGE_IMAGES.entranceGate}
+   190→          alt="V.S.B. Engineering College entrance gate"
+   191→          className="h-full w-full object-cover opacity-10"
+   192→          loading="lazy"
+   193→        />
+   194→        <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/40 via-teal-50/30 to-emerald-100/40 dark:from-emerald-950/30 dark:via-teal-950/20 dark:to-emerald-950/40" />
+   195→      </div>
+   196→
+   197→      {/* Floating orbs */}
+   198→      <div className="animate-float pointer-events-none absolute -left-24 top-20 h-64 w-64 rounded-full bg-emerald-400/25 blur-3xl" />
+   199→      <div className="animate-float-slow pointer-events-none absolute -right-24 top-40 h-72 w-72 rounded-full bg-teal-400/20 blur-3xl" />
+   200→
+   201→      <div className="relative mx-auto w-full max-w-3xl flex-1 px-4 py-8">
+   202→        <button
+   203→          onClick={() => setView('landing')}
+   204→          className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+   205→        >
+   206→          <ArrowLeft className="h-4 w-4" />
+   207→          Back to home
+   208→        </button>
+   209→
+   210→        <Card className="animate-scale-in overflow-hidden border-border shadow-soft-lg">
+   211→          {/* Header with animated gradient text + marquee shimmer */}
+   212→          <div className="relative bg-gradient-to-br from-emerald-600 to-teal-700 p-6 text-white">
+   213→            <div className="animate-marquee pointer-events-none absolute inset-0 opacity-40" />
+   214→            <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+   215→            <div className="relative flex items-center gap-4">
+   216→              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/15 backdrop-blur">
+   217→                <GraduationCap className="h-6 w-6" />
+   218→              </div>
+   219→              <div>
+   220→                <h1 className="animate-gradient-text text-xl font-bold">Student Registration</h1>
+   221→                <p className="text-sm text-white/80">Create your placement profile in minutes</p>
+   222→                <p className="mt-1 flex items-center gap-1 text-xs text-white/70">
+   223→                  <MapPin className="h-3 w-3" /> {COLLEGE_NAME} · {COLLEGE_LOCATION}
+   224→                </p>
+   225→              </div>
+   226→            </div>
+   227→          </div>
+   228→
+   229→          {/* Progress bar */}
+   230→          <div className="border-b border-border bg-muted/40 px-6 py-4">
+   231→            <div className="mb-2 flex items-center justify-between">
+   232→              <span className="text-xs font-medium text-muted-foreground">Profile Completion</span>
+   233→              <span className="text-xs font-semibold text-foreground">{Math.round(completion)}%</span>
+   234→            </div>
+   235→            <Progress value={completion} className="h-1.5" />
+   236→          </div>
+   237→
+   238→          {/* Steps indicator */}
+   239→          <div className="flex items-center justify-between px-6 py-4">
+   240→            {STEPS.map((s) => {
+   241→              const isActive = step === s.id
+   242→              const isDone = step > s.id
+   243→              return (
+   244→                <div key={s.id} className="flex flex-1 items-center">
+   245→                  <div className="flex flex-col items-center gap-1.5">
+   246→                    <div
+   247→                      className={`flex h-9 w-9 items-center justify-center rounded-full border-2 transition-all ${
+   248→                        isActive
+   249→                          ? 'border-emerald-600 bg-emerald-600 text-white scale-110'
+   250→                          : isDone
+   251→                          ? 'border-emerald-600 bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
+   252→                          : 'border-border bg-background text-muted-foreground'
+   253→                      }`}
+   254→                    >
+   255→                      {isDone ? <CheckCircle2 className="h-5 w-5" /> : <s.icon className="h-4 w-4" />}
+   256→                    </div>
+   257→                    <span className={`text-xs font-medium ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}>{s.name}</span>
+   258→                  </div>
+   259→                  {s.id < STEPS.length && <div className={`mx-2 h-0.5 flex-1 rounded ${step > s.id ? 'bg-emerald-600' : 'bg-border'}`} />}
+   260→                </div>
+   261→              )
+   262→            })}
+   263→          </div>
+   264→
+   265→          <CardContent className="p-6 pt-2">
+   266→            {/* Step 1: Personal + Department Security Authentication */}
+   267→            {step === 1 && (
+   268→              <div className="space-y-5 animate-fade-in-up">
+   269→                {/* Department Security Authentication */}
+   270→                <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-800 dark:bg-emerald-900/20">
+   271→                  <div className="mb-3 flex items-center gap-2">
+   272→                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-white">
+   273→                      <Key className="h-4 w-4" />
+   274→                    </div>
+   275→                    <div>
+   276→                      <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">Department Security Authentication</p>
+   277→                      <p className="text-xs text-emerald-700/80 dark:text-emerald-400/80">Select your department and enter your official department password.</p>
+   278→                    </div>
+   279→                  </div>
+   280→                  <div className="grid gap-3 sm:grid-cols-2">
+   281→                    <div className="space-y-1.5">
+   282→                      <Label className="text-xs text-muted-foreground">Department *</Label>
+   283→                      <Select value={form.department} onValueChange={(v) => updateForm('department', v)}>
+   284→                        <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
+   285→                        <SelectContent>
+   286→                          {DEPARTMENTS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+   287→                        </SelectContent>
+   288→                      </Select>
+   289→                    </div>
+   290→                    <div className="space-y-1.5">
+   291→                      <Label className="text-xs text-muted-foreground">Department Password *</Label>
+   292→                      <Input
+   293→                        type="password"
+   294→                        value={form.departmentPassword}
+   295→                        onChange={(e) => updateForm('departmentPassword', e.target.value)}
+   296→                        placeholder="e.g. cse#109"
+   297→                        className="bg-background"
+   298→                      />
+   299→                      {form.department && form.departmentPassword && (
+   300→                        deptPasswordValid ? (
+   301→                          <p className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+   302→                            <ShieldCheck className="h-3 w-3" /> Valid {form.department} department password
+   303→                          </p>
+   304→                        ) : (
+   305→                          <p className="flex items-center gap-1 text-xs text-rose-600 dark:text-rose-400">
+   306→                            <ShieldAlert className="h-3 w-3" /> Invalid — please check with your placement coordinator
+   307→                          </p>
+   308→                        )
+   309→                      )}
+   310→                    </div>
+   311→                  </div>
+   312→                </div>
+   313→
+   314→                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+   315→                  <div className="space-y-2 sm:col-span-2">
+   316→                    <Label>Full Name *</Label>
+   317→                    <Input value={form.fullName} onChange={(e) => updateForm('fullName', e.target.value)} placeholder="e.g. Praveen Kumar" />
+   318→                  </div>
+   319→                  <div className="space-y-2">
+   320→                    <Label>Register Number *</Label>
+   321→                    <Input value={form.registerNumber} onChange={(e) => updateForm('registerNumber', e.target.value.toUpperCase())} placeholder="e.g. VSB2400" />
+   322→                  </div>
+   323→                  <div className="space-y-2">
+   324→                    <Label>College Email *</Label>
+   325→                    <Input type="email" value={form.collegeEmail} onChange={(e) => updateForm('collegeEmail', e.target.value)} placeholder="e.g. vsb2400@vsbec.edu.in" />
+   326→                  </div>
+   327→                  <div className="space-y-2">
+   328→                    <Label>Personal Email *</Label>
+   329→                    <Input type="email" value={form.personalEmail} onChange={(e) => updateForm('personalEmail', e.target.value)} placeholder="e.g. you@gmail.com" />
+   330→                  </div>
+   331→                  <div className="space-y-2">
+   332→                    <Label>Mobile Number *</Label>
+   333→                    <Input value={form.mobile} onChange={(e) => updateForm('mobile', e.target.value)} placeholder="e.g. +91 9876543210" />
+   334→                  </div>
+   335→                  <div className="space-y-2">
+   336→                    <Label>Date of Birth *</Label>
+   337→                    <Input type="date" value={form.dateOfBirth} onChange={(e) => updateForm('dateOfBirth', e.target.value)} />
+   338→                  </div>
+   339→                  <div className="space-y-2">
+   340→                    <Label>Gender *</Label>
+   341→                    <Select value={form.gender} onValueChange={(v) => updateForm('gender', v)}>
+   342→                      <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
+   343→                      <SelectContent>
+   344→                        {GENDERS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+   345→                      </SelectContent>
+   346→                    </Select>
+   347→                  </div>
+   348→                </div>
+   349→
+   350→                {/* Optional social profile links */}
+   351→                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+   352→                  <div className="space-y-2">
+   353→                    <Label className="flex items-center gap-1 text-xs text-muted-foreground"><Linkedin className="h-3 w-3" /> LinkedIn URL</Label>
+   354→                    <Input value={form.linkedinUrl} onChange={(e) => updateForm('linkedinUrl', e.target.value)} placeholder="https://linkedin.com/in/..." />
+   355→                  </div>
+   356→                  <div className="space-y-2">
+   357→                    <Label className="flex items-center gap-1 text-xs text-muted-foreground"><BookMarked className="h-3 w-3" /> LeetCode URL</Label>
+   358→                    <Input value={form.leetcodeUrl} onChange={(e) => updateForm('leetcodeUrl', e.target.value)} placeholder="https://leetcode.com/..." />
+   359→                  </div>
+   360→                  <div className="space-y-2">
+   361→                    <Label className="flex items-center gap-1 text-xs text-muted-foreground"><Github className="h-3 w-3" /> GitHub URL</Label>
+   362→                    <Input value={form.githubUrl} onChange={(e) => updateForm('githubUrl', e.target.value)} placeholder="https://github.com/..." />
+   363→                  </div>
+   364→                </div>
+   365→              </div>
+   366→            )}
+   367→
+   368→            {/* Step 2: Academic */}
+   369→            {step === 2 && (
+   370→              <div className="space-y-4 animate-fade-in-up">
+   371→                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+   372→                  <div className="space-y-2">
+   373→                    <Label>Department *</Label>
+   374→                    <Input value={form.department} disabled className="bg-muted/50" />
+   375→                  </div>
+   376→                  <div className="space-y-2">
+   377→                    <Label>Degree *</Label>
+   378→                    <Select value={form.degree} onValueChange={(v) => updateForm('degree', v)}>
+   379→                      <SelectTrigger><SelectValue placeholder="Select degree" /></SelectTrigger>
+   380→                      <SelectContent>
+   381→                        <SelectItem value="B.E.">B.E.</SelectItem>
+   382→                        <SelectItem value="B.TECH">B.TECH</SelectItem>
+   383→                      </SelectContent>
+   384→                    </Select>
+   385→                  </div>
+   386→                  <div className="space-y-2">
+   387→                    <Label>Year *</Label>
+   388→                    <Select value={form.year} onValueChange={(v) => updateForm('year', v)}>
+   389→                      <SelectTrigger><SelectValue placeholder="Select year" /></SelectTrigger>
+   390→                      <SelectContent>
+   391→                        {YEARS.map((y) => <SelectItem key={y} value={y}>Year {y}</SelectItem>)}
+   392→                      </SelectContent>
+   393→                    </Select>
+   394→                  </div>
+   395→                  <div className="space-y-2">
+   396→                    <Label>Class / Section *</Label>
+   397→                    <Select value={form.section} onValueChange={(v) => updateForm('section', v)}>
+   398→                      <SelectTrigger><SelectValue placeholder="Select section" /></SelectTrigger>
+   399→                      <SelectContent>
+   400→                        {SECTIONS.map((s) => <SelectItem key={s} value={s}>Section {s}</SelectItem>)}
+   401→                      </SelectContent>
+   402→                    </Select>
+   403→                  </div>
+   404→                  <div className="space-y-2">
+   405→                    <Label>Semester *</Label>
+   406→                    <Input type="number" min="1" max="8" value={form.semester} onChange={(e) => updateForm('semester', e.target.value)} placeholder="e.g. 6" />
+   407→                  </div>
+   408→                  <div className="space-y-2">
+   409→                    <Label>Batch *</Label>
+   410→                    <Input value={form.batch} onChange={(e) => updateForm('batch', e.target.value)} placeholder="e.g. 2022-2026" />
+   411→                  </div>
+   412→                  <div className="space-y-2">
+   413→                    <Label>CGPA *</Label>
+   414→                    <Input type="number" step="0.01" min="0" max="10" value={form.cgpa} onChange={(e) => updateForm('cgpa', e.target.value)} placeholder="e.g. 8.5" />
+   415→                  </div>
+   416→                  <div className="space-y-2">
+   417→                    <Label>10th Percentage *</Label>
+   418→                    <Input type="number" step="0.01" min="0" max="100" value={form.tenthPercentage} onChange={(e) => updateForm('tenthPercentage', e.target.value)} placeholder="e.g. 92.5" />
+   419→                  </div>
+   420→                  <div className="space-y-2">
+   421→                    <Label>12th / Diploma % *</Label>
+   422→                    <Input type="number" step="0.01" min="0" max="100" value={form.twelfthPercentage} onChange={(e) => updateForm('twelfthPercentage', e.target.value)} placeholder="e.g. 89.5" />
+   423→                  </div>
+   424→                  <div className="space-y-2">
+   425→                    <Label>Backlogs</Label>
+   426→                    <Input type="number" min="0" value={form.backlogs} onChange={(e) => updateForm('backlogs', e.target.value)} />
+   427→                  </div>
+   428→                  <div className="space-y-2">
+   429→                    <Label>History of Arrears</Label>
+   430→                    <Input type="number" min="0" value={form.historyOfArrears} onChange={(e) => updateForm('historyOfArrears', e.target.value)} />
+   431→                  </div>
+   432→                  <div className="space-y-2">
+   433→                    <Label>Graduation Year</Label>
+   434→                    <Input value={form.graduationYear} onChange={(e) => updateForm('graduationYear', e.target.value)} />
+   435→                  </div>
+   436→                </div>
+   437→              </div>
+   438→            )}
+   439→
+   440→            {/* Step 3: Placement Preferences + Profile Links */}
+   441→            {step === 3 && (
+   442→              <div className="space-y-4 animate-fade-in-up">
+   443→                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+   444→                  <div className="space-y-2">
+   445→                    <Label>Preferred Job Role *</Label>
+   446→                    <Input value={form.preferredRole} onChange={(e) => updateForm('preferredRole', e.target.value)} placeholder="e.g. Software Engineer" />
+   447→                  </div>
+   448→                  <div className="space-y-2">
+   449→                    <Label>Preferred Domain *</Label>
+   450→                    <Input value={form.preferredDomain} onChange={(e) => updateForm('preferredDomain', e.target.value)} placeholder="e.g. Software Development" />
+   451→                  </div>
+   452→                  <div className="space-y-2">
+   453→                    <Label>Preferred Work Location *</Label>
+   454→                    <Input value={form.preferredLocation} onChange={(e) => updateForm('preferredLocation', e.target.value)} placeholder="e.g. Chennai" />
+   455→                  </div>
+   456→                  <div className="space-y-2">
+   457→                    <Label>Interested Technologies</Label>
+   458→                    <Input value={form.interestedTechs} onChange={(e) => updateForm('interestedTechs', e.target.value)} placeholder="e.g. React, Node.js" />
+   459→                  </div>
+   460→                </div>
+   461→                <Separator />
+   462→                <div className="space-y-2">
+   463→                  <Label>Resume / CV Link *</Label>
+   464→                  <Input value={form.resumeUrl} onChange={(e) => updateForm('resumeUrl', e.target.value)} placeholder="https://drive.google.com/... or any public link" />
+   465→                  <p className="text-xs text-muted-foreground">Paste a public link to your resume (Google Drive, Dropbox, etc.)</p>
+   466→                </div>
+   467→              </div>
+   468→            )}
+   469→
+   470→            {/* Step 4: Skills — searchable multi-select with 105+ skills */}
+   471→            {step === 4 && (
+   472→              <div className="space-y-6 animate-fade-in-up">
+   473→                <div>
+   474→                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+   475→                    <Label>Select Your Skills * <span className="text-xs text-muted-foreground">({ALL_SKILLS.length} available)</span></Label>
+   476→                    <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+   477→                      {form.skills.length} selected
+   478→                    </Badge>
+   479→                  </div>
+   480→                  <div className="relative mb-3">
+   481→                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+   482→                    <Input
+   483→                      placeholder="Search skills (e.g. React, AWS, Python...)"
+   484→                      value={skillSearch}
+   485→                      onChange={(e) => setSkillSearch(e.target.value)}
+   486→                      className="pl-9"
+   487→                    />
+   488→                    {skillSearch && (
+   489→                      <button
+   490→                        type="button"
+   491→                        onClick={() => setSkillSearch('')}
+   492→                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+   493→                      >
+   494→                        <X className="h-4 w-4" />
+   495→                      </button>
+   496→                    )}
+   497→                  </div>
+   498→                  <div className="max-h-64 overflow-y-auto scrollbar-thin rounded-lg border border-border bg-muted/20 p-3">
+   499→                    {filteredSkills.length === 0 ? (
+   500→                      <p className="py-6 text-center text-sm text-muted-foreground">No skills match your search.</p>
+   501→                    ) : (
+   502→                      <div className="flex flex-wrap gap-2">
+   503→                        {filteredSkills.map((skill) => {
+   504→                          const selected = form.skills.includes(skill)
+   505→                          return (
+   506→                            <button
+   507→                              key={skill}
+   508→                              type="button"
+   509→                              onClick={() => toggleSkill(skill, 'skills')}
+   510→                              className={`group relative inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-all ${
+   511→                                selected
+   512→                                  ? 'border-emerald-600 bg-emerald-600 text-white shadow-soft'
+   513→                                  : 'border-border bg-background text-foreground hover:border-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
+   514→                              }`}
+   515→                            >
+   516→                              {skill}
+   517→                              {selected && <CheckCircle2 className="h-3 w-3" />}
+   518→                            </button>
+   519→                          )
+   520→                        })}
+   521→                      </div>
+   522→                    )}
+   523→                  </div>
+   524→                </div>
+   525→
+   526→                {form.skills.length > 0 && (
+   527→                  <div>
+   528→                    <Label className="mb-3 block">Select Your Strong Skills <span className="text-xs text-muted-foreground">(max 3)</span></Label>
+   529→                    <div className="flex flex-wrap gap-2">
+   530→                      {form.skills.map((skill) => {
+   531→                        const selected = form.strongSkills.includes(skill)
+   532→                        const disabled = !selected && form.strongSkills.length >= 3
+   533→                        return (
+   534→                          <button
+   535→                            key={skill}
+   536→                            type="button"
+   537→                            disabled={disabled}
+   538→                            onClick={() => toggleSkill(skill, 'strongSkills')}
+   539→                            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-all ${
+   540→                              selected
+   541→                                ? 'border-amber-500 bg-amber-500 text-white shadow-soft'
+   542→                                : disabled
+   543→                                ? 'cursor-not-allowed border-border bg-muted/40 text-muted-foreground/50'
+   544→                                : 'border-border bg-background text-foreground hover:border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20'
+   545→                            }`}
+   546→                          >
+   547→                            {selected && <X className="h-3 w-3" />}
+   548→                            {skill}
+   549→                          </button>
+   550→                        )
+   551→                      })}
+   552→                    </div>
+   553→                  </div>
+   554→                )}
+   555→              </div>
+   556→            )}
+   557→
+   558→            {/* Navigation */}
+   559→            <div className="mt-6 flex items-center justify-between">
+   560→              <Button variant="ghost" onClick={() => step === 1 ? setView('student-login') : setStep((s) => s - 1)}>
+   561→                <ArrowLeft className="mr-2 h-4 w-4" />
+   562→                {step === 1 ? 'Login instead' : 'Previous'}
+   563→              </Button>
+   564→              {step < 4 ? (
+   565→                <Button onClick={handleNext} className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700">
+   566→                  Next
+   567→                  <ArrowRight className="ml-2 h-4 w-4" />
+   568→                </Button>
+   569→              ) : (
+   570→                <Button onClick={handleSubmit} disabled={loading} className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700">
+   571→                  {loading ? (
+   572→                    <>
+   573→                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+   574→                      Registering...
+   575→                    </>
+   576→                  ) : (
+   577→                    'Complete Registration'
+   578→                  )}
+   579→                </Button>
+   580→              )}
+   581→            </div>
+   582→          </CardContent>
+   583→        </Card>
+   584→      </div>
+   585→    </div>
+   586→  )
+   587→}
+   588→

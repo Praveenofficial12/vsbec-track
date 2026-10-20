@@ -2399,3 +2399,36 @@ Stage Summary:
 - The drive management page works with test data (TCS drive with 5 rounds).
 - Files changed:
   - src/app/layout.tsx (wrapped script in initAntiCapture + DOMContentLoaded, changed span to script tag)
+
+---
+Task ID: 1
+Agent: Responsive + Footer Agent
+Task: Add "Developed by Batch 2027" footer to all pages + fix responsive design
+
+Work Log:
+- Read /home/z/my-project/worklog.md to understand the existing project state (Tasks 1–24 by the Main Orchestrator). The project is a VSBEC Placement Management System with a SPA architecture: a single `/` route renders different views (landing, auth, admin dashboard, student dashboard) via Zustand store. Anti-capture script in layout.tsx manages screenshot restriction and account locking.
+- Inspected existing components and the shadcn ui library — `StatCard`, `Table` (already wraps in `overflow-x-auto`), `Button` (sizes: default h-9, sm h-8, lg h-10, icon size-9), `globals.css` (emerald/teal color scheme via oklch tokens).
+- Created `src/components/common/Footer.tsx` — a reusable `'use client'` footer with two variants (`default` muted-bg, `solid` emerald-gradient). Layout: VSBEC logo + name on the left, "Developed by Batch 2027" pill on the right; stacks vertically on mobile. Uses `mt-auto` for stick-to-bottom behavior in any `min-h-screen flex flex-col` parent. Uses `relative z-10` so it renders above absolute background images. Respects iOS safe-area-inset-bottom.
+- Added `<Footer />` to `LandingPage.tsx` — replaced the old hand-written footer; removed unused `Clock`, `Star` imports.
+- Added `<Footer />` to `AdminLogin.tsx`, `StudentLogin.tsx`, `StudentRegister.tsx` — placed as the last child of each page's root `flex min-h-screen flex-col` div.
+- Added `<Footer />` inside `<main>` of `AdminLayout.tsx` and `StudentLayout.tsx`. Wrapped `{children}` in `<div className="min-h-0 flex-1">` and converted `<main>` to `flex flex-1 flex-col overflow-y-auto scrollbar-thin` so the Footer sticks to the bottom of the visible main area (sticks when content is short, scrolls into view when content is long).
+- Touch-target fixes (≥44px on mobile): bumped mobile menu hamburger in both layouts from `p-2` (~36px) to `inline-flex min-h-11 min-w-11 items-center justify-center` (44×44px) + `aria-label`; bumped hero CTA buttons on landing page and submit buttons on the three auth pages with `h-12 sm:h-10` (48px mobile, 40px desktop).
+- Verified existing responsive patterns are already correct (didn't change them): hero uses `flex-col sm:flex-row` for the CTA row, features grid uses `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`, workflow steps same, stats grid `grid-cols-2 sm:grid-cols-4`, all auth forms use `max-w-md`/`max-w-3xl mx-auto`, all dashboards use responsive grids, all `<Table>` usages already get `overflow-x-auto` from the shadcn Table component (which wraps in `relative w-full overflow-x-auto`), tables additionally hide less-important columns via `hidden sm:table-cell`/`hidden md:table-cell`.
+- Ran `bun run lint` → 0 errors, 0 warnings ✅.
+- Ran `bunx tsc --noEmit --skipLibCheck` on changed files → no new TS errors (the only TS errors in the repo are pre-existing in `examples/`, `mini-services/`, `scripts/seed.ts` — not in any file I touched).
+- Wrote my work record to `/home/z/my-project/agent-ctx/1-responsive-footer-agent.md` per the orchestrator instructions.
+
+Stage Summary:
+- A single reusable `<Footer />` component (`src/components/common/Footer.tsx`) is now rendered on every page: landing, 3 auth pages, admin dashboard shell, student dashboard shell.
+- "Developed by Batch 2027" appears on every page in the emerald/teal color scheme, alongside the VSBEC logo + name.
+- The footer sticks to the viewport bottom when content is short and is pushed down naturally when content is long, per the project's UI rules.
+- Mobile touch targets on primary CTAs and the mobile menu hamburger are now ≥44px.
+- No existing functionality was changed — only added the footer and adjusted CSS classes for responsiveness.
+- Files changed:
+  - src/components/common/Footer.tsx (new)
+  - src/components/landing/LandingPage.tsx (replaced footer with `<Footer />`, removed unused imports, hero CTA touch-target bump)
+  - src/components/auth/AdminLogin.tsx (added Footer, submit button touch-target bump)
+  - src/components/auth/StudentLogin.tsx (added Footer, submit button touch-target bump)
+  - src/components/auth/StudentRegister.tsx (added Footer, Next/Complete Registration button touch-target bump)
+  - src/components/admin/AdminLayout.tsx (added Footer inside main, mobile menu hamburger ≥44px, main converted to flex column)
+  - src/components/student/StudentLayout.tsx (added Footer inside main, mobile menu hamburger ≥44px, main converted to flex column)

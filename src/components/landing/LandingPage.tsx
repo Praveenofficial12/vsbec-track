@@ -5,11 +5,12 @@ import { Card, CardContent } from '@/components/ui/card'
 import {
   GraduationCap, Users, Building2, TrendingUp, BarChart3, Trophy,
   Shield, Sparkles, ArrowRight, CheckCircle2, Bell, FileText, Target,
-  Clock, Star, BookOpen, Award, Zap, ChevronRight, Layers, MapPin,
+  BookOpen, Award, Zap, ChevronRight, Layers, MapPin,
 } from 'lucide-react'
 import {
   COLLEGE_NAME, COLLEGE_LOCATION, COLLEGE_TAGLINE, COLLEGE_IMAGES, COLLEGE_LOGO,
 } from '@/lib/college'
+import { Footer } from '@/components/common/Footer'
 
 const FEATURES = [
   { icon: Users, title: 'Complete Student Profiles', desc: 'Capture academic details, skills, certifications, projects, and resumes in one centralized system.', accent: 'from-emerald-500 to-teal-500' },
@@ -117,7 +118,7 @@ export function LandingPage() {
               <Button
                 size="lg"
                 onClick={() => setView('student-register')}
-                className="group w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-soft hover:shadow-soft-lg hover:from-emerald-700 hover:to-teal-700 sm:w-auto"
+                className="group h-12 w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-soft hover:shadow-soft-lg hover:from-emerald-700 hover:to-teal-700 sm:h-10 sm:w-auto"
               >
                 Get Started as Student
                 <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -126,7 +127,7 @@ export function LandingPage() {
                 size="lg"
                 variant="outline"
                 onClick={() => setView('admin-login')}
-                className="group w-full border-border bg-background/80 backdrop-blur hover:bg-accent sm:w-auto"
+                className="group h-12 w-full border-border bg-background/80 backdrop-blur hover:bg-accent sm:h-10 sm:w-auto"
               >
                 <Shield className="mr-2 h-4 w-4" />
                 Admin / Staff Portal
@@ -395,11 +396,11 @@ export function LandingPage() {
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Ready to streamline your placements?</h2>
           <p className="mt-3 text-emerald-50/90">Join the V.S.B. Engineering College, Karur Placement Portal today and transform how your college manages placements.</p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Button size="lg" variant="secondary" onClick={() => setView('student-register')} className="w-full bg-white text-emerald-700 hover:bg-emerald-50 sm:w-auto">
+            <Button size="lg" variant="secondary" onClick={() => setView('student-register')} className="h-12 w-full bg-white text-emerald-700 hover:bg-emerald-50 sm:h-10 sm:w-auto">
               Get Started
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
-            <Button size="lg" variant="outline" onClick={() => setView('admin-login')} className="w-full border-white/30 bg-transparent text-white hover:bg-white/10 sm:w-auto">
+            <Button size="lg" variant="outline" onClick={() => setView('admin-login')} className="h-12 w-full border-white/30 bg-transparent text-white hover:bg-white/10 sm:h-10 sm:w-auto">
               Login to Continue
             </Button>
           </div>
@@ -407,24 +408,7 @@ export function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="mt-auto border-t border-border bg-background">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <div className="flex items-center gap-2">
-              <img src={COLLEGE_LOGO} alt="V.S.B. Engineering College Logo" className="h-8 w-8 rounded-md object-contain" />
-              <div>
-                <p className="text-sm font-semibold">V.S.B. Engineering College, Karur — Placement Management System</p>
-                <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} V.S.B. Engineering College, {COLLEGE_LOCATION}. All rights reserved.</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> Real-time</span>
-              <span className="flex items-center gap-1"><Shield className="h-3 w-3" /> Secure</span>
-              <span className="flex items-center gap-1"><Star className="h-3 w-3" /> Production-ready</span>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   )
 }

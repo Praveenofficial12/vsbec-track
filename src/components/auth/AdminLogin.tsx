@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { ArrowLeft, Eye, EyeOff, Loader2, Shield, MapPin } from 'lucide-react'
 import { apiPost } from '@/lib/api'
 import { COLLEGE_NAME, COLLEGE_LOCATION, COLLEGE_IMAGES } from '@/lib/college'
+import { Footer } from '@/components/common/Footer'
 
 export function AdminLogin() {
   const setView = useAppStore((s) => s.setView)
@@ -124,7 +125,7 @@ export function AdminLogin() {
                   </div>
                 </div>
 
-                <Button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700">
+                <Button type="submit" disabled={loading} className="h-12 w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 sm:h-10">
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -146,6 +147,8 @@ export function AdminLogin() {
           </Card>
         </div>
       </div>
+
+      <Footer />
     </div>
   )
 }

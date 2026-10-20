@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { ArrowLeft, GraduationCap, Eye, EyeOff, Loader2, MapPin } from 'lucide-react'
 import { apiPost } from '@/lib/api'
 import { COLLEGE_NAME, COLLEGE_LOCATION, COLLEGE_IMAGES } from '@/lib/college'
+import { Footer } from '@/components/common/Footer'
 
 export function StudentLogin() {
   const setView = useAppStore((s) => s.setView)
@@ -136,7 +137,7 @@ export function StudentLogin() {
                   </p>
                 </div>
 
-                <Button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700">
+                <Button type="submit" disabled={loading} className="h-12 w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 sm:h-10">
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -158,6 +159,8 @@ export function StudentLogin() {
           </Card>
         </div>
       </div>
+
+      <Footer />
     </div>
   )
 }
