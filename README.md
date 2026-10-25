@@ -21,7 +21,7 @@ Built for the placement workflow of **V.S.B. Engineering College, Karur**.
 
 ---
 
-## Overview
+## ✨ Overview
 
 VSBEC Track is a campus placement management platform designed to bring student profiles, company drives, recruitment progress, and placement reporting into one organized workspace.
 
@@ -30,9 +30,7 @@ It provides two role-focused experiences:
 - **Student portal:** maintain a profile, manage skills, explore placement drives, follow recruitment rounds, and review placement history.
 - **Admin portal:** manage student and company records, configure drives and eligibility, update round outcomes, and review placement analytics.
 
-> **Visual note:** The diagrams below explain the intended workflow and system concepts. They are not screenshots of the running application. Real interface screenshots can be added when available.
-
-## At a glance
+## 🎯 At a glance
 
 | Student experience | Placement team experience |
 | --- | --- |
@@ -42,7 +40,7 @@ It provides two role-focused experiences:
 | Track round status and outcomes | Analytics and placement reports |
 | Notifications and placement history | Audit history and system settings |
 
-## Visual guide
+## 🧭 Visual guide
 
 ### 1. Placement lifecycle
 
@@ -64,8 +62,6 @@ flowchart TD
 
 ### 2. Two portals, one coordinated process
 
-![VSBEC Track student and admin portal overview](https://raw.githubusercontent.com/Praveenofficial12/vsbec-track/main/docs/images/portals-overview.svg)
-
 ```mermaid
 flowchart LR
     S[Student Portal] <--> P[Placement Management Platform]
@@ -78,8 +74,6 @@ flowchart LR
 The student portal is focused on individual progress. The admin portal supports coordination across students, companies, drives, recruitment rounds, and reporting.
 
 ### 3. High-level technical architecture
-
-![VSBEC Track technical architecture](https://raw.githubusercontent.com/Praveenofficial12/vsbec-track/main/docs/images/technical-architecture.svg)
 
 ```mermaid
 flowchart LR
@@ -123,7 +117,9 @@ stateDiagram-v2
 
 The exact status labels and transitions depend on the drive configuration used by the application.
 
-## Key capabilities
+---
+
+## 🚀 Key capabilities
 
 ### Student portal
 - Personalized dashboard for placement progress.
@@ -141,7 +137,7 @@ The exact status labels and transitions depend on the drive configuration used b
 - Placement analytics with department, year, and company views.
 - Exportable reports, audit logs, and system settings.
 
-## Technology stack
+## 🛠️ Technology stack
 
 | Layer | Technologies |
 | --- | --- |
@@ -153,7 +149,7 @@ The exact status labels and transitions depend on the drive configuration used b
 | Forms and validation | React Hook Form, Zod |
 | Client state | Zustand |
 
-## Run locally
+## ⚙️ Run locally
 
 ### Prerequisites
 - Node.js 18 or newer
@@ -196,7 +192,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 > **Setup note:** Available scripts, environment variables, and database paths can vary by checkout. If a command is not defined in `package.json`, use the equivalent script documented in the repository.
 
-## Security and responsible data handling
+## 🔐 Security and responsible data handling
 
 The application describes role-separated student and admin experiences, session management, and administrative activity tracking. When demonstrating or deploying the system:
 
@@ -206,29 +202,7 @@ The application describes role-separated student and admin experiences, session 
 - Review authentication, authorization, file-upload validation, and session handling before public deployment.
 - Follow college policies for handling student records.
 
-## Screenshots to add
-
-Real application screenshots will make this repository easier to evaluate. Save clean screenshots in `docs/images/screenshots/` and use relative links such as:
-
-| Screenshot | Suggested filename |
-| --- | --- |
-| Landing or sign-in screen | `landing-page.png` |
-| Student dashboard | `student-dashboard.png` |
-| Company and drive list | `company-drives.png` |
-| Recruitment progress | `drive-tracker.png` |
-| Admin dashboard and charts | `admin-dashboard.png` |
-| Drive configuration | `drive-management.png` |
-| Placement reports | `placement-reports.png` |
-
-After adding a screenshot, embed it in this README with Markdown, for example:
-
-```markdown
-![Student dashboard](docs/images/screenshots/student-dashboard.png)
-```
-
-Only use screenshots captured from the actual running application; hide personal information before publishing.
-
-## Contributing
+## 🤝 Contributing
 
 Suggestions, bug reports, and improvements are welcome. Please keep changes focused, document any setup changes, and avoid including secrets or real student records in commits.
 
