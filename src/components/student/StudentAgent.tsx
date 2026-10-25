@@ -63,17 +63,30 @@ export function StudentAgent() {
     }
   }, [messages])
 
-  const sendMessage = (text: string) => {
-    if (!text.trim()) return
-    const userMessage: Message = { role: 'user', content: text }
+  const [sending, setSending] = useState(false)
+
+  const sendMessage = async (text: string) => {
+    const question = text.trim()
+    if (!question || sending) return
+    const userMessage: Message = { role: 'user', content: question }
+    const history = messages.map(message => ({ role: message.role, content: message.content })).slice(-10)
     setMessages(prev => [...prev, userMessage])
     setInput('')
-
-    // Get answer from knowledge base
-    setTimeout(() => {
-      const answer = findAnswer(text)
-      setMessages(prev => [...prev, { role: 'assistant', content: answer }])
-    }, 500)
+    setSending(true)
+    try {
+      const response = await fetch('/api/student-agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, messages: history }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error || 'The assistant could not answer right now.')
+      setMessages(prev => [...prev, { role: 'assistant', content: data.answer || 'I could not form an answer. Please try asking another way.' }])
+    } catch (error: any) {
+      setMessages(prev => [...prev, { role: 'assistant', content: error.message || 'I could not connect to the assistant. Please try again.' }])
+    } finally {
+      setSending(false)
+    }
   }
 
   return (
@@ -101,7 +114,7 @@ export function StudentAgent() {
               <Bot className="h-5 w-5" />
               <div>
                 <p className="text-sm font-semibold">VSBEC Assistant</p>
-                <p className="text-[10px] opacity-80">Always here to help</p>
+                <p className="text-[10px] opacity-80">AI-powered student help</p>
               </div>
             </div>
             <button onClick={() => setOpen(false)} className="rounded-md p-1 hover:bg-white/20">
@@ -142,6 +155,10 @@ export function StudentAgent() {
             </div>
           )}
 
+          {sending && (
+            <div className="px-3 pb-2 text-xs text-muted-foreground" role="status">Thinking…</div>
+          )}
+
           {/* Input */}
           <div className="flex items-center gap-2 border-t border-border p-3">
             <Input
@@ -154,7 +171,7 @@ export function StudentAgent() {
             <Button
               size="icon"
               onClick={() => sendMessage(input)}
-              disabled={!input.trim()}
+              disabled={!input.trim() || sending}
               className="h-9 w-9 shrink-0 bg-emerald-600 hover:bg-emerald-700"
             >
               <Send className="h-4 w-4" />

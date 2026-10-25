@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { writeFile, mkdir } from 'fs/promises'
-import { existsSync } from 'fs'
-import path from 'path'
-import { randomUUID } from 'crypto'
 
 // GET: List all files attached to a drive (visible to attending students).
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -12,6 +8,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const files = await db.driveFile.findMany({
       where: { driveId: id },
       orderBy: { createdAt: 'desc' },
+      select: {
+        id: true, driveId: true, fileName: true, filePath: true,
+        fileSize: true, mimeType: true, description: true, uploadedBy: true,
+        createdAt: true, roundName: true, locked: true,
+      },
     })
     return NextResponse.json({ files })
   } catch (error) {
@@ -47,34 +48,29 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'File size exceeds 25 MB limit' }, { status: 413 })
     }
 
-    // Save the file to /public/uploads/drives/<driveId>/
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'drives', id)
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true })
-    }
-
-    // Generate a unique filename to avoid collisions, preserving the extension.
-    const ext = path.extname(file.name) || ''
-    const uniqueName = `${randomUUID()}${ext}`
-    const filePath = path.join(uploadDir, uniqueName)
-    const bytes = await file.arrayBuffer()
-    await writeFile(filePath, Buffer.from(bytes))
-
-    // Public URL path for serving the file
-    const publicPath = `/uploads/drives/${id}/${uniqueName}`
-
-    // Create the DriveFile record with the round association
+    // Vercel serverless filesystems are ephemeral/read-only. Persist the bytes
+    // in PostgreSQL so uploads survive deployments and work across instances.
+    const bytes = Buffer.from(await file.arrayBuffer())
     const driveFile = await db.driveFile.create({
       data: {
         driveId: id,
         fileName: file.name,
-        filePath: publicPath,
+        filePath: 'pending',
+        content: bytes,
         fileSize: file.size,
         mimeType: file.type || 'application/octet-stream',
         description: description || null,
         roundName: roundName || null,
       },
+      select: {
+        id: true, driveId: true, fileName: true, filePath: true,
+        fileSize: true, mimeType: true, description: true, uploadedBy: true,
+        createdAt: true, roundName: true, locked: true,
+      },
     })
+    const persistentPath = `db://${id}/${driveFile.id}`
+    await db.driveFile.update({ where: { id: driveFile.id }, data: { filePath: persistentPath } })
+    driveFile.filePath = persistentPath
 
     // Create a notification for all attending students so they know a file
     // was shared in the announcement area.
@@ -124,15 +120,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       return NextResponse.json({ error: 'File not found' }, { status: 404 })
     }
 
-    // Best-effort: delete the physical file from disk
-    const fullPath = path.join(process.cwd(), 'public', file.filePath)
-    try {
-      const { unlink } = await import('fs/promises')
-      await unlink(fullPath)
-    } catch {
-      // ignore — the DB record is the source of truth
-    }
-
+    // File bytes are stored in PostgreSQL, so deleting the row removes both
+    // metadata and the binary content without relying on local disk.
     await db.driveFile.delete({ where: { id: fileId } })
 
     return NextResponse.json({ success: true, message: 'File deleted' })

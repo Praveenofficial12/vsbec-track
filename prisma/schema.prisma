@@ -147,7 +147,8 @@ model DriveFile {
   id          String   @id @default(cuid())
   driveId     String
   fileName    String   // original file name as uploaded
-  filePath    String   // relative public path, e.g. /uploads/drives/<driveId>/<uuid>.<ext>
+  filePath    String   // db://<driveId>/<fileId> for persistent database-backed uploads
+  content     Bytes?   // persistent binary content; files are stored in PostgreSQL, not ephemeral serverless disk
   fileSize    Int      // bytes
   mimeType    String   // e.g. application/pdf, image/png
   description String?  // optional admin caption
