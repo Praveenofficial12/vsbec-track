@@ -22,9 +22,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 // POST: Upload a file to the drive's announcement area.
-// Accepts multipart/form-data with a `file` field and optional `description`.
-// The file is saved to /public/uploads/drives/<driveId>/ and a DriveFile record
-// is created with the public path so attending students can download it.
+// Vercel Functions impose a request-body limit, so keep uploads below that limit
+// and persist bytes in PostgreSQL (the serverless filesystem is not persistent).
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
@@ -42,10 +41,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
-    // Validate file size (max 25 MB)
-    const MAX_SIZE = 25 * 1024 * 1024
+    // Vercel Functions have a 4.5 MB request-body limit, including multipart
+    // overhead. Use a conservative 4 MB file limit so the request reaches this
+    // handler instead of being rejected by the platform before the route runs.
+    const MAX_SIZE = 4 * 1024 * 1024
     if (file.size > MAX_SIZE) {
-      return NextResponse.json({ error: 'File size exceeds 25 MB limit' }, { status: 413 })
+      return NextResponse.json(
+        { error: 'File is too large. Please upload a file smaller than 4 MB. Larger files require external object storage.' },
+        { status: 413 },
+      )
     }
 
     // Vercel serverless filesystems are ephemeral/read-only. Persist the bytes
@@ -100,7 +104,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ success: true, file: driveFile })
   } catch (error) {
     console.error('Upload drive file error:', error)
-    return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Unknown upload error'
+    if (message.includes('content') || message.includes('Unknown argument')) {
+      return NextResponse.json(
+        { error: 'The database schema is not ready for file uploads. Please contact the administrator to sync the DriveFile content column.' },
+        { status: 500 },
+      )
+    }
+    if (message.toLowerCase().includes('timeout') || message.includes('Timed out')) {
+      return NextResponse.json(
+        { error: 'The upload took too long. Try a smaller file (under 4 MB) and upload again.' },
+        { status: 504 },
+      )
+    }
+    return NextResponse.json({ error: 'Upload failed while saving the file. Please try a file under 4 MB; if it continues, check the deployment logs.' }, { status: 500 })
   }
 }
 
