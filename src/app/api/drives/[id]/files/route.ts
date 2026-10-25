@@ -76,32 +76,38 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     await db.driveFile.update({ where: { id: driveFile.id }, data: { filePath: persistentPath } })
     driveFile.filePath = persistentPath
 
-    // Create a notification for all attending students so they know a file
-    // was shared in the announcement area.
-    const attendingStudents = await db.driveParticipation.findMany({
-      where: {
-        driveId: id,
-        attendance: { in: ['ATTENDING', 'IN_PROGRESS', 'SELECTED', 'ON_HOLD'] },
-      },
-      select: { studentId: true },
-    })
+    // The upload is already saved at this point. Notifications are best-effort:
+    // a notification/schema issue must never turn a successful upload into an
+    // "Upload failed" response, which would encourage duplicate uploads.
+    try {
+      const attendingStudents = await db.driveParticipation.findMany({
+        where: {
+          driveId: id,
+          attendance: { in: ['ATTENDING', 'IN_PROGRESS', 'SELECTED', 'ON_HOLD'] },
+        },
+        select: { studentId: true },
+      })
 
-    await Promise.all(
-      attendingStudents.map((p) =>
-        db.notification
-          .create({
+      await Promise.all(
+        attendingStudents.map((p) =>
+          db.notification.create({
             data: {
               studentId: p.studentId,
               title: `New file shared: ${file.name}`,
-              message: `A file "${file.name}" has been shared in the announcement area for ${drive.driveName}. ${description ? description : ''}`.trim(),
+              message: `A file "${file.name}" has been shared in the announcement area for ${drive.driveName}. ${description || ''}`.trim(),
               type: 'DRIVE',
             },
-          })
-          .catch(() => null),
-      ),
-    )
+          }).catch((notificationError) => {
+            console.warn('File uploaded, but student notification failed:', notificationError)
+            return null
+          }),
+        ),
+      )
+    } catch (notificationError) {
+      console.warn('File uploaded, but notifications could not be created:', notificationError)
+    }
 
-    return NextResponse.json({ success: true, file: driveFile })
+    return NextResponse.json({ success: true, file: driveFile }, { status: 201 })
   } catch (error) {
     console.error('Upload drive file error:', error)
     const message = error instanceof Error ? error.message : 'Unknown upload error'
