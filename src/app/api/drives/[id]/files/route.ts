@@ -59,7 +59,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       data: {
         driveId: id,
         fileName: file.name,
-        filePath: 'pending',
+        filePath: `db://${id}`,
         content: bytes,
         fileSize: file.size,
         mimeType: file.type || 'application/octet-stream',
@@ -72,10 +72,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         createdAt: true, roundName: true, locked: true,
       },
     })
-    const persistentPath = `db://${id}/${driveFile.id}`
-    await db.driveFile.update({ where: { id: driveFile.id }, data: { filePath: persistentPath } })
-    driveFile.filePath = persistentPath
-
     // The upload is already saved at this point. Notifications are best-effort:
     // a notification/schema issue must never turn a successful upload into an
     // "Upload failed" response, which would encourage duplicate uploads.
