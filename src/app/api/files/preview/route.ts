@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 
     const file = await db.driveFile.findUnique({
       where: { id: fileId },
-      select: { id: true, fileName: true, filePath: true, mimeType: true, fileSize: true },
+      select: { id: true, fileName: true, filePath: true, mimeType: true, fileSize: true, content: true },
     })
 
     if (!file) {
@@ -35,8 +35,15 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    const fullPath = path.join(process.cwd(), 'public', file.filePath)
-    const fileBuffer = await readFile(fullPath)
+    let fileBuffer: Buffer
+    if (file.content) {
+      fileBuffer = Buffer.from(file.content)
+    } else if (!file.filePath.startsWith('db://')) {
+      const fullPath = path.join(process.cwd(), 'public', file.filePath)
+      fileBuffer = await readFile(fullPath)
+    } else {
+      return new NextResponse('<html><body><h2>File content is unavailable</h2><p>Please ask the admin to re-upload this file.</p></body></html>', { status: 404, headers: { 'Content-Type': 'text/html' } })
+    }
     const ext = file.fileName.toLowerCase().split('.').pop() || ''
 
     let contentHtml = ''

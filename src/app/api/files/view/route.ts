@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
 
     const file = await db.driveFile.findUnique({
       where: { id: fileId },
-      select: { id: true, fileName: true, filePath: true, mimeType: true, driveId: true, fileSize: true, roundName: true, locked: true },
+      select: { id: true, fileName: true, filePath: true, mimeType: true, driveId: true, fileSize: true, roundName: true, locked: true, content: true },
     })
 
     if (!file) {
@@ -153,7 +153,7 @@ export async function GET(req: NextRequest) {
 
     // Check if the file exists on disk
     const fullPath = path.join(process.cwd(), 'public', file.filePath)
-    const fileExists = existsSync(fullPath)
+    const fileExists = Boolean(file.content) || (!file.filePath.startsWith('db://') && existsSync(fullPath))
 
     if (!fileExists) {
       return new NextResponse(
