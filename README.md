@@ -50,6 +50,46 @@
 
 ---
 
+## 🖼️ Visual Project Guide
+
+These diagrams make the system easier to understand at a glance. They are **illustrative diagrams**, not screenshots of a running deployment.
+
+### Placement workflow
+
+![VSBEC Track placement workflow](docs/images/placement-workflow.svg)
+
+Students register and maintain their profiles, explore eligible placement drives, follow each recruitment round, and review their final outcome. Placement officers manage drives and update results through the admin portal.
+
+### Student and admin portals
+
+![Student and admin portal feature overview](docs/images/portals-overview.svg)
+
+The student portal focuses on profiles, applications, and tracking. The admin portal focuses on student/company management, drive configuration, results, analytics, and reports.
+
+### Technical architecture
+
+![VSBEC Track high-level technical architecture](docs/images/technical-architecture.svg)
+
+The project README identifies Next.js, React, TypeScript, API routes, Prisma ORM, and SQLite as key technologies. This is a high-level conceptual view; consult the source code for implementation specifics.
+
+### Recommended real application screenshots
+
+For a stronger project presentation, add genuine screenshots from your running app to `docs/images/screenshots/` and embed them here. Capture these screens using demo data and hide personal information, credentials, email addresses, and private student records:
+
+1. **Landing / login page** — show the project branding and student/admin entry points.
+2. **Student dashboard** — show overview cards and placement status.
+3. **Company and drive listing** — show available drives and eligibility information.
+4. **Drive tracking page** — show recruitment rounds and example statuses.
+5. **Admin dashboard** — show placement KPIs and analytics charts.
+6. **Drive management page** — show how an officer updates rounds or announcements.
+7. **Reports page** — show export/report options, with all real student data obscured.
+
+When screenshots are available, embed them with relative Markdown paths, for example:
+
+    ![Student dashboard](docs/images/screenshots/student-dashboard.png)
+
+---
+
 ## 🚀 Features
 
 ### 🎓 Student Portal
