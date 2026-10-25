@@ -1,371 +1,244 @@
 <div align="center">
 
-<img src="https://img.shields.io/badge/VSBEC-Track-6366f1?style=for-the-badge&logo=graduation-cap&logoColor=white" alt="VSBEC Track" />
+<img src="https://img.shields.io/badge/VSBEC%20TRACK-Placement%20Management-4F46E5?style=for-the-badge&logo=graduation-cap&logoColor=white" alt="VSBEC Track" />
 
-# 🎓 VSBEC Track
-### Placement Management System
+# VSBEC Track
+### Campus Placement Management System
 
-<p align="center">
-  <strong>A full-stack, production-ready campus placement portal built for V.S.B. Engineering College</strong><br/>
-  Empowering students & placement officers with real-time drive tracking, analytics, and smart recommendations.
+**One workspace for students to track opportunities and placement officers to coordinate recruitment.**
+
+Built for the placement workflow of **V.S.B. Engineering College, Karur**.
+
+<p>
+  <img src="https://img.shields.io/badge/Next.js-16-111827?style=flat-square&logo=next.js" alt="Next.js" />
+  <img src="https://img.shields.io/badge/React-19-087EA4?style=flat-square&logo=react" alt="React" />
+  <img src="https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Prisma-ORM-2D3748?style=flat-square&logo=prisma" alt="Prisma" />
+  <img src="https://img.shields.io/badge/SQLite-Database-003B57?style=flat-square&logo=sqlite" alt="SQLite" />
 </p>
-
----
-
-[![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
-[![Prisma](https://img.shields.io/badge/Prisma-6-2D3748?style=flat-square&logo=prisma)](https://www.prisma.io/)
-[![TailwindCSS](https://img.shields.io/badge/Tailwind-4-38bdf8?style=flat-square&logo=tailwindcss)](https://tailwindcss.com/)
-[![SQLite](https://img.shields.io/badge/SQLite-Database-003B57?style=flat-square&logo=sqlite)](https://www.sqlite.org/)
-[![shadcn/ui](https://img.shields.io/badge/shadcn/ui-Components-000000?style=flat-square)](https://ui.shadcn.com/)
 
 </div>
 
 ---
 
-## 📋 Table of Contents
+## Overview
 
-- [✨ Overview](#-overview)
-- [🚀 Features](#-features)
-- [🏗️ Tech Stack](#️-tech-stack)
-- [📁 Project Structure](#-project-structure)
-- [⚙️ Getting Started](#️-getting-started)
-- [🗄️ Database Schema](#️-database-schema)
-- [👥 User Roles](#-user-roles)
-- [📡 API Reference](#-api-reference)
-- [🔒 Security Features](#-security-features)
-- [📊 Analytics & Reporting](#-analytics--reporting)
-- [🤝 Contributing](#-contributing)
+VSBEC Track is a campus placement management platform designed to bring student profiles, company drives, recruitment progress, and placement reporting into one organized workspace.
 
----
+It provides two role-focused experiences:
 
-## ✨ Overview
+- **Student portal:** maintain a profile, manage skills, explore placement drives, follow recruitment rounds, and review placement history.
+- **Admin portal:** manage student and company records, configure drives and eligibility, update round outcomes, and review placement analytics.
 
-**VSBEC Track** is a comprehensive, single-page placement management system designed to streamline the entire campus recruitment lifecycle — from student registration to final placement. Built with **Next.js 16**, **Prisma ORM**, and **SQLite**, it provides two dedicated portals:
+> **Visual note:** The diagrams below explain the intended workflow and system concepts. They are not screenshots of the running application. Real interface screenshots can be added when available.
 
-- 🎓 **Student Portal** — Apply to drives, track round results, manage profiles & skills
-- 🛡️ **Admin Portal** — Manage companies, drives, students, analytics, reports & system settings
+## At a glance
 
-> Built specifically for the Placement & Training Department of **V.S.B. Engineering College, Karur**.
+| Student experience | Placement team experience |
+| --- | --- |
+| Profile and academic details | Student and company management |
+| Skills and resume information | Drive setup and eligibility rules |
+| Browse and apply for drives | Recruitment-round updates |
+| Track round status and outcomes | Analytics and placement reports |
+| Notifications and placement history | Audit history and system settings |
 
----
+## Visual guide
 
-## 🖼️ Visual Project Guide
+### 1. Placement lifecycle
 
-These diagrams make the system easier to understand at a glance. They are **illustrative diagrams**, not screenshots of a running deployment.
-
-### Placement workflow
-
-![VSBEC Track placement workflow](docs/images/placement-workflow.svg)
-
-Students register and maintain their profiles, explore eligible placement drives, follow each recruitment round, and review their final outcome. Placement officers manage drives and update results through the admin portal.
-
-### Student and admin portals
-
-![Student and admin portal feature overview](docs/images/portals-overview.svg)
-
-The student portal focuses on profiles, applications, and tracking. The admin portal focuses on student/company management, drive configuration, results, analytics, and reports.
-
-### Technical architecture
-
-![VSBEC Track high-level technical architecture](docs/images/technical-architecture.svg)
-
-The project README identifies Next.js, React, TypeScript, API routes, Prisma ORM, and SQLite as key technologies. This is a high-level conceptual view; consult the source code for implementation specifics.
-
-### Recommended real application screenshots
-
-For a stronger project presentation, add genuine screenshots from your running app to `docs/images/screenshots/` and embed them here. Capture these screens using demo data and hide personal information, credentials, email addresses, and private student records:
-
-1. **Landing / login page** — show the project branding and student/admin entry points.
-2. **Student dashboard** — show overview cards and placement status.
-3. **Company and drive listing** — show available drives and eligibility information.
-4. **Drive tracking page** — show recruitment rounds and example statuses.
-5. **Admin dashboard** — show placement KPIs and analytics charts.
-6. **Drive management page** — show how an officer updates rounds or announcements.
-7. **Reports page** — show export/report options, with all real student data obscured.
-
-When screenshots are available, embed them with relative Markdown paths, for example:
-
-    ![Student dashboard](docs/images/screenshots/student-dashboard.png)
-
----
-
-## 🚀 Features
-
-### 🎓 Student Portal
-
-| Feature | Description |
-|---|---|
-| **Dashboard** | Personalized overview — active drives, placement status, recent notifications |
-| **Profile Management** | Academic info, personal details, resume upload, profile photo, social links (LinkedIn, GitHub, LeetCode) |
-| **Skills Manager** | Add / manage skills and strong skills with tag-based UI |
-| **Company Explorer** | Browse companies, view job roles, CTC, eligibility criteria and apply for drives |
-| **Drive Tracker** | Real-time round-by-round status tracking (Aptitude → Coding → GD → Technical HR → HR) |
-| **Placement History** | Full timeline of past drive participations and results |
-| **Notifications** | Real-time notifications for drive announcements, round results, and deadlines |
-| **Settings** | Password change, theme toggle (Dark / Light), account preferences |
-
-### 🛡️ Admin Portal
-
-| Feature | Description |
-|---|---|
-| **Dashboard** | Real-time KPIs — total students, placed count, active drives, average CTC |
-| **Student Management** | Full CRUD, bulk import via Excel/CSV, eligibility control, account lock/unlock |
-| **Company Management** | Add companies with logos, job roles, industry, CTC and eligibility details |
-| **Drive Management** | Create multi-round drives, set eligibility filters, manage round statuses |
-| **Drive Detail** | Manage participants, update round results, share files & links, make announcements |
-| **AI Recommendations** | Smart student-to-drive matching based on skills, CGPA, and eligibility |
-| **Analytics** | Department-wise, year-wise, company-wise placement stats with charts |
-| **Reports** | Exportable placement reports (Excel / DOCX) |
-| **Audit Logs** | Full history of every admin action for compliance |
-| **Student Activity** | Per-student activity timeline (logins, page visits, actions) |
-| **Restricted Actions** | Unlock student accounts, manage screenshot policy, placement rules |
-| **Settings** | College config, admin password, email notifications, custom eligibility fields |
-
----
-
-## 🏗️ Tech Stack
-
-```
-Frontend        Next.js 16 (App Router) · React 19 · TypeScript 5
-Styling         Tailwind CSS v4 · shadcn/ui · Framer Motion
-State           Zustand (global client state)
-Database        SQLite (via Prisma ORM 6)
-Charts          Recharts
-Tables          TanStack Table v8
-Forms           React Hook Form + Zod validation
-File Handling   JSZip · Mammoth · xlsx · docx
-Email           Nodemailer
-Auth            Custom session + heartbeat system
+```mermaid
+flowchart TD
+    A([Student registers]) --> B[Complete academic profile and skills]
+    B --> C[Explore company drives]
+    C --> D{Meets eligibility criteria?}
+    D -- No --> E[Review eligibility requirements]
+    E --> C
+    D -- Yes --> F[Apply / participate in drive]
+    F --> G[Attend recruitment rounds]
+    G --> H[Placement team updates results]
+    H --> I{More rounds remaining?}
+    I -- Yes --> G
+    I -- No --> J[Final outcome recorded]
+    J --> K[Student reviews status and history]
 ```
 
----
+### 2. Two portals, one coordinated process
 
-## 📁 Project Structure
+![VSBEC Track student and admin portal overview](https://raw.githubusercontent.com/Praveenofficial12/vsbec-track/main/docs/images/portals-overview.svg)
 
-```
-vsbec-track/
-├── prisma/
-│   └── schema.prisma          # Full DB schema (15+ models)
-├── src/
-│   ├── app/
-│   │   ├── page.tsx           # SPA router — all views in one page
-│   │   ├── globals.css        # Global styles & design tokens
-│   │   └── api/               # Next.js API routes
-│   │       ├── auth/          # Login, register, logout, heartbeat
-│   │       ├── students/      # Student CRUD & bulk import
-│   │       ├── companies/     # Company management
-│   │       ├── drives/        # Drive lifecycle management
-│   │       ├── analytics/     # Placement analytics
-│   │       ├── reports/       # Export reports
-│   │       ├── certifications/# Student certifications
-│   │       ├── projects/      # Student projects
-│   │       ├── notifications/ # Push notifications
-│   │       ├── audit-logs/    # Admin audit trail
-│   │       ├── recommendations/# AI-based student matching
-│   │       ├── settings/      # System configuration
-│   │       └── log-activity/  # User activity tracking
-│   ├── components/
-│   │   ├── admin/             # 15 admin page components
-│   │   ├── student/           # 10 student page components
-│   │   ├── auth/              # Login, Register forms
-│   │   ├── landing/           # Public landing page
-│   │   ├── common/            # Shared components
-│   │   └── ui/                # 48 shadcn/ui base components
-│   ├── lib/
-│   │   ├── db.ts              # Prisma client singleton
-│   │   ├── types.ts           # Shared TypeScript interfaces
-│   │   ├── store.ts           # Zustand global state
-│   │   ├── api.ts             # API utility functions
-│   │   ├── college.ts         # College config helpers
-│   │   ├── activity.ts        # Activity logging
-│   │   └── email-notifications.ts  # Email helpers
-│   └── hooks/
-│       ├── use-session-heartbeat.ts  # Single-session enforcement
-│       └── use-mobile.ts
-├── db/                        # SQLite database files
-├── upload/                    # Student-uploaded files (resume, photos)
-├── public/uploads/            # Drive files (admin-shared)
-├── scripts/                   # DB backup & migration scripts
-└── .env                       # Environment variables
+```mermaid
+flowchart LR
+    S[Student Portal] <--> P[Placement Management Platform]
+    A[Admin Portal] <--> P
+    P <--> D[(Application Database)]
+    P --> N[Notifications and status updates]
+    P --> R[Analytics and reports]
 ```
 
----
+The student portal is focused on individual progress. The admin portal supports coordination across students, companies, drives, recruitment rounds, and reporting.
 
-## ⚙️ Getting Started
+### 3. High-level technical architecture
+
+![VSBEC Track technical architecture](https://raw.githubusercontent.com/Praveenofficial12/vsbec-track/main/docs/images/technical-architecture.svg)
+
+```mermaid
+flowchart LR
+    UI[Next.js / React UI] --> APP[Application logic and API routes]
+    APP --> ORM[Prisma ORM]
+    ORM --> DB[(SQLite)]
+    APP --> FILES[File handling]
+    APP --> ANALYTICS[Analytics and reports]
+```
+
+This is a conceptual view of the stack described for the project. Refer to the source code and environment configuration for deployment-specific details.
+
+### 4. Admin drive-management workflow
+
+```mermaid
+flowchart TD
+    A[Admin signs in] --> B[Create or select company]
+    B --> C[Configure placement drive]
+    C --> D[Set role and eligibility criteria]
+    D --> E[Publish drive details]
+    E --> F[Review participating students]
+    F --> G[Update recruitment-round results]
+    G --> H[Review final selections]
+    H --> I[Refresh analytics and reports]
+```
+
+### 5. Recruitment status flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> DriveAvailable
+    DriveAvailable --> Applied: Student applies
+    Applied --> InProgress: Recruitment starts
+    InProgress --> NextRound: Advances to next round
+    NextRound --> InProgress
+    InProgress --> Selected: Selected
+    InProgress --> NotSelected: Not selected
+    Selected --> [*]
+    NotSelected --> [*]
+```
+
+The exact status labels and transitions depend on the drive configuration used by the application.
+
+## Key capabilities
+
+### Student portal
+- Personalized dashboard for placement progress.
+- Profile, academic information, skills, resume, certifications, and projects.
+- Company and drive discovery with eligibility information.
+- Recruitment-round status tracking and placement history.
+- Notifications for drive updates and results.
+- Account preferences and supported settings.
+
+### Admin portal
+- Dashboard with placement overview metrics.
+- Student records and bulk-import support.
+- Company and placement-drive management.
+- Eligibility configuration and recruitment-round result updates.
+- Placement analytics with department, year, and company views.
+- Exportable reports, audit logs, and system settings.
+
+## Technology stack
+
+| Layer | Technologies |
+| --- | --- |
+| Web application | Next.js, React, TypeScript |
+| UI and styling | Tailwind CSS, shadcn/ui |
+| Data access | Prisma ORM |
+| Database | SQLite |
+| Charts and tables | Recharts, TanStack Table |
+| Forms and validation | React Hook Form, Zod |
+| Client state | Zustand |
+
+## Run locally
 
 ### Prerequisites
-
-- **Node.js** ≥ 18
-- **npm** or **bun**
+- Node.js 18 or newer
+- npm (or Bun)
 
 ### 1. Clone the repository
-
 ```bash
 git clone https://github.com/Praveenofficial12/vsbec-track.git
 cd vsbec-track
 ```
 
 ### 2. Install dependencies
-
 ```bash
 npm install
-# or
-bun install
 ```
 
 ### 3. Configure environment
-
-Create a `.env` file in the root:
+Create a `.env` file in the project root and configure the database URL required by your local setup. For example:
 
 ```env
-DATABASE_URL=file:../db/custom.db
+DATABASE_URL="file:./dev.db"
 ```
 
-### 4. Set up the database
+Check the project's Prisma schema and existing scripts before changing the database path.
+
+### 4. Generate Prisma client and prepare the database
+Run the database scripts defined in `package.json`. In projects where these scripts are configured as described, the commands may be:
 
 ```bash
-# Generate Prisma client
 npm run db:generate
-
-# Push schema to SQLite
 npm run db:push
 ```
 
-### 5. Run the development server
-
+### 5. Start the development server
 ```bash
-npx next dev -p 3000
+npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000).
 
-### 6. Default Admin Credentials
+> **Setup note:** Available scripts, environment variables, and database paths can vary by checkout. If a command is not defined in `package.json`, use the equivalent script documented in the repository.
 
-> The default admin account is seeded during first run. Check `/scripts/` or contact the placement office for credentials.
+## Security and responsible data handling
 
----
+The application describes role-separated student and admin experiences, session management, and administrative activity tracking. When demonstrating or deploying the system:
 
-## 🗄️ Database Schema
+- Use demo data in public screenshots and presentations.
+- Never commit passwords, API keys, database files, or private student information.
+- Keep production environment variables out of source control.
+- Review authentication, authorization, file-upload validation, and session handling before public deployment.
+- Follow college policies for handling student records.
 
-The system uses **SQLite** via **Prisma ORM** with the following core models:
+## Screenshots to add
 
+Real application screenshots will make this repository easier to evaluate. Save clean screenshots in `docs/images/screenshots/` and use relative links such as:
+
+| Screenshot | Suggested filename |
+| --- | --- |
+| Landing or sign-in screen | `landing-page.png` |
+| Student dashboard | `student-dashboard.png` |
+| Company and drive list | `company-drives.png` |
+| Recruitment progress | `drive-tracker.png` |
+| Admin dashboard and charts | `admin-dashboard.png` |
+| Drive configuration | `drive-management.png` |
+| Placement reports | `placement-reports.png` |
+
+After adding a screenshot, embed it in this README with Markdown, for example:
+
+```markdown
+![Student dashboard](docs/images/screenshots/student-dashboard.png)
 ```
-Student              ─── Academic info, skills, resume, placement status
-Company              ─── Company details, job roles, CTC
-Drive                ─── Placement drives with eligibility filters
-Round                ─── Individual rounds within a drive
-DriveParticipation   ─── Student ↔ Drive relationship with results
-RoundResult          ─── Per-round status per student
-Certification        ─── Student certifications
-Project              ─── Student projects
-Notification         ─── Real-time student notifications
-AdminUser            ─── Admin accounts
-AuditLog             ─── Admin action audit trail
-PlacementRule        ─── Configurable placement policies
-UserActivityLog      ─── Full user activity tracking
-SessionTracker       ─── Single-session enforcement
-DriveFile            ─── Files attached to drive announcements
-DriveLink            ─── External links shared by admin
-CustomField          ─── Dynamic custom eligibility fields
-```
 
----
+Only use screenshots captured from the actual running application; hide personal information before publishing.
 
-## 👥 User Roles
+## Contributing
 
-### 🎓 Student
-- Self-registers with register number & college email
-- Can view and apply to open placement drives
-- Tracks real-time round-by-round status
-- Manages profile, skills, certifications, and projects
-- Receives notifications for all drive events
-
-### 🛡️ Admin (Placement Officer)
-- Full control over students, companies, and drives
-- Can bulk-import students from Excel/CSV
-- Configures drive eligibility rules per department, year, CGPA, backlogs
-- Manages multi-round drives with announcement boards
-- Views analytics, exports reports, and maintains audit logs
-- Can lock/unlock student accounts and manage screenshot policy
-
----
-
-## 📡 API Reference
-
-All APIs are under `/api/`:
-
-| Endpoint | Method | Description |
-|---|---|---|
-| `/api/auth/login` | POST | Student / Admin login |
-| `/api/auth/register` | POST | Student registration |
-| `/api/auth/logout` | POST | Logout & clear session |
-| `/api/auth/heartbeat` | POST | Session keepalive |
-| `/api/students` | GET/POST | List / create students |
-| `/api/students/[id]` | GET/PUT/DELETE | Student detail CRUD |
-| `/api/companies` | GET/POST | List / create companies |
-| `/api/drives` | GET/POST | List / create drives |
-| `/api/drives/[id]` | GET/PUT/DELETE | Drive detail CRUD |
-| `/api/participations` | GET/POST | Drive participation |
-| `/api/certifications` | GET/POST | Student certifications |
-| `/api/projects` | GET/POST | Student projects |
-| `/api/notifications` | GET/POST | Notifications |
-| `/api/analytics` | GET | Placement analytics data |
-| `/api/reports` | GET | Export placement reports |
-| `/api/recommendations` | GET | AI-based student matching |
-| `/api/audit-logs` | GET | Admin audit logs |
-| `/api/settings` | GET/POST | System settings |
-| `/api/log-activity` | POST | Log user activity |
-| `/api/files` | POST/DELETE | File upload / delete |
-
----
-
-## 🔒 Security Features
-
-| Feature | Details |
-|---|---|
-| **Single-Session Enforcement** | Only one active browser tab per user. Second login triggers instant logout of the first session via heartbeat mechanism |
-| **Screenshot Policy** | Students attempting to take screenshots inside the portal receive 2 warnings; on the 3rd attempt, their account is locked automatically |
-| **Account Locking** | Admin can lock/unlock student accounts manually or via automated screenshot policy |
-| **Audit Trail** | Every admin action (create, update, delete, unlock) is logged with timestamps |
-| **Session Heartbeat** | Sessions expire after 30s of inactivity; stale sessions are auto-cleared |
-| **Role-Based Access** | Student and Admin views are strictly separated; unauthorized access redirects to login |
-
----
-
-## 📊 Analytics & Reporting
-
-The **Admin Analytics** module provides:
-
-- 📈 **Overview KPIs** — Total students, eligible students, placed count, placement %, average CTC, highest CTC
-- 🏢 **Company-wise** — Selections per company, CTC offered
-- 🎓 **Department-wise** — Placement breakdown by department
-- 📅 **Year-wise** — Placement trends across academic years
-- 🛠️ **Skill Analytics** — Most in-demand skills, strong skill distribution
-- 🔢 **Placement Funnel** — Registered → Attending → In-progress → Selected
-
-**Export Formats:**
-- 📊 Excel (`.xlsx`) — Full student placement data
-- 📄 Word (`.docx`) — Formatted placement report
-
----
-
-## 🤝 Contributing
-
-This project is developed and maintained by the placement team at **V.S.B. Engineering College**.
-
-```
-Institution  : V.S.B. Engineering College, Karur
-Department   : Placement & Training Cell
-Maintained by: Placement Officers & Student Dev Team
-```
+Suggestions, bug reports, and improvements are welcome. Please keep changes focused, document any setup changes, and avoid including secrets or real student records in commits.
 
 ---
 
 <div align="center">
 
-Made with ❤️ for **V.S.B. Engineering College**
+**VSBEC Track**  
+*Making campus placement progress easier to coordinate and understand.*
 
-⭐ Star this repo if you find it useful!
+[Repository](https://github.com/Praveenofficial12/vsbec-track) · Built for V.S.B. Engineering College, Karur
 
 </div>
